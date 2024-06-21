@@ -515,11 +515,19 @@
             this.tokens.push(beatToken);
             continue
           }
+          if (beatToken.match(/:*\|:*/)) {
+            this.tokens.push(beatToken);
+            continue
+          }
+          // If the beat token is empty, just skip it.
+          if (beatToken.length === 0) {
+            continue;
+          }
           // Now we split the beat token into individual pitch tokens.
           let pitchToken = "";
           for (let j = 0; j < beatToken.length; j++) {
-            if (beatToken[j] === '|') {
-              this.tokens.push("|")
+            if (beatToken == '|' || beatToken == '|:' || beatToken[j] == ':|') {
+              this.tokens.push(beatToken)
             } else if (beatToken[j].match(/[\^\/]/)) {
               pitchToken += beatToken[j];
             } else if (beatToken[j].match(/[#&%]/)) {
@@ -568,7 +576,7 @@
             // throw new Error("Empty pitch token");
             lineProblems.add("Empty pitch token");
           }
-          if (token === "|") {
+          if (token == "|" || token == "|:" || token == ":|") {
             this.alterations.initAltered();
             continue
           }
@@ -924,8 +932,8 @@
           return token.replace(/m7b5/, "ø7")
             .replace(/-7b5/, "ø7")
             .replace(/maj7/, "△7")
-            .replace(/min/, "-")
-            .replace(/m/, "-")
+            .replace(/min/, "m")
+            .replace(/m/, "m")
             .replace(/dim/, "°")
             .replace(/aug/, "+")
             .replace(/7b9/, "7♭9")
@@ -994,74 +1002,117 @@
       return [str.slice(0, separatorIndex), str.slice(separatorIndex + separator.length)];
     }
 
+    // musicToPitchLyric takes a music line (a string) and returns a pitch line  and a
+    // lyric line as an object. For example, if the music line is `K#2 c; d -e f |` the
+    // lyric line will be `*; * -* * |` and the pitch line will be 
+    // `K#2 c d e f |`. 
+    //
+    // The lyric line is constructed by identifying all key signature
+    // and pitch tokens in the music and removing the key signatures and
+    // replacing the pitch tokens with asterisks.
+    //
+    // The pitch line is constructed by removing all the hold or rest
+    // characters, '-' and ';'the from music line. 
+    function musicToPitchLyric(musicLine) {
+      let lyricLine = musicLine;
+      let pitchLine = musicLine;
+
+      // Remove key signatures and replace pitch tokens with asterisks in the lyric line
+      lyricLine = lyricLine.replace(/K[#&]?\d/g, "").replace(/\^*\/*[#&%]*[a-g]/g, "*");
+
+      // Remove hold and rest characters from the pitch line
+      pitchLine = pitchLine.replace(/[-;]/g, "");
+
+      return {
+        lyric: lyricLine.trim(),
+        pitch: pitchLine.trim()
+      };
+    }
+
     // The preprocessScore function is used to parse the score input
     // text and convert it into a data object with members for the title,
     // preface, lyrics, expressions, cues, pitches, chords, perbars and
-    // postscript.
-    function preprocessScore(data) {
-      // If the data object has member named "text", parse it into data.lines.
-      if (data.text) {
-        const lines = data.text.split(/\n\s*\n/);
-        console.log(lines);
-        let kvlines = lines.map(line => {
-          const parts = line.split(/\n/);
-          const obj = {};
-          parts.forEach(part => {
-            part.trim()
-            const [key, value] = splitFirst(part, ': ');
-            k = key.trim();
-            if (k !== "" && value !== undefined) {
-              obj[k] = value.trim();
-            }
-          });
-          return obj;
+    // postscript. The data object is returned.
+    // It's important to understand the distinction between line groups
+    // and singleton lines. A line group is a group of lines that represent
+    // a line of music.  Singletons are things like title, preface, etc.
+    // that appear once within a score. Within the score text, blank lines
+    // i.e. /\n\s*\n/ are delimeters between singletons and line groups.
+    function preprocessScore(text) {
+      const lineGroups = text.split(/\n\s*\n/);
+      console.log(lineGroups);
+      let kvlines = lineGroups.map(line => {
+        const parts = line.split(/\n/);
+        const obj = {};
+        parts.forEach(part => {
+          part.trim()
+          const [key, value] = splitFirst(part, ': ');
+          k = key.trim();
+          if (k !== "" && value !== undefined) {
+            obj[k] = value.trim();
+          }
         });
-        kvlines = kvlines.filter(obj => Object.keys(obj).length > 0);
-        console.log(kvlines);
-        data.lines = kvlines;
-      }
+        return obj;
+      });
+      kvlines = kvlines.filter(obj => Object.keys(obj).length > 0);
+      console.log(kvlines);
+      const data = { text: text, lines: [] };
 
-      // if data.lines[] has a member named "title", 
-      // assign it to data.title and remove it from data.lines
-      if (data.lines[0].title !== undefined) {
-        data.title = data.lines[0].title;
-        data.lines.shift();
+      // loop over kvlines and assign each member to data.
+      for (let kv of kvlines) {
+        if (Object.keys(kv).length > 1) {
+          // It's a line group. Push it onto the lines array.
+          data.lines.push(kv);
+          continue;
+        }
+        // Handle objects with only one key. Title, preface, postscript and
+        // zoom are singletons. We allow individual instance of cue, music, and
+        // lyric to be rendered as line groups.
+        for (let key in kv) {
+          switch (key) {
+            case "cue":
+            case "music":
+            case "lyric":
+              // all 3 above are allowed as line groups of length 1.
+              data.lines.push(kv);
+              break;
+            case "title":
+              data.title = kv[key];
+              break;
+            case "preface":
+              data.preface = kv[key];
+              break;
+            case "postscript":
+              data[key] = kv[key];
+              break;
+            case "zoom":
+              data.zoom = kv[key];
+              break;
+            default:
+              console.log("Unknown key: " + key);
+          }
+        }
       }
-      // return if there are no lines left in data.lines
-      if (data.lines.length == 0) {
-        return data;
-      }
-      // if data.lines[0] has a member named "preface",
-      // assign it to data.preface and remove it from data.lines
-      if (data.lines[0].preface !== undefined) {
-        data.preface = data.lines[0].preface;
-        data.lines.shift();
-      }
-      // return if there are no lines left in data.lines
-      if (data.lines.length == 0) {
-        return data;
-      }
-      // if the last element of data.lines has a member named "postscript",
-      // assign it to data.postscript and remove it from data.lines
-      if (data.lines[data.lines.length - 1].postscript !== undefined) {
-        data.postscript = data.lines[data.lines.length - 1].postscript;
-        data.lines.pop();
-      }
-
       return data;
     }
 
     // The renderScore function is used to render the score using the
-    // members of the data object created by preprocessScore
+    // members of the data object created by preprocessScore.
+    //  - svg is an svg element
+    //  - data is an object containing the score
     function renderScore(svg, data) {
-      lineProblems.clear();
-      // svg is an svg element
-      // data is an object containing the score
-
       // clear any existing content of the SVG element
       svg.innerHTML = "";
+
+      let y = 0; // y coordinate of the top of the rendered score
+
+      // Render any line problems that were encountered in
+      // preliminary processing
+      y = lineProblems.render(svg, bookParameters.leftX, y);
+      lineProblems.clear();
+
       // Render the title at the top of the SVG element
-      let y = 2 * bookParameters.titleFontHeight
+      y += 2 * bookParameters.titleFontHeight
       const title = document.createElementNS('http://www.w3.org/2000/svg', 'text');
       title.setAttribute('x', bookParameters.leftX);
       title.setAttribute('y', bookParameters.titleFontHeight);
@@ -1082,6 +1133,13 @@
       }
       // Render the score
       data.lines.forEach((line, index) => {
+        // Handle the music lines. If present, a music line replaces the
+        // lyric and pitch lines.
+        if (line.music) {
+          const { lyric, pitch } = musicToPitchLyric(line.music);
+          line.lyric = lyric;
+          line.pitch = pitch;
+        }
         let lyricline = undefined
         if (line.lyric) {
           lyricline = new LyricLine(line.lyric);
@@ -1177,7 +1235,7 @@
 
     // renderEditedScoreSource takes as its argument a div element. If the div element
     // contains a <pre> of class 'source', the contents of the <pre> are passed
-    // preprocessScore() and the result is used as the data argument to renderScore().
+    // preprocessScore() and the result is used as the data argument to renderScore().:
     // If the div already contains an SVG element, it is passed to renderScore() as
     // the svg argument. Otherwise, a new SVG element is created and appended to the
     // to the div element and passed to renderScore().
@@ -1186,7 +1244,7 @@
       if (pre === null) {
         return
       }
-      const data = preprocessScore({ text: pre.textContent });
+      const data = preprocessScore(pre.textContent);
       let svg = div.querySelector('svg');
       if (svg === null) {
         svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
@@ -1196,7 +1254,21 @@
       // calculate rendered height and adjust the svg height and viewbox
       const height = svg.getBBox().height + 20;
       svg.setAttribute('height', height);
-      svg.setAttribute('viewBox', `0 0 720 ${height}`);
+      let zoom = 100;
+      if (data.zoom) {
+        // if data.zoom can't be parsed, use 100% and add a message to the
+        // lineProblems object so that the error can be displayed in the
+        // SVG.
+        zoom = parseInt(data.zoom, 10);
+        if (isNaN(zoom)) {
+          lineProblems.add("Invalid zoom value: " + data.zoom);
+          zoom = 100;
+        }
+        // allow user to specify a zoom factor between 50 and 200%
+        zoom = Math.max(50, Math.min(200, parseInt(zoom, 10)));
+      }
+      const xpix = 720 * 100. / zoom;
+      svg.setAttribute('viewBox', `0 0 ${xpix} ${height}`);
       scoreToc(); // update the table of contents
     }
     // scoreToc is a function that generates a table of contents for the scores in the
@@ -1516,7 +1588,7 @@ postscript: Click the edit widget below if it's not already open.
             newScoreButton.textContent = 'Insert New Score';
             newScoreButton.addEventListener('click', handleNewScoreButtonClick);
             div.parentNode.insertBefore(newScoreButton, div.nextSibling);
-
+ 
             div.appendChild(link);
             renderEditedScoreSource(div);
           });
