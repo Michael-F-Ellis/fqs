@@ -1,17 +1,21 @@
+
 title: C scales in 15 different keys
+
+zoom: 150
+
 
 preface: Natural notes are black, flats blue, sharps red.
 
 lyric: ** ** ** ** | ** ** ** ** | ** ** ** ** | ** ** ** ** | ** ** ** ** |
-pitch: K0 cdefgabc| K&1 /cdefgabc| K&2 /cdefgabc| K&3 /cdefgabc| K&4 /cdefgabc|
+pitch: K0 cd ef ga bc | K&1 /cdefgabc | K&2 /cdefgabc | K&3 /cdefgabc | K&4 /cdefgabc |
 perbar: C_major F_major Bb_major Eb_major Ab_major
 
 lyric: ** ** ** ** | ** ** ** ** | ** ** ** ** | ** ** ** ** | ** ** ** ** |
-pitch: K&5 cdefgabc| K&6 /cdefgabc| K&7 /cdefgabc| K#7 /cdefgabc| K#6 /cdefgabc|
+pitch: K&5 cdefgabc | K&6 /cdefgabc | K&7 /cdefgabc | K#7 /cdefgabc | K#6 /cdefgabc |
 perbar: Db_major Gb_major Cb_major C#_major F#_major
 
 lyric: ** ** ** ** | ** ** ** ** | ** ** ** ** | ** ** ** ** | ** ** ** ** |
-pitch: K#5 cdefgabc| K#4 /cdefgabc| K#3 /cdefgabc| K#2 /cdefgabc| K#1 /cdefgabc|
+pitch: K#5 cdefgabc | K#4 /cdefgabc | K#3 /cdefgabc | K#2 /cdefgabc | K#1 /cdefgabc |
 perbar: B_major E_major A_major D_major G_major
 
 postscript: In conventional notation, these pitch sequences all look the same even though they sound different!        
@@ -21,6 +25,8 @@ title: Three octave scale
 lyric: **** **** | **** **** | **** **** |
 pitch: K0 /cdef gabc | cdef gabc | cdef gabc
 perbar: 2/2
+
+zoom: 150
 
         
 EndOfScore
@@ -48,6 +54,8 @@ pernote: 1 2 3
 perbeat: 1 2
 perbar: 4/4
 
+zoom: 150
+
         
 EndOfScore
 title: Lyrics
@@ -66,7 +74,9 @@ pitch: K0 cdec | ece | deffed | f
 cue: Melisma example (many notes on one syllable)
 
 lyric: Al* ** ** le* | lu * ia - |
-pitch: ^cb cg ab cd | cbc |        
+pitch: ^cb cg ab cd | cbc |
+
+zoom: 150        
 EndOfScore
 title: Accidentals
 
@@ -79,7 +89,9 @@ perbar: C_minor_blues_scale
 cue: Double sharps and flats are also supported. Use '##' and '&&'
 
 lyric: ***** |
-pitch: &&c &c %c #c ##c |        
+pitch: &&c &c %c #c ##c |
+
+zoom: 160        
 EndOfScore
 title: Leaps
 
@@ -87,10 +99,14 @@ preface: When pitches differ by more than a 4th, use '^' ascending and '/' desce
 
 lyric: * * * * | * * * * | * * * * | * * * * |
 pitch: K0 c d c e | c f c ^g | /c ^a /c ^b | //c ^^^c ///c ^c |
-perbar: _ _ _ 2_octave_leap        
+perbar: _ _ _ 2_octave_leap
+
+zoom: 150        
 EndOfScore
 : Lines that start with a colon are comments. They don't appear in the rendered score.
 : See the comments at the bottom this example score.
+
+zoom: 160
 
 title: Cheat Sheet
 

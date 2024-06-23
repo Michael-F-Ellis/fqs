@@ -156,7 +156,7 @@
     }
 
     .preface {
-      font: 11px sans-serif;
+      font: 10px sans-serif;
     }
 
     .postscript {
@@ -795,7 +795,7 @@
       });
     } // end Cue class
 
-    // The Expression class is used to render musical expressions, e.g. "cresc.", "mf", etc
+    // The PerNote class is used to render musical expressions, e.g. "cresc.", "mf", etc
     // Expressions are rendered by looping through the tokens and rendering each one
     // at the next attack from the lyric line.
     class PerNote {
@@ -1029,6 +1029,11 @@
       };
     }
 
+    // stripComments removes all lines that start with a ':' character.
+    function stripComments(text) {
+      return text.replace(/^\s*:.*\n/g, "\n");
+    }
+
     // The preprocessScore function is used to parse the score input
     // text and convert it into a data object with members for the title,
     // preface, lyrics, expressions, cues, pitches, chords, perbars and
@@ -1039,9 +1044,53 @@
     // that appear once within a score. Within the score text, blank lines
     // i.e. /\n\s*\n/ are delimeters between singletons and line groups.
     function preprocessScore(text) {
-      const lineGroups = text.split(/\n\s*\n/);
-      console.log(lineGroups);
-      let kvlines = lineGroups.map(line => {
+      text = stripComments(text);
+      const blocks = text.split(/\n\s*\n/);
+      console.log(blocks);
+      const data = { text: text, lines: [] };
+
+      // We must deal with three kinds of block.
+      // 
+      // The first kind is text block that begins with preface: or postscript:
+      // and may have one or more lines. Subsequent lines are
+      // treated as text lines. 
+
+      // The second kind of block is a single line that begins with
+      //   title:, or zoom: It is an error if either of these keywords
+      // are followed by anything other than the remainder of the line.
+      //
+      // The the third kind of block is one or more lines, each of which begins
+      // with one of the following keywords: 
+      //   cue:, perbar:,  pernote:, perbeat:, 
+      //   chord:, music:, lyric:
+
+      // loop through the blocks in reverse order.
+      for (let i = blocks.length - 1; i >= 0; i--) {
+        block = blocks[i].trim();
+        if (block.startsWith("preface:")) {
+          data.preface = block.slice(8).trim();
+          blocks.splice(i, 1);
+          continue;
+        }
+        if (block.startsWith("postscript:")) {
+          data.postscript = block.slice(11).trim();
+          blocks.splice(i, 1);
+          continue;
+        }
+        if (block.startsWith("title:")) {
+          data.title = block.slice(6).trim();
+          blocks.splice(i, 1);
+          continue;
+        }
+        if (block.startsWith("zoom:")) {
+          data.zoom = block.slice(5).trim();
+          blocks.splice(i, 1);
+          continue;
+        }
+      }
+
+      // at this point only the third kind of blocks are left
+      let kvlines = blocks.map(line => {
         const parts = line.split(/\n/);
         const obj = {};
         parts.forEach(part => {
@@ -1056,44 +1105,30 @@
       });
       kvlines = kvlines.filter(obj => Object.keys(obj).length > 0);
       console.log(kvlines);
-      const data = { text: text, lines: [] };
 
-      // loop over kvlines and assign each member to data.
+      // push the remaining lines. 
       for (let kv of kvlines) {
-        if (Object.keys(kv).length > 1) {
-          // It's a line group. Push it onto the lines array.
-          data.lines.push(kv);
-          continue;
-        }
-        // Handle objects with only one key. Title, preface, postscript and
-        // zoom are singletons. We allow individual instance of cue, music, and
-        // lyric to be rendered as line groups.
-        for (let key in kv) {
-          switch (key) {
-            case "cue":
-            case "music":
-            case "lyric":
-              // all 3 above are allowed as line groups of length 1.
-              data.lines.push(kv);
-              break;
-            case "title":
-              data.title = kv[key];
-              break;
-            case "preface":
-              data.preface = kv[key];
-              break;
-            case "postscript":
-              data[key] = kv[key];
-              break;
-            case "zoom":
-              data.zoom = kv[key];
-              break;
-            default:
-              console.log("Unknown key: " + key);
-          }
-        }
+        data.lines.push(kv);
+        continue;
       }
       return data;
+    }
+
+    function renderMultiline(svg, x, y, text, fontHeight, className) {
+      const lines = text.split('\n');
+
+      lines.forEach(line => {
+        const textElement = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        textElement.setAttribute('class', className)
+        textElement.setAttribute('x', x);
+        textElement.setAttribute('y', y);
+        textElement.textContent = line.trimEnd();
+        svg.appendChild(textElement);
+        // get the fontSize of the textElement
+        y += fontHeight
+      });
+
+      return y;
     }
 
     // The renderScore function is used to render the score using the
@@ -1119,17 +1154,13 @@
       title.setAttribute('class', 'title');
       title.textContent = data.title;
       svg.appendChild(title);
-      // y += 0.5 * bookParameters.titleFontHeight
 
       // Render the preface, if any
       if (data.preface) {
-        const preface = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-        preface.setAttribute('x', bookParameters.leftX);
-        preface.setAttribute('y', y);
-        preface.setAttribute('class', 'preface');
-        preface.textContent = data.preface;
-        svg.appendChild(preface);
-        y += 2 * bookParameters.pernoteFontHeight;
+        y += 0.5 * bookParameters.titleFontHeight
+        y = renderMultiline(svg, bookParameters.leftX, y,
+          data.preface, bookParameters.prefaceFontHeight, 'preface')
+        // y += bookParameters.pernoteFontHeight;
       }
       // Render the score
       data.lines.forEach((line, index) => {
@@ -1145,10 +1176,11 @@
           lyricline = new LyricLine(line.lyric);
         }
         y += bookParameters.lyricFontHeight
+
         // Render the cue, if any
         if (line.cue) {
           if (!line.lyric) {
-            y += 1.5 * bookParameters.lyricFontHeight;
+            y += bookParameters.lyricFontHeight;
           } else {
             y += bookParameters.lyricFontHeight;
           }
@@ -1207,13 +1239,8 @@
       // Render the postscript, if any.
       if (data.postscript) {
         y += 2 * bookParameters.lyricFontHeight;
-        const postscript = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-        postscript.setAttribute('x', bookParameters.leftX);
-        postscript.setAttribute('y', y);
-        postscript.setAttribute('class', 'postscript');
-        postscript.textContent = data.postscript;
-        svg.appendChild(postscript);
-        y += bookParameters.pernoteFontHeight;
+        y = renderMultiline(svg, bookParameters.leftX, y,
+          data.postscript, bookParameters.postscriptFontHeight, 'postscript');
       }
     }
 
@@ -1679,6 +1706,20 @@ postscript: Click the edit widget below if it's not already open.
               rules[i].style.fontSize = bookParameters.titleFontHeight + 'px';
             } else {
               bookParameters.titleFontHeight = +rules[i].style.fontSize.slice(0, -2);
+            }
+            break;
+          case '.preface':
+            if (bookParameters.prefaceFontHeight) {
+              rules[i].style.fontSize = bookParameters.prefaceFontHeight;
+            } else {
+              bookParameters.prefaceFontHeight = +rules[i].style.fontSize.slice(0, -2);
+            }
+            break;
+          case '.postscript':
+            if (bookParameters.postscriptFontHeight) {
+              rules[i].style.fontSize = bookParameters.postscriptFontHeight;
+            } else {
+              bookParameters.postscriptFontHeight = +rules[i].style.fontSize.slice(0, -2);
             }
             break;
           case '.chord':
