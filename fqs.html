@@ -1068,12 +1068,12 @@
       for (let i = blocks.length - 1; i >= 0; i--) {
         block = blocks[i].trim();
         if (block.startsWith("preface:")) {
-          data.preface = block.slice(8).trim();
+          data.preface = block.slice(8);
           blocks.splice(i, 1);
           continue;
         }
         if (block.startsWith("postscript:")) {
-          data.postscript = block.slice(11).trim();
+          data.postscript = block.slice(11);
           blocks.splice(i, 1);
           continue;
         }
@@ -1113,7 +1113,10 @@
       }
       return data;
     }
+    function replaceLeadingWhiteSpace(str, char) {
+      return str.replace(/^\s+/gm, match => match.replace(/\s/g, char));
 
+    }
     function renderMultiline(svg, x, y, text, fontHeight, className) {
       const lines = text.split('\n');
 
@@ -1122,7 +1125,8 @@
         textElement.setAttribute('class', className)
         textElement.setAttribute('x', x);
         textElement.setAttribute('y', y);
-        textElement.textContent = line.trimEnd();
+        const s = replaceLeadingWhiteSpace(line, '.');
+        textElement.textContent = s.trimEnd();
         svg.appendChild(textElement);
         // get the fontSize of the textElement
         y += fontHeight

@@ -1,3 +1,33 @@
+title: Introduction
+
+preface:FQS is:
+. . A way to display music in a form that's easier to read than conventional scores,
+. . A text file format (.fqs) for entering and saving the music,
+. . An editing environment contained in a single html file,
+. . Named for my three grandchildren: Fiona, Quentin and Skylar.
+.
+Limitations:
+. . FQS is meant for vocals and monophonic instruments, i.e.
+it's not suitable for piano scores.
+
+cue: Espressivo, poco rubato
+lyric: O | Shen.an doah ;I long.to | see.you - -; A* | way - ;you rol.ling | ri.ver - ; O |
+pitch: K#4 b | ee e f ga | cb ed | c b cb | g b b |
+pernote: mp cresc. _ _ _ _ _ _ _ f _ _ _ _ _ _ dim. p
+perbar: 4/4
+
+cue: Same line without lyrics and with beat counts indicated
+music: K#4 b | ee e ;f ga | cb  - -; ed | c - ;b cb | gb - ; b |
+perbeat: 4 1 2 3 4 1 2 3 4 1 2 3 4 1 2 3 4
+
+zoom: 120
+
+postscript: This is a multi line
+postscript
+
+
+
+EndOfScore
 
 title: C scales in 15 different keys
 
