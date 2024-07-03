@@ -1,14 +1,57 @@
 title: Introduction
 
-preface:FQS is:
-. . A way to display music in a form that's easier to read than conventional scores,
-. . A text file format (.fqs) for entering and saving the music,
-. . An editing environment contained in a single html file,
-. . Named for my three grandchildren: Fiona, Quentin and Skylar.
-.
-Limitations:
+text:FQS is:
+1. An alternative music notation,
+2. A text file format (.fqs) for entering and saving the music,
+3. An editing environment contained in a single html file, 
+4. Named for my three grandchildren: Fiona, Quentin and Skylar.
+
+text: Limitations:
 . . FQS is meant for vocals and monophonic instruments, i.e.
 it's not suitable for piano scores.
+
+zoom: 160
+
+
+EndOfScore
+title: Example: O Shenandoah
+
+text: Here's the lyric of the first four measures of this well-known folk melody.
+
+lyric: O | Shen.an doah ;I long.to | see.you - -; A* | way - ;you rol.ling | ri.ver - ; O |
+
+text: FQS uses certain punctuation marks in a very specific way to precisely indicate the rhythm.
+1. The '|' symbol is a barline.
+2. Whitespace separates beats.
+3. A period, '.', separates syllables that fall within the same beat.
+4. A semicolon, ';' indicates a rest.
+5. A hyphen, '-', indicates a sustain, i.e., hold the preceding note.
+6. An asterisk, '*' is an attack, i.e. sounding a new note or re-articulating a prior one.
+
+text: To make this clearer, we can use FQS's 'perbeat' annotation.
+
+lyric: O | Shen.an doah ;I long.to | see.you - -; A* | way - ;you rol.ling | ri.ver - ; O |
+perbeat: 4 1 2 3 4 1 2 3 4 1 2 3 4 1 2 3 4
+
+text: FQS expresses rhythm in beats and subdivisions of beats - so the duration of a '-' or '*' or ';'
+depends on how many other elements are in the beat. Look at the semicolon rest in the first measure.
+It lasts half a beat because it shares a beat with the word 'I'. The rest in the 4th  measure is different; it
+occupies an entire beat.  Also notice the asterisk in measure 2, it indicates that the first syllable of
+'away' gets two pitches within one beat.
+
+text: For instrumental music, use asterisks for syllables. The syllable separator, '.', isn't needed
+in instrumental music because FQS knows that two or more asterisks together, e.g. ***, are a 
+subdivided beat.
+
+cue: Same measures, rhythm only
+lyric: * | ** * ;* ** | ** - -; ** | * - ;* ** | ** - ; * |
+
+text: Notice how FQS renders the offbeat symbols in grey to help you see where the beats fall.
+Believe it or not, We've now covered pretty much everything you need to know about representing 
+rhythm in FQS. For more discussion and examples, see the Rhythm Notation Reference score in
+this tutorial.
+
+text: Let's continue in the next score...
 
 cue: Espressivo, poco rubato
 lyric: O | Shen.an doah ;I long.to | see.you - -; A* | way - ;you rol.ling | ri.ver - ; O |
@@ -22,8 +65,60 @@ perbeat: 4 1 2 3 4 1 2 3 4 1 2 3 4 1 2 3 4
 
 zoom: 120
 
-postscript: This is a multi line
-postscript
+
+
+
+
+EndOfScore
+title: Chord Notation
+
+text: We'll continue with O Shenandoah as our example score. Chords are one of several forms of annotation
+supported by FQS.
+
+chord: _ E _ _ _ G#m _ _ _ A _ _ _ E
+lyric: O | Shen.an doah ;I long.to | see.you - -; A* | way - ;you rol.ling | ri.ver - ; O |
+
+text: Chords are a "per beat" notation. In the edit area, notice the use of underscore characters as placeholders
+for beats with no chord change.
+
+text: FQS supports jazzier chords. Here's a minor ii-V-i progression, for example
+
+lyric: * * * * | * * * * | * * * * |
+chord: Dm7b5 _ _ _ G7b9 _ _ _ Cm7 
+
+zoom:120
+
+
+
+EndOfScore
+title: Pitch Notation
+
+text: Here's how FQS represents pitches. I've notated it in E major to match the chords we used earlier.
+
+
+lyric: O | Shen.an doah ;I long.to | see.you - -; A* | way - ;you rol.ling | ri.ver - ; O |
+pitch: K#4 b | ee e f ga | cb ed | c b cb | g b b |
+
+text: There's a lot to unpack here. We'll start with the obvious.  FQS represents pitches by their letter
+names. You specify the key by the number of sharps or flats, e.g. 'K#4' for E major and then enter
+the pitch letters. FQS takes care of noticing that f, g, c, and d are sharped in E major and coloring
+them red.
+
+Altered notes (sharped or flatted) are also rendered in italics to as an additional cue. More subtly,
+they're spaced slightly higher (slightly lower for flats).
+
+text: That last bit is important. FQS places notes vertically according to their actual pitch by dividing the vertical
+space allotted to an octave into 12 equal parts so that enharmonic notes (same pitch, different spelling)
+are rendered at the same height within the staff - as shown by the mess of double sharps and flats below
+that represent the silliest possible way of notating a C major scale in repeated triplets.
+
+
+music: K0 #bc&&d ##c%d&&e ##d%e&f #e%f&&g | ##f%g&&a ##g%a&&b ##a%b&c #b%c&&d | /ccc ddd eee fff | ggg aaa bbb ccc |
+
+
+text: 
+
+zoom: 120
 
 
 
@@ -34,7 +129,7 @@ title: C scales in 15 different keys
 zoom: 150
 
 
-preface: Natural notes are black, flats blue, sharps red.
+text: Natural notes are black, flats blue, sharps red.
 
 lyric: ** ** ** ** | ** ** ** ** | ** ** ** ** | ** ** ** ** | ** ** ** ** |
 pitch: K0 cd ef ga bc | K&1 /cdefgabc | K&2 /cdefgabc | K&3 /cdefgabc | K&4 /cdefgabc |
@@ -129,7 +224,7 @@ preface: When pitches differ by more than a 4th, use '^' ascending and '/' desce
 
 lyric: * * * * | * * * * | * * * * | * * * * |
 pitch: K0 c d c e | c f c ^g | /c ^a /c ^b | //c ^^^c ///c ^c |
-perbar: _ _ _ 2_octave_leap
+perbar: _ _ _ 3_octave_leap
 
 zoom: 150        
 EndOfScore

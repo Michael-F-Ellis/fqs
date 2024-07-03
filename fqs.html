@@ -73,6 +73,19 @@
     <button onclick="importFromFile()">Import File</button> <em>Import scores from a local <code>.fqs</code>
       file.</em><br>
     <button onclick="importFromURL()">Import URL</button> <em>Import a <code>.fqs</code> file from a URL.</em><br>
+    <button id="toggle-score-controls-btn">Show Edit Controls</button>
+    <script>
+      let scoreControlsShown = true;
+      const toggleButton = document.getElementById('toggle-score-controls-btn');
+      function toggleScoreControls() {
+        scoreControlsVisible(!scoreControlsShown);
+        scoreControlsShown = !scoreControlsShown;
+        toggleButton.textContent = scoreControlsShown ? 'Hide Edit Controls' : 'Show Edit Controls';
+      }
+      toggleButton.addEventListener('click', toggleScoreControls);
+    </script>
+    </script>
+
   </details>
   <h3>
     Scores
@@ -160,6 +173,10 @@
     }
 
     .postscript {
+      font: 10px sans-serif;
+    }
+
+    .text {
       font: 10px sans-serif;
     }
 
@@ -365,7 +382,9 @@
           text.setAttribute("x", x);
           text.setAttribute("y", y);
           let klass = "lyric";
-          if (char == '-' || char == ';') {
+          // Emphasize beats, by greying every char that isn't either a barline
+          // or the start of beat.
+          if ((char == '-' || char == ';' || char == '*') && !this.beats.includes(i)) {
             klass = "lyric grey"
           }
           text.setAttribute("class", klass);
@@ -422,6 +441,216 @@
       "&6": { "c": "♭", "d": "♭", "e": "♭", "f": "♮", "g": "♭", "a": "♭", "b": "♭" },
       "&7": { "c": "♭", "d": "♭", "e": "♭", "f": "♭", "g": "♭", "a": "♭", "b": "♭" },
     }
+    // When transposing, we need to be able to look up the letter for a given key signature.
+    const keyLetters = {
+      "0": "c", "#1": "g", "#2": "d", "#3": "a", "#4": "e", "#5": "b", "#6": "f#", "#7": "c#",
+      "&1": "f", "&2": "b", "&3": "e", "&4": "a", "&5": "d", "&6": "g", "&7": "c",
+    }
+    // StringRing provide methods to treat the characters in a string as values
+    // in a ring buffer. It provide methods to advance by n and to compute the
+    // distance between two values. Its main use in this script is in
+    // transposing pitches.
+    class StringRing {
+      constructor(s) {
+        this.r = s.split('');
+        this.len = this.r.length;
+      }
+      distance = (c0, c1) => {
+        const i0 = this.r.indexOf(c0);
+        if (i0 == -1) {
+          throw new Error(`invalid character: ${c0} not in ${this.r}`);
+        }
+        const i1 = this.r.indexOf(c1);
+        if (i1 == -1) {
+          throw new Error(`invalid character: ${c1} not in ${this.r}`);
+        }
+        return (i1 - i0 + this.len) % this.len
+      }
+      advance = (c, n) => {
+        const i = this.r.indexOf(c);
+        if (i == -1) {
+          throw new Error(`invalid character: ${c} not in ${this.r}`);
+        }
+        const d = (i + n + this.len) % this.len;
+        return this.r[d];
+      }
+    }
+
+    class Transposer {
+      constructor(fromKeySym, toKeySym) {
+        this.pitchRing = new StringRing("cdefgab");
+        this.fromKeyLetter = keyLetters[fromKeySym];
+        this.toKeyLetter = keyLetters[toKeySym];
+        this.distance = this.pitchRing.distance(this.fromKeyLetter, this.toKeyLetter);
+        this.fromKeyLUT = keyTable[fromKeySym];
+        this.toKeyLUT = keyTable[toKeySym];
+      }
+      components = (pitchToken) => {
+        // A pitch token consists of octave marks + accidentals + pitch letter.
+        // We need to extract each of these parts.
+        const rgx = /([\^\/]*)([&#%]*)([a-g])/;
+        const matches = pitchToken.match(rgx);
+        const o = matches[1];
+        const a = matches[2];
+        const l = matches[3];
+        return { "octaveMarks": o, "accidentals": a, "letter": l };
+      }
+      getEffectiveAlteration = (acc, letter) => {
+        // The effective alteration is the number of semitones by which a pitch is
+        // altered relative to the key signature value for the given letter.
+        const alteration = this.fromKeyLUT[letter];
+        switch (acc) {
+          case '':
+            return 0;
+          case '%':
+            switch (alteration) {
+              case '♮':
+                return 0;
+              case '♯':
+                return -1;
+              case '♭':
+                return 1;
+              default:
+                throw new Error(`invalid alteration: ${alteration}`);
+            }
+          case '&':
+            switch (alteration) {
+              case '♮':
+                return -1;
+              case '♯':
+                return -2;
+              case '♭':
+                return 0;
+              default:
+                throw new Error(`invalid alteration: ${alteration}`);
+            }
+          case '#':
+            switch (alteration) {
+              case '♮':
+                return 1;
+              case '♯':
+                return 0
+              case '♭':
+                return 2;
+              default:
+                throw new Error(`invalid alteration: ${alteration}`);
+            }
+          case '&&':
+            switch (alteration) {
+              case '♮':
+                return -2;
+              case '♯':
+                return -3; // may be pathological
+              case '♭':
+                return -1;
+              default:
+                throw new Error(`invalid alteration: ${alteration}`);
+            }
+          case '##': {
+            switch (alteration) {
+              case '♮':
+                return 2;
+              case '♯':
+                return 1;
+              case '♭':
+                return 3; // may be pathological
+              default:
+                throw new Error(`invalid alteration: ${alteration}`);
+            }
+          }
+          default:
+            throw new Error(`invalid accidental: ${acc}`);
+        }
+
+      }
+      applyEffectiveAlteration(nAlt, letter) {
+        // return an accidentals string that applies the effective alteration, nAlt,
+        // to pitch letter in the destination key.
+        const keyAlt = this.toKeyLUT[letter];
+        switch (nAlt) {
+          case 0:
+            return '';
+          case 1:
+            switch (keyAlt) {
+              case '♮':
+                return '#';
+              case '♯':
+                return '##';
+              case '♭':
+                return '%';
+              default:
+                throw new Error(`invalid alteration: ${keyAlt}`);
+            }
+          case -1:
+            switch (keyAlt) {
+              case '♮':
+                return '&';
+              case '♯':
+                return '%';
+              case '♭':
+                return '&&';
+              default:
+                throw new Error(`invalid alteration: ${keyAlt}`);
+            }
+          case -2:
+            switch (keyAlt) {
+              case '♮':
+                return '&&';
+              case '♯':
+                return '&';
+              case '♭':
+                throw new Error(`can't represent triple flat`)
+              default:
+                throw new Error(`invalid alteration: ${keyAlt}`);
+            }
+          case 2:
+            switch (keyAlt) {
+              case '♮':
+                return '##';
+              case '♯':
+                throw new Error(`can't represent triple sharp`)
+              case '♭':
+                return '#';
+              default:
+                throw new Error(`invalid alteration: ${keyAlt}`);
+            }
+          case 3:
+            switch (keyAlt) {
+              case '♮':
+                throw new Error(`can't represent triple sharp`)
+              case '♯':
+                throw new Error(`can't represent quadruple sharp`)
+              case '♭':
+                return '##';
+              default:
+                throw new Error(`invalid alteration: ${keyAlt}`);
+            }
+          case -3:
+            switch (keyAlt) {
+              case '♮':
+                throw new Error(`can't represent triple flat`)
+              case '♯':
+                return '&&';
+              case '♭':
+                throw new Error(`can't represent quadruple flat`)
+              default:
+                throw new Error(`invalid alteration: ${keyAlt}`);
+            }
+          default:
+            throw new Error(`invalid effective alteration: ${nAlt}`);
+        }
+      }
+      transposed = (pitchToken) => {
+        // split the pitchToken into components
+        const c = this.components(pitchToken);
+        // transpose the pitch letter
+        const newLetter = this.pitchRing.advance(c.letter, this.distance);
+        const nalt = this.getEffectiveAlteration(c.accidentals, c.letter);
+        const newAccidental = this.applyEffectiveAlteration(nalt, newLetter);
+        return c.octaveMarks + newAccidental + newLetter;
+      }
+    }
+
     // The Alterations class is used to manage the alterations for a given key signature
     // and to keep track of which pitches have been explicitly altered within a bar.
     class Alterations {
@@ -1052,7 +1281,7 @@
       // We must deal with three kinds of block.
       // 
       // The first kind is text block that begins with preface: or postscript:
-      // and may have one or more lines. Subsequent lines are
+      // or text: and may have one or more lines. Subsequent lines are
       // treated as text lines. 
 
       // The second kind of block is a single line that begins with
@@ -1073,7 +1302,7 @@
           continue;
         }
         if (block.startsWith("postscript:")) {
-          data.postscript = block.slice(11);
+          data.postscript = block.slice(11).trim();
           blocks.splice(i, 1);
           continue;
         }
@@ -1091,8 +1320,13 @@
 
       // at this point only the third kind of blocks are left
       let kvlines = blocks.map(line => {
+        const obj = {}; // what we will return
+        if (line.startsWith("text:")) {
+          obj.text = line.slice(5).trim();
+          return obj;
+        }
+        // If we get to here, it's a music linegroup
         const parts = line.split(/\n/);
-        const obj = {};
         parts.forEach(part => {
           part.trim()
           const [key, value] = splitFirst(part, ': ');
@@ -1113,10 +1347,7 @@
       }
       return data;
     }
-    function replaceLeadingWhiteSpace(str, char) {
-      return str.replace(/^\s+/gm, match => match.replace(/\s/g, char));
 
-    }
     function renderMultiline(svg, x, y, text, fontHeight, className) {
       const lines = text.split('\n');
 
@@ -1125,8 +1356,7 @@
         textElement.setAttribute('class', className)
         textElement.setAttribute('x', x);
         textElement.setAttribute('y', y);
-        const s = replaceLeadingWhiteSpace(line, '.');
-        textElement.textContent = s.trimEnd();
+        textElement.textContent = line.trimEnd();
         svg.appendChild(textElement);
         // get the fontSize of the textElement
         y += fontHeight
@@ -1168,6 +1398,13 @@
       }
       // Render the score
       data.lines.forEach((line, index) => {
+        // If it's a text block, render it.
+        if (line.text) {
+          y += 2 * bookParameters.lyricFontHeight + bookParameters.textFontHeight;
+          y = renderMultiline(svg, bookParameters.leftX, y,
+            line.text, bookParameters.textFontHeight, 'text');
+          return;
+        }
         // Handle the music lines. If present, a music line replaces the
         // lyric and pitch lines.
         if (line.music) {
@@ -1648,6 +1885,9 @@ postscript: Click the edit widget below if it's not already open.
 
         div.appendChild(link);
         renderEditedScoreSource(div);
+
+        // Honor the current visibility of edit controls
+        scoreControlsVisible(scoreControlsShown)
       });
     }
 
@@ -1710,6 +1950,13 @@ postscript: Click the edit widget below if it's not already open.
               rules[i].style.fontSize = bookParameters.titleFontHeight + 'px';
             } else {
               bookParameters.titleFontHeight = +rules[i].style.fontSize.slice(0, -2);
+            }
+            break;
+          case '.text':
+            if (bookParameters.textFontHeight) {
+              rules[i].style.fontSize = bookParameters.textFontHeight + 'px';
+            } else {
+              bookParameters.textFontHeight = +rules[i].style.fontSize.slice(0, -2);
             }
             break;
           case '.preface':
@@ -1785,8 +2032,30 @@ postscript: Click the edit widget below if it's not already open.
         }
       }
     }
-
-
+    // newScoreBtnsVisible() and sourceEditorsVisible() are
+    // utilities to show/hide the new score and source editors
+    function newScoreBtnsVisible(visible) {
+      const newScoreBtns = document.querySelectorAll('.new-score-btn');
+      newScoreBtns.forEach(btn => {
+        btn.style.display = visible ? 'inline-block' : 'none';
+      });
+    }
+    function sourceEditorsVisible(visible) {
+      const scoreDivs = document.querySelectorAll('div.score');
+      scoreDivs.forEach(div => {
+        const details = div.querySelector('details');
+        if (visible) {
+          details.open = true;
+        } else {
+          details.open = false;
+        }
+        details.style.display = visible ? 'block' : 'none';
+      });
+    }
+    function scoreControlsVisible(visible) {
+      sourceEditorsVisible(visible);
+      newScoreBtnsVisible(visible);
+    }
     // When the window load is complete, render the scores and add listeners to
     // the buttons that invoke the functions to insert, save and delete scores.
     window.onload = () => {
@@ -1805,15 +2074,16 @@ postscript: Click the edit widget below if it's not already open.
         // Add a listener for click events on the delete button.
         const deleteButton = div.querySelector('button.delete-btn');
         deleteButton.addEventListener('click', () => {
-          if (confirm(`Are you sure you want to delete this score?`)) {
+          if (confirm(`Are you sure you want to delete this score ? `)) {
             deleteScore(div.id);
           }
         });
         // Add a listener for click events on the new score button associated with
         // this div.
-        const newScoreButton = document.getElementById(`insert-new-${div.id}`);
+        const newScoreButton = document.getElementById(`insert - new- ${div.id}`);
         newScoreButton.addEventListener('click', insertNewScore);
       });
+      toggleScoreControls(); // initialize the controls hidden
     }
   </script>
 </body>
