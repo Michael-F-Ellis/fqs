@@ -73,7 +73,10 @@
     <button onclick="importFromFile()">Import File</button> <em>Import scores from a local <code>.fqs</code>
       file.</em><br>
     <button onclick="importFromURL()">Import URL</button> <em>Import a <code>.fqs</code> file from a URL.</em><br>
-    <button id="toggle-score-controls-btn">Show Edit Controls</button>
+    <button id="toggle-score-controls-btn">Show Edit Controls</button> <em>Toggle the visibility of the
+      edit controls for the scores below.</em><br>
+    <button id="toggle-layout-btn">Edit beside scores</button> <em>Toggle editor layout </em>
+
     <script>
       let scoreControlsShown = true;
       const toggleButton = document.getElementById('toggle-score-controls-btn');
@@ -83,6 +86,13 @@
         toggleButton.textContent = scoreControlsShown ? 'Hide Edit Controls' : 'Show Edit Controls';
       }
       toggleButton.addEventListener('click', toggleScoreControls);
+
+      const layoutButton = document.getElementById('toggle-layout-btn');
+      function changeLayout() {
+        toggleLayout()
+        layoutButton.textContent = bookParameters.sideBySide ? 'Edit below scores' : 'Edit beside scores';
+      }
+      layoutButton.addEventListener('click', changeLayout);
     </script>
     </script>
 
@@ -148,6 +158,8 @@
 
     pre.source {
       padding-left: 5%;
+      max-height: 50vh;
+      overflow-y: auto;
     }
 
     svg {
@@ -269,6 +281,29 @@
       margin-left: 5%;
       margin-right: 5%;
     }
+
+    /* styles for toggling between side-by-side and top-down layouts */
+    .score-wrapper {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .score-wrapper.side-by-side {
+      flex-direction: row;
+    }
+
+    .score-wrapper.side-by-side svg,
+    .score-wrapper.side-by-side details {
+      width: 50%;
+    }
+
+    .score-wrapper.side-by-side details {
+      margin-left: 10px;
+    }
+
+    .score-wrapper.side-by-side svg {
+      padding-left: 0;
+    }
   </style>
   <script type="text/javascript">
     const bookParameters = {
@@ -278,6 +313,7 @@
       // Various font heights can be specified in this object to override the defaults.
       // See updateFontSizes() in this file for an explanation. Also, see the
       // style tag in this file with id "fqs-style".
+      sideBySide: false, // if true, render scores side-by-side with edit area
     }
 
     // The LineProblem class holds error and warning messages generated during
@@ -1508,15 +1544,16 @@
     // the svg argument. Otherwise, a new SVG element is created and appended to the
     // to the div element and passed to renderScore().
     function renderEditedScoreSource(div) {
-      const pre = div.querySelector('details pre.source');
+      const wrapper = div.querySelector('div.score-wrapper');
+      const pre = wrapper.querySelector('details pre.source');
       if (pre === null) {
         return
       }
       const data = preprocessScore(pre.textContent);
-      let svg = div.querySelector('svg');
+      let svg = wrapper.querySelector('svg');
       if (svg === null) {
         svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-        div.insertBefore(svg, div.firstChild);
+        wrapper.insertBefore(svg, wrapper.firstChild);
       }
       renderScore(svg, data);
       // calculate rendered height and adjust the svg height and viewbox
@@ -1734,7 +1771,15 @@ postscript: Click the edit widget below if it's not already open.
       });
       details.appendChild(deleteButton);
 
-      div.appendChild(details);
+      // Wrap the <details> element in a div to make it easier to toggle layouts
+      const wrapper = document.createElement('div');
+      wrapper.setAttribute('class', 'score-wrapper');
+      if (bookParameters.sideBySide) {
+        wrapper.classList.add('side-by-side');
+      }
+
+      wrapper.appendChild(details);
+      div.appendChild(wrapper);
       div.appendChild(document.createElement('hr'));
 
       pre.addEventListener('input', () => {
@@ -2031,6 +2076,25 @@ postscript: Click the edit widget below if it's not already open.
             break;
         }
       }
+    }
+    function toggleLayout() {
+      const scoreWrappers = document.querySelectorAll('.score-wrapper');
+      scoreWrappers.forEach(wrapper => {
+        switch (bookParameters.sideBySide) {
+          case true:
+            if (wrapper.classList.contains('side-by-side')) {
+              wrapper.classList.remove('side-by-side');
+            }
+            break;
+          case false:
+            if (!wrapper.classList.contains('side-by-side')) {
+              wrapper.classList.add('side-by-side');
+            }
+            break;
+        }
+      });
+      // toggle the book parameter
+      bookParameters.sideBySide = !bookParameters.sideBySide;
     }
     // newScoreBtnsVisible() and sourceEditorsVisible() are
     // utilities to show/hide the new score and source editors
