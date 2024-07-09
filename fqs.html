@@ -214,6 +214,7 @@
       font: 12px monospace;
     }
 
+    .rest,
     .pitch {
       font: 12px monospace;
     }
@@ -228,8 +229,13 @@
       font-style: italic;
     }
 
+    .counter {
+      font: 6px monospace;
+      font-style: italic;
+    }
+
     .perbeat {
-      font: 8px monospace;
+      font: 6px monospace;
       font-style: italic;
     }
 
@@ -308,7 +314,7 @@
   <script type="text/javascript">
     const bookParameters = {
       "attackNumbers": false, // (DEPRECATED) if true, attach pitch events to numbers in lyric line (useful for instrumental scores)
-      "leftX": 0, // Pixel position of the left edge of the score.
+      leftX: 0, // Pixel position of the left edge of the score.
       "lyricFontWidth": 7, // includes space between letters
       // Various font heights can be specified in this object to override the defaults.
       // See updateFontSizes() in this file for an explanation. Also, see the
@@ -381,6 +387,7 @@
         this.beats = [0,]; // beat positions
         this.bars = [0,]; // barline positions
         this.attacks = [];
+        this.rests = []
         for (let i = 0; i < this.text.length; i++) {
           if (this.text[i].match(/\|/)) {
             this.bars.push(i);
@@ -388,6 +395,10 @@
           }
           if (this.text[i].match(/\*/)) {
             this.attacks.push(i);
+            continue;
+          }
+          if (this.text[i].match(/;/)) {
+            this.rests.push(i);
             continue;
           }
           if (this.text[i].match(RGX)) {
@@ -744,9 +755,29 @@
         pitch.textContent = this.letter;
         // Adjust the y coordinate by the octave and vertical offset for this pitch
         y -= this.octave * fontheight;
-        y += vOffsets[this.accidentalClass + this.letter] * (fontheight / 12);
+        const gOffset = 7 // causes the pitch to be rendered as though each staff line is on g natural.
+        y += (gOffset + vOffsets[this.accidentalClass + this.letter]) * (fontheight / 12);
         pitch.setAttribute("y", y);
         svg.appendChild(pitch);
+      });
+    }
+    // The rest class is used to render a rest.
+    class Rest {
+      constructor() {
+        this.letter = ';'
+        this.octave = 1;  // middle octave
+      }
+      render = (function render(svg, x, y, fontheight) {
+        // Draw the rest at the specified x, y coordinates.
+        let rest = document.createElementNS("http://www.w3.org/2000/svg", "text");
+        rest.setAttribute("x", x);
+        rest.setAttribute("class", "rest");
+        rest.classList.add("grey");
+        rest.textContent = this.letter;
+        // Adjust the y coordinate by the octave
+        y += this.octave * fontheight;
+        rest.setAttribute("y", y);
+        svg.appendChild(rest);
       });
     }
     // The PitchLine class is used to render a single line of pitches from a
@@ -992,7 +1023,7 @@
           prevPitch.octave = octave;
         }
       }
-      render = (function (svg, x0, y0, attacks, fontwidth, fontheight, bars) {
+      render = (function (svg, x0, y0, attacks, rests, fontwidth, fontheight, bars) {
         // x0 is the x coordinate of the left edge of the line
         // y0 corresponds to the baseline of the center octave (0)
         // Experimental: draw a thin gray horizontal lines at the base of 'c' in each octave
@@ -1036,6 +1067,19 @@
           if (i < attacks.length) {
             x = x0 + attacks[i] * fontwidth;
             pitch.render(svg, x, y, fontheight);
+          }
+          i++;
+        }
+        // Similarly, loop though the rests and render them at the corresponding
+        // rest locations.
+        i = 0;
+        const r = new Rest();
+        for (let rest of rests) {
+          let x = x0;
+          let y = y0;
+          if (i < rests.length) {
+            x = x0 + rests[i] * fontwidth;
+            r.render(svg, x, y, fontheight);
           }
           i++;
         }
@@ -1185,6 +1229,57 @@
         }
       })
     }
+    // The Counter class is similar to the PerBeat class. It provides
+    // an automated method for rendering beat numbers above the beats.
+    // The constructor takes 3 arguments, n, which is the first beat number
+    // to be assigned to an initial partial measure, beats, which is an
+    // array of beat positions, and bars, which is an array of of bar positions.
+    class Counter {
+      constructor(n, beats, bars) {
+        this.n = n;
+        this.beats = beats;
+        this.bars = bars;
+        // We need to generate a list of beat numbers that resets to 1
+        // each time the beat position exceeds the next bar position.
+        // The counting will begin with n unless n is <= 0, in which
+        // case we will start with 1 for the first beat after the first bar.
+        let count = (n > 0) ? n : 1;
+        this.counts = [];
+        let i = 0;
+        for (let beat of this.beats) {
+          if (i < this.bars.length) {
+            console.log(beat, this.bars[i], count);
+            if (beat > this.bars[i]) { // we've crossed the next bar
+              count = 1;
+              i++;
+            }
+          }
+          this.counts.push(count);
+          count++
+        }
+      }
+      render = (function (svg, x0, y0, fontwidth) {
+        // x0 is the x coordinate of the left edge of the line y0 is the
+        // y coordinate of the baseline of the line. 
+        // fontwidth is the width of the lyric font
+        // in pixels.  (the counter font will typically be
+        // smaller than the lyric font) We will render the counts by
+        // looping through the beats and rendering the count number
+        // above each beat. 
+        let i = 0;
+        for (let count of this.counts) {
+          let x = x0 + this.beats[i] * fontwidth;
+          let text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+          text.setAttribute('x', x);
+          text.setAttribute('y', y0);
+          text.setAttribute('class', 'counter');
+          text.textContent = count + ''; // convert to string
+          svg.appendChild(text);
+          i++;
+        }
+      });
+    }
+
     // The Chord class is used to render chords symbols above beats.
     class Chord {
       constructor(text) {
@@ -1443,10 +1538,12 @@
         }
         // Handle the music lines. If present, a music line replaces the
         // lyric and pitch lines.
+        line.showLyric = true;
         if (line.music) {
           const { lyric, pitch } = musicToPitchLyric(line.music);
           line.lyric = lyric;
           line.pitch = pitch;
+          line.showLyric = false;
         }
         let lyricline = undefined
         if (line.lyric) {
@@ -1477,13 +1574,40 @@
           const perbeat = new PerBeat(line.perbeat)
           perbeat.render(svg, bookParameters.leftX, y, lyricline.beats, bookParameters.lyricFontWidth)
         }
+        // Render the counter, if any
+        if (line.counter && line.lyric) {
+          y += bookParameters.counterFontHeight * 1.5
+          // line counter may be an empty string or a string that should be convertible to an integer
+          let npartial = 0;
+          if (line.counter.length > 0) {
+            try {
+              npartial = parseInt(line.counter);
+            } catch (e) {
+              lineProblems.add(`Invalid counter value: ${line.counter}`);
+            }
+          }
+          let bars = lyricline.bars;
+          if (bars[0] == 0) {
+            bars = bars.slice(1); // ignore the pseudo barline at 0
+          }
+          const counter = new Counter(npartial, lyricline.beats, bars);
+          counter.render(svg, bookParameters.leftX, y, bookParameters.lyricFontWidth)
+          // y += bookParameters.counterFontHeight / 3;
+        }
 
+        // Render the rests, if any
+        if (line.rest && line.lyric) {
+          y += bookParameters.lyricFontHeight
+          const rest = new Rest(line.rest);
+          rest.render(svg, bookParameters.leftX, y, lyricline.rests, bookParameters.lyricFontWidth);
+          // y += bookParameters.lyricFont
+        }
         // Render the pitches, if any
         if (line.pitch && line.lyric) {
           y += 1.5 * bookParameters.lyricFontHeight;
           try {
             const pitchLine = new PitchLine(line.pitch);
-            pitchLine.render(svg, bookParameters.leftX, y, lyricline.attacks, bookParameters.lyricFontWidth, bookParameters.lyricFontHeight, lyricline.bars);
+            pitchLine.render(svg, bookParameters.leftX, y, lyricline.attacks, lyricline.rests, bookParameters.lyricFontWidth, bookParameters.lyricFontHeight, lyricline.bars);
             y += 2 * bookParameters.lyricFontHeight;
           } catch (e) {
             lineProblems.add("Pitch line error: " + e.message);
@@ -1497,9 +1621,11 @@
 
         }
         // Render the lyric
-        y += 1.1 * bookParameters.lyricFontHeight;
-        if (line.lyric) {
-          lyricline.render(svg, bookParameters.leftX, y, bookParameters.lyricFontWidth);
+        if (line.showLyric) {
+          y += 1.1 * bookParameters.lyricFontHeight;
+          if (line.lyric) {
+            lyricline.render(svg, bookParameters.leftX, y, bookParameters.lyricFontWidth);
+          }
         }
 
         // Render the per note expression marks, if any.
@@ -2065,6 +2191,27 @@ postscript: Click the edit widget below if it's not already open.
               rules[i].style.fontSize = bookParameters.perbeatFontHeight + 'px';
             } else {
               bookParameters.perbeatFontHeight = +rules[i].style.fontSize.slice(0, -2);
+            }
+            break;
+          case '.counter':
+            if (bookParameters.counterFontHeight) {
+              rules[i].style.fontSize = bookParameters.counterFontHeight + 'px';
+            } else {
+              bookParameters.counterFontHeight = +rules[i].style.fontSize.slice(0, -2);
+            }
+            break;
+          case '.rest':
+            if (bookParameters.restFontHeight) {
+              rules[i].style.fontSize = bookParameters.restFontHeight + 'px';
+            } else {
+              bookParameters.restFontHeight = +rules[i].style.fontSize.slice(0, -2);
+            }
+            break;
+          case '.perline':
+            if (bookParameters.perlineFontHeight) {
+              rules[i].style.fontSize = bookParameters.perlineFontHeight + 'px';
+            } else {
+              bookParameters.perlineFontHeight = +rules[i].style.fontSize.slice(0, -2);
             }
             break;
           case '.lineproblem':
