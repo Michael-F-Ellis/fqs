@@ -1,0 +1,202 @@
+: Lines that start with a colon are comments. They don't appear in the rendered score.       
+: This reference loads when you first open FQS. You can delete it with the button above.
+
+title: FQS Reference
+
+: Every score needs a title
+
+zoom: 130
+
+: zoom is optional. It defaults to 100, valid values are 50 - 200.  Try changing
+: the value above and watch the result.
+
+text: Let's start with an example:  Here's the melody for Happy Birthday, set in E major.
+
+: The text key word inserts blocks of text into the score.
+
+
+music: K#4 bb | c b e | d - bb | c b ^f | e - bb |
+counter: 3
+
+music: K#4 ^b g e | d c ^aa | g e f | e - - |
+counter: 1
+
+: The 'music' key word tells the app to interpret what follows as FQS notation.
+: The key signature is required. K#4 indicates E major ( 4 sharps ).
+: No time signature is needed ( but you can indicate one with an annotation)
+: The vertical bar symbol delimits measures.
+: A hyphen indicates a sustained pitch.
+: By default, each pitch is rendered in the octave that puts it closest to
+: the preceding pitch. A preceding caret raises it to the next octave.
+: The 'counter' keyword places small beat numbers above the staff. It takes
+: a single number as an argument to enable support for pickup (partial) measures.
+
+text: This example introduces many of the key concepts in FQS.
+   * Pitch names instead of note symbols
+   * Color (and italics) to indicate altered (sharp or flat) pitches,
+   * Compressed vertical spacing preserves melodic shape (like regular notation),
+     but allows 3 octaves to be displayed in a single stave. The spacing is
+     is also 'true' in the sense that each semitone is rendered exactly 1/12th
+     of an octave higher than the next lower pitch.
+   * Space separates beats. Pitches without space between them subdivide the
+     beat equally.
+   * The optional beat counter annotations help distinguish notes that are sustained
+     across beats.
+     
+
+text: FQS supports lyrics. Here's Happy Birthday again - this time in E♭ major.
+
+pitch: K&3 bb | c b e | d bb | c b ^f | e bb |
+lyric: Hap.py | birth day to | you -; Hap.py | birth day to | you -; Hap.py |
+perbar: 3/4
+counter: 3
+
+pitch: K&3 ^b g e | d c ^aa | g e f | e |
+lyric: birth day dear | NAME * Hap.py | birth day to | you - - |
+perbar: _  molto._rall.
+counter: 1
+
+: When the 'lyric' keyword is present, it determines the rhythm and we write the
+: pitch names in the 'pitch' line. The 'pitch' key word is similar to the 'music'
+: keyword except that it is an error to include '-', '*', or ';'.
+
+text: When writing music with lyrics, we have to indicate which syllables get which pitches. 
+    * Writing Happy as 'Hap.py' tells FQS that the two syllables share 
+      a beat, each taking half.
+    * After the word 'you' on beat 1 of the second full measure, the '-;' means sustain
+      for half of measure 2, then rest for the second half.
+    * Measure 6, 'NAME *' indicates a change of pitch on the second beat.
+
+
+
+
+: MAIN CONTROLS:
+Click the "Controls" dropdown at the top of the page to show or hide the main
+controls for the app.
+  "Export" allows you to save a local copy of all the scores on the page as
+    a .fqs file.
+    IMPORTANT: Don't rely your browser's Save command to save your 
+    work. It will save a copy of this html file without the scores.
+. 
+  "Import File" loads a .fqs file from your disk drive.
+. 
+  "Import URL" prompts your for a URL reference to load a remote .fqs file.
+.
+  "Hide (Show) Edit Controls" toggles the visibility of the buttons for iinserting,
+    editing and deleting scores.
+.
+  "Edit Below (Beside) Scores" controls the position of the text editing windows
+    for scores.
+.
+EDIT CONTROLS:
+When the Edit Controls are shown, each score has 3 buttons:
+1. Edit this score - opens a text editing window containing the score source.
+   Changes you make are updated in real time in the displayed music.
+2. Delete - removes the score (after asking for confirmation)
+3. Insert New Score - Allows a new score to be inserted immediately after the
+   current score.
+.
+WAYS TO LOSE YOUR WORK:
+1. Close or Reload the page (without exporting first)
+2. Use your browser's Back button. 
+
+cue: This cue stands apart
+
+cue: This cue attaches to the notation
+chord: Cmaj7 _ Dm7 _ G7 _ Cmaj7
+perbeat: 1 2 3 4
+pitch: K0 c d e f | g a b c |
+perbar: 4/4
+lyric: do re mi fa | so la ti do |
+pernote: mf
+
+cue: Second line of music
+chord: Dmaj7 _ Em7 _ A7 _ Dmaj7
+perbeat: 1 2 3 4
+pitch: K#2 defg | abcd |
+perbar: 4/4
+lyric: * * * * | * * * * |
+pernote: mf
+
+text: SCORE ENTRY FORMAT:
+An FQS score consists a title and lines of music and optional lines of text
+between. FQS looks for certain keywords at the beginning of lines to decide how
+to interpret and render them.
+.
+"title: Your title here" displays the title at the top of the score.
+.
+"zoom: N" scales the score display by N%. N must be between 50 and 200.
+  zoom defaults to 100 if omitted.
+.
+"text: One of more lines of text ..." inserts a text block into the score.
+  A blank line ends the block.
+
+
+text: MUSIC LINE BLOCKS:
+A music line block is one or more lyric, pitch and annotation lines.
+Together, they tell FQS how to render a single line of music. We'll start
+with a simple one line example:
+.
+Entering "music: K&2 ga bc de fg | ga bc de fg | ga bc de fg |" creates three
+octaves of G minor scales. The K&2 specifies a B♭ key signature (2 flats.) 
+
+music: K&2 ga bc de fg | ga bc de fg | ga bc de fg | 
+
+text: Notice that the flatted notes, B and E, are rendered in blue italics. You
+can also specify sharps and flats explicitly. For example, 
+"music: K&2 ga bc de #fg | ga bc de #fg | ga bc de #fg |" gives us the G
+harmonic minor scale. The sharped F's are rendered in red italics.
+
+music: K&2 ga bc de #fg | ga bc de #fg | ga bc de #fg |
+
+text: RHYTHM:
+.
+"|" separates measures,
+Whitespace separates beats,
+";" is a rest,
+"-" sustains a prior note or rest.
+Pitches, rests and sustains subdivide beats.
+
+cue: durations (assuming 4/4 meter)
+music: c - - - | d - d - | e e e e | ff ff ff ff |
+counter: 1 
+perbar: whole halves quarters eighths
+
+: Lyric lines:
+      : define the rhythm using the following characters.
+      : Attack: '*' or a syllable of alphabetic characters.
+      : Sustain: '-' continues the note from the prior attack.'
+      : Rest: ';' semicolon
+      : Whitespace: ' ' separates beats.
+      : Syllable Separator: '.' (period) separates syllables that fall in the same beat.
+      :                     | This is four beats | Four.six.teenth.notes  a.trip.let  two.eighths  ; |
+      : Barline: '|' separates measures.
+
+: Pitch lines:
+      : contain pitches, key signatures and barlines.
+      : Pitch examples:
+          :'c'    C, octave nearest to prior pitch, alteration determined by key signature or prior alteration
+          :'#d'   D-sharp, octave as above
+          :'##e'  E-double-sharp, octave as above
+          :'&f'   F-flat, octave as above
+          :'&&g'  G-double-flat, octave as above
+          :'/&a'  A-flat one octave lower
+          :'^&b'  B-flat one octave higher
+          :'//#c' C-sharp, two octaves lower
+      : Octave marks and accidentals PRECEDE the pitch, so '/#c', NOT '/c#'' or 'c#/''
+      : Whitespace is NOT signifcant between pitches. 'c d e f' is the same as 'cdef'
+      : Barlines: Needed so altered pitches cancel at end of measure.
+      : Key signatures: 'K0' or K#|&[1-7], i.e. 'K0' = C major, 'K#1' = G major, 'K#2' = D major, 'K&1' = F major, etc.
+          
+: Annotations (all optional):
+        : cue: A line of text you want to appear as a cue.
+        :      cues may be attached to the notation or stand alone if followed by a blank line.
+        : chord: chord symbols aligned to beats
+        : perbar: Items aligned to barlines, e.g. time signatures
+        : perbeat: Items aligned to beats, e.g. tempo markings
+        : pernote: Items aligned to attacks, e.g. dynamic markings
+
+: Underscores '_' are used to skip beats, barlines, or attacks in annotations.
+        : e.g. 'perbar: 4/4 _ 3/4' puts 4/4 at the first measure and 3/4 at the third measure.
+
+postscript: Click the edit widget below if it's not already open.
