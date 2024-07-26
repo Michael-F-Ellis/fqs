@@ -434,6 +434,31 @@
         console.log(this.beats)
       }
 
+      extractRhythm = (function () {
+        // Extract the rhythm from the text of the lyric line.
+        // The rhythm is the sequence of subdivided beat texts
+        // The rhythm is returned as an array of strings of beats, e.g. 
+        // "foo.bar - ;baz * |n" would return ["**", "-", ";*", "*"]
+        let rhythm = [];
+        // parse each each element of this.words, substituting '*' for attacks
+        // to produce the desired result
+        this.words.forEach((function (word) {
+          let beat = '';
+          // reject any word containing '|'
+          if (word.match(/\|/)) {
+            return;
+          }
+          // replace all substrings that match /[a-zA-Z]+/ with '*'
+          beat = word.replace(/[a-zA-Z]+/g, '*');
+          // remove any '.' characters
+          beat = beat.replace(/\./g, '');
+          rhythm.push(beat);
+        }));
+        return rhythm
+
+      });
+
+
       render = (function render(svg, x0, y0, fontwidth) {
         // Draw each char in this.text starting at x0, y0 and incrementing
         // x by fontwidth for each char.
@@ -451,6 +476,7 @@
           x += fontwidth;
         }
       });
+
     } // end of LyricLine class
 
 
@@ -1211,31 +1237,42 @@
     }
     // The Counter class is similar to the PerBeat class. It provides
     // an automated method for rendering beat numbers above the beats.
-    // The constructor takes 3 arguments, n, which is the first beat number
-    // to be assigned to an initial partial measure, beats, which is an
-    // array of beat positions, and bars, which is an array of of bar positions.
+    // The constructor takes 4 arguments, 
+    //    n, the first beat number (should be 1 unless we're starting with a partial measure)
+    //    beats, an array of beat x positions,
+    //    bars, an array of of bar x positions.
+    // .  rhythm, an array of rhythm markup,  as created by LyricLine.extractRhythm()`
     class Counter {
-      constructor(n, beats, bars) {
+      constructor(n, beats, bars, rhythm) {
         this.n = n;
         this.beats = beats;
         this.bars = bars;
+        this.rhythm = rhythm;
         // We need to generate a list of beat numbers that resets to 1
         // each time the beat position exceeds the next bar position.
         // The counting will begin with n unless n is <= 0, in which
         // case we will start with 1 for the first beat after the first bar.
         let count = (n > 0) ? n : 1;
         this.counts = [];
-        let i = 0;
+        let i = 0; // index into bars
+        let j = 0; // index into beats
         for (let beat of this.beats) {
           if (i < this.bars.length) {
-            console.log(beat, this.bars[i], count);
             if (beat > this.bars[i]) { // we've crossed the next bar
               count = 1;
               i++;
             }
           }
-          this.counts.push(count);
+          // append rhythm to count ( minus the first char of the rhythm)
+          const subbeats = this.rhythm[j].slice(1, this.rhythm[j].length)
+          console.log(beat, this.bars[i], count, subbeats);
+          // if the first char of rhythm is a minus sign, we need to
+          // use a hyphen instead of a number
+          const c = this.rhythm[j][0] === '-' ? '-' : String(count);
+          this.counts.push(c + subbeats);
+          // bump the count and beat index
           count++
+          j++;
         }
       }
       render = (function (svg, x0, y0, fontwidth) {
@@ -1561,7 +1598,7 @@
           if (bars[0] == 0) {
             bars = bars.slice(1); // ignore the pseudo barline at 0
           }
-          const counter = new Counter(npartial, lyricline.beats, bars);
+          const counter = new Counter(npartial, lyricline.beats, bars, lyricline.extractRhythm());
           counter.render(svg, bookParameters.leftX, y, bookParameters.lyricFontWidth)
           // y += bookParameters.counterFontHeight / 3;
         }
