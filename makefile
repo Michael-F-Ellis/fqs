@@ -1,3 +1,2 @@
-fqs.html: reference.fqs
-	@sed -i '/cheatsheet: `/,/`/c\        cheatsheet: `$$(cat reference.fqs)`' fqs.html
-	@echo "Cheatsheet updated successfully."
+fqs.html: reference.fqs pre-fqs.html update-reference.py
+	./update-reference.py

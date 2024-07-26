@@ -1,4 +1,5 @@
-: Lines that start with a colon are comments. They don't appear in the rendered score.       
+
+: Lines that start with a colon are comments. They don't appear in the rendered score.
 : This reference loads when you first open FQS. You can delete it with the button above.
 
 : Every score needs a title
@@ -22,6 +23,10 @@ in this reference.
 .
 (In case you're wondering, the name comes from the initials of my three grandchildren
 Fiona, Quentin and Skylar.)
+.
+NOTE: This reference is a score, albeit one with far more text than usual. I encourage
+you to use the edit area to experiment with changes. You can even save your own version
+without losing this one since it's embedded in the fqs.html file.
 
 text: MAIN CONTROLS:
    Click the "Controls" dropdown at the top of the page to show or hide the main
@@ -29,11 +34,11 @@ text: MAIN CONTROLS:
 .
   Export -  allows you to save a local copy of all the scores on the page as
     a .fqs file.
-    IMPORTANT: Don't rely your browser's Save command to save your 
+    IMPORTANT: Don't rely your browser's Save command to save your
     work. It will save a copy of this html file without the scores.
-. 
+.
   Import File - loads a .fqs file from your disk drive.
-. 
+.
   Import URL - prompts your for a URL reference to load a remote .fqs file.
 .
   Hide (Show) Edit Controls - toggles the visibility of the buttons for inserting,
@@ -48,7 +53,8 @@ When the Edit Controls are shown, each score has 3 buttons:
    Edit this score - opens a text editing window containing the score source.
    Changes you make are updated in real time in the displayed music.
 .
-   Delete - removes the score (after asking for confirmation)
+   Delete - removes the score (after asking for confirmation). Does not affect
+   underlying files, but any unexported changes will be lost.
 .
    Insert New Score - Allows a new score to be inserted immediately after the
    current score.
@@ -89,18 +95,18 @@ text:  Key concepts in FQS.
 .
    Compressed vertical spacing preserves melodic shape (like regular notation),
    but allows 3 octaves to be displayed in a single stave.
-. 
+.
    The spacing is also 'true' in the sense that each semitone is rendered exactly
    1/12th of an octave higher than the next lower pitch.
 .
-   Horizontal space separates beats. Pitches without space between them 
+   Horizontal space separates beats. Pitches without space between them
    subdivide the beat equally.
 .
    Semicolon ';' indicates a rest.
 .
-   The optional beat counter annotations help distinguish notes that are 
+   The optional beat counter annotations help distinguish notes that are
    sustained across beats.
-     
+
 
 text: LYRICS:
 FQS also supports lyrics. Here's Happy Birthday again - this time in E♭ major.
@@ -115,7 +121,7 @@ counter: 1
 
 : When the 'lyric' keyword is present, it determines the rhythm and we write the
 : pitch names in the 'pitch' line. The 'pitch' key word is similar to the 'music'
-: keyword except that it is an error to include '-', '*', ';' or anything other 
+: keyword except that it is an error to include '-', '*', ';' or anything other
 : than pitches and barlines.
 
 text: When writing music with lyrics, we have to indicate which syllables get which pitches.
@@ -123,11 +129,11 @@ text: When writing music with lyrics, we have to indicate which syllables get wh
    Dot, '.', separates syllables that occupy the same beat. Writing Happy as 'Hap.py'
    tells FQS that the two syllables share a beat, each taking half.
 .
-   Hyphen, '-' indicates a syllable that is sustained for all or part of a beat. 
+   Hyphen, '-' indicates a syllable that is sustained for all or part of a beat.
    After the word 'you' on beat 1 of the second full measure, '-;' means sustain
    for first half of beat 2, then rest for the second half.
 .
-   Asterisk, '*' indicates changes of pitch on the same syllable. In measure 6, 
+   Asterisk, '*' indicates changes of pitch on the same syllable. In measure 6,
    the asterisk after 'NAME' indicates a change of pitch on the second beat.
 
 
@@ -250,7 +256,7 @@ perbar: triplets 16ths_and_dotted_rhythms two_beat_triplet
       : Whitespace is NOT signifcant between pitches. 'c d e f' is the same as 'cdef'
       : Barlines: Needed so altered pitches cancel at end of measure.
       : Key signatures: 'K0' or K#|&[1-7], i.e. 'K0' = C major, 'K#1' = G major, 'K#2' = D major, 'K&1' = F major, etc.
-          
+
 : Annotations (all optional):
         : cue: A line of text you want to appear as a cue.
         :      cues may be attached to the notation or stand alone if followed by a blank line.
@@ -263,3 +269,5 @@ perbar: triplets 16ths_and_dotted_rhythms two_beat_triplet
         : e.g. 'perbar: 4/4 _ 3/4' puts 4/4 at the first measure and 3/4 at the third measure.
 
 
+
+    
