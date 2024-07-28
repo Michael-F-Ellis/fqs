@@ -68,7 +68,8 @@
     <summary>
       <em>Controls</em>
     </summary>
-    <button onclick="exportScores()">Export</button> <em>Save the scores from this page in <code>.fqs</code> text
+    </summary> <button onclick="exportScores()">Export</button> <em>Save the scores from this page in <code>.fqs</code>
+      text
       format.</em><br>
     <button onclick="importFromFile()">Import File</button> <em>Import scores from a local <code>.fqs</code>
       file.</em><br>
@@ -149,6 +150,16 @@
       margin-bottom: 2em;
       padding-left: 5%;
     }
+
+    details.controls summary {
+      width: 100%;
+      margin-left: 0;
+      margin-right: 0;
+      margin-top: 2em;
+      margin-bottom: 0;
+      padding-left: 0%;
+    }
+
 
     div.score,
     div.score-toc {
@@ -2114,9 +2125,9 @@ postscript: The postscript line is handy for copyright notices, etc.`,
     }
 
   </script>
-<script type="text/javascript">
-// This is the reference score that documents FQS usage
-fqsReference=`
+  <script type="text/javascript">
+    // This is the reference score that documents FQS usage
+    fqsReference = `
 : Lines that start with a colon are comments. They don't appear in the rendered score.
 : This reference loads when you first open FQS. You can delete it with the button above.
 
@@ -2389,6 +2400,7 @@ perbar: triplets 16ths_and_dotted_rhythms two_beat_triplet
 
 
     `
-</script>
+  </script>
 </body>
+
 </html>
