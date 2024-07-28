@@ -68,7 +68,8 @@
     <summary>
       <em>Controls</em>
     </summary>
-    <button onclick="exportScores()">Export</button> <em>Save the scores from this page in <code>.fqs</code> text
+    <button id="exportButton" onclick="exportScores()">Export</button> <em>Save the scores from this page in
+      <code>.fqs</code> text
       format.</em><br>
     <button onclick="importFromFile()">Import File</button> <em>Import scores from a local <code>.fqs</code>
       file.</em><br>
@@ -148,6 +149,15 @@
       margin-top: 2em;
       margin-bottom: 2em;
       padding-left: 5%;
+    }
+
+    details.controls summary {
+      width: 100%;
+      margin-left: 0;
+      margin-right: 0;
+      margin-top: 2em;
+      margin-bottom: 0;
+      padding-left: 0%;
     }
 
     div.score,
@@ -318,6 +328,7 @@
     }
   </style>
   <script type="text/javascript">
+    let isDirty = false; // global flag that is set when we edit a score and cleared when export the scores
     const bookParameters = {
       "attackNumbers": false, // (DEPRECATED) if true, attach pitch events to numbers in lyric line (useful for instrumental scores)
       leftX: 0, // Pixel position of the left edge of the score.
@@ -431,7 +442,7 @@
             this.beats.push(i + 1);
           }
         }
-        console.log(this.beats)
+        //console.log(this.beats)
       }
 
       extractRhythm = (function () {
@@ -1265,7 +1276,7 @@
           }
           // append rhythm to count ( minus the first char of the rhythm)
           const subbeats = this.rhythm[j].slice(1, this.rhythm[j].length)
-          console.log(beat, this.bars[i], count, subbeats);
+          //console.log(beat, this.bars[i], count, subbeats);
           // if the first char of rhythm is a minus sign, we need to
           // use a hyphen instead of a number
           const c = this.rhythm[j][0] === '-' ? '-' : String(count);
@@ -1408,7 +1419,7 @@
     function preprocessScore(text) {
       text = stripComments(text);
       const blocks = text.split(/\n\s*\n/);
-      console.log(blocks);
+      //console.log(blocks);
       const data = { text: text, lines: [] };
 
       // We must deal with three kinds of block.
@@ -1471,7 +1482,7 @@
         return obj;
       });
       kvlines = kvlines.filter(obj => Object.keys(obj).length > 0);
-      console.log(kvlines);
+      //console.log(kvlines);
 
       // push the remaining lines. 
       for (let kv of kvlines) {
@@ -1619,7 +1630,7 @@
             y += 2 * bookParameters.lyricFontHeight;
           } catch (e) {
             lineProblems.add("Pitch line error: " + e.message);
-            console.log(e);
+            //console.log(e);
           }
         }
         if (line.perbar && line.lyric) {
@@ -1709,6 +1720,7 @@
       const xpix = 720 * 100. / zoom;
       svg.setAttribute('viewBox', `0 0 ${xpix} ${height}`);
       scoreToc(); // update the table of contents
+      isDirty = true // signal that the score has been edited
     }
     // scoreToc is a function that generates a table of contents for the scores in the
     // current page. It creates a ul element that contains li elements for each score.
@@ -1867,7 +1879,7 @@ postscript: The postscript line is handy for copyright notices, etc.`,
     // a <details> element that contains a <pre> element of class 'source' and a Save button that
     // invokes saveAsHtmlFile().
     function handleNewScoreButtonClick(event) {
-      console.log('handleNewScoreButtonClick');
+      //console.log('handleNewScoreButtonClick');
       const button = event.target;
       dialog = document.getElementById('new-score-dialog');
       // replace the dialog with a clone
@@ -1885,7 +1897,7 @@ postscript: The postscript line is handy for copyright notices, etc.`,
       };
       const confirmHandler = () => {
         dialog.returnValue = dialog.querySelector('input[name="choice"]:checked').value;
-        console.log(`New score dialog submitted with ${dialog.returnValue}`);
+        //console.log(`New score dialog submitted with ${dialog.returnValue}`);
         return false;
       };
 
@@ -1894,7 +1906,7 @@ postscript: The postscript line is handy for copyright notices, etc.`,
 
       dialog.addEventListener('close', () => {
         if (dialog.returnValue !== '') {
-          console.log(`New score dialog closed with ${dialog.returnValue}`);
+          //console.log(`New score dialog closed with ${dialog.returnValue}`);
           insertNewScore(button, dialog.returnValue);
         }
         return false;
@@ -1922,7 +1934,22 @@ postscript: The postscript line is handy for copyright notices, etc.`,
       // get this html document's name and append '-source.fqs' to it.
       const fqsName = window.location.pathname.split('/').pop().replace('.html', '-source.fqs');
       a.setAttribute('download', fqsName);
+      let saveInitiated = true;
+      const initialTimestamp = Date.now();
       a.click();
+      setTimeout(() => {
+        if (saveInitiated && Date.now() - initialTimestamp > 1000) {
+          // Assume save was successful if more than 1 second has passed.
+          // This approach isn't foolproof, but it may be the best we can
+          // do since the result of the File Save dialog is not available.
+          isDirty = false;
+        }
+      }, 1500);
+      // if the user cancels the download, do nothing. Otherwise clear isDirty
+      if (dialog.returnValue !== '') {
+        isDirty = false;
+      }
+      // Revoke the object URL to avoid memory leaks.
       URL.revokeObjectURL(url);
       return false;
     }
@@ -2101,6 +2128,21 @@ postscript: The postscript line is handy for copyright notices, etc.`,
       sourceEditorsVisible(visible);
       newScoreBtnsVisible(visible);
     }
+    function startExportButtonUpdateTimer() {
+      setInterval(updateExportButtonAppearance, 500);
+    }
+    function updateExportButtonAppearance() {
+      const exportButton = document.getElementById('exportButton');
+      if (isDirty) {
+        exportButton.style.backgroundColor = 'red';
+        exportButton.style.color = 'white';
+      } else {
+        exportButton.style.backgroundColor = '';
+        exportButton.style.color = '';
+      }
+    }
+
+
     // When the window load is complete, render the scores and add listeners to
     // the buttons that invoke the functions to insert, save and delete scores.
     window.onload = () => {
@@ -2111,6 +2153,8 @@ postscript: The postscript line is handy for copyright notices, etc.`,
       // Insert the built-in reference score.
       const b1 = document.getElementById('first-new-score-btn');
       insertNewScore(b1, 3);
+      isDirty = false
+      startExportButtonUpdateTimer();
     }
 
   </script>

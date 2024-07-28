@@ -10,12 +10,13 @@ def update(html_file, reference_file, output_file):
 
     with open(reference_file, 'r') as f:
         reference_content = f.read()
-   
+
+    warn = '<!-- This file is auto-generated. Do not edit it manually. -->' 
     tag = '<script type="text/javascript">'
     cmt = '// This is the reference score that documents FQS usage'
     end = '</script>\n</body>\n</html>'
 
-    updated_content = f"{content}\n{tag}\n{cmt}\nfqsReference=`{reference_content}`\n{end}" 
+    updated_content = f"{warn}\n{content}\n{tag}\n{cmt}\nfqsReference=`{reference_content}`\n{end}" 
 
     with open(output_file, 'w') as f:
        f.write(updated_content)
