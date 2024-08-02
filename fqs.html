@@ -331,13 +331,14 @@
   <script type="text/javascript">
     let isDirty = false; // global flag that is set when we edit a score and cleared when export the scores
     const bookParameters = {
-      "attackNumbers": false, // (DEPRECATED) if true, attach pitch events to numbers in lyric line (useful for instrumental scores)
       leftX: 0, // Pixel position of the left edge of the score.
       "lyricFontWidth": 7, // includes space between letters
       // Various font heights can be specified in this object to override the defaults.
       // See updateFontSizes() in this file for an explanation. Also, see the
       // style tag in this file with id "fqs-style".
       sideBySide: true, // if true, render scores side-by-side with edit area
+      barlineRgx: /:?\|:?/, // regular expression to match barlines
+      lyricRgx: /[\p{L}']/u, // regular expression to match lyric alpha characters and apostrophes
     }
 
     // appendSVGTextChild(svg, x, y, textContent, classList) adds a text element
@@ -405,11 +406,6 @@
         //   a period '.', or
         //   an asterisk '*'.
         // An asterisk is also an attack
-        // We also support numbers as attacks for instrumental scores
-        let RGX = /[a-zA-Z]/;
-        if (bookParameters.attackNumbers !== 'undefined' && bookParameters.attackNumbers === true) {
-          RGX = /[a-zA-Z1-9]/; // regex for a lyric alphabetic or numeric character
-        }
         // We need to store the indices of the attacks in the text as well as
         // the indices of the beats and barlines. We use these indices to
         // position pitch symbols and annotations.
@@ -418,7 +414,7 @@
         this.attacks = [];
         this.rests = []
         for (let i = 0; i < this.text.length; i++) {
-          if (this.text[i].match(/\|/)) {
+          if (this.text[i].match(bookParameters.barlineRgx)) {
             this.bars.push(i);
             continue;
           }
@@ -430,7 +426,7 @@
             this.rests.push(i);
             continue;
           }
-          if (this.text[i].match(RGX)) {
+          if (this.text[i].match(bookParameters.lyricRgx)) {
             if (i === 0) {
               this.attacks.push(i);
             } else if (this.text[i - 1].match(/[\s\-.;\*]/)) {
@@ -456,18 +452,33 @@
         // to produce the desired result
         this.words.forEach((function (word) {
           let beat = '';
-          // reject any word containing '|'
-          if (word.match(/\|/)) {
-            return;
-          }
-          // replace all substrings that match /[a-zA-Z]+/ with '*'
-          beat = word.replace(/[a-zA-Z]+/g, '*');
-          // remove any '.' characters
-          beat = beat.replace(/\./g, '');
-          rhythm.push(beat);
+          // Handle words containing barlines. The simplest case is a single barline
+          // surrounded by whitespace.  We simply ignore it and return to the
+          // top of the loop.
+          // The same also applies to barlines with repeat indicators, ':|', '|:' and ':|:'
+          // On the other hand if any of these four barline possibilities had text prepended or appended
+          // with no intervening whitespace, we need to remove barline chars and continue to the 
+          // bottom of the loop.
+          const barlineChars = /[\|:]+/;
+          // We have to handle the possibility of barlines embedded in a word, e.g. "foo|bar"
+          // We can't simply delete the barline chars with a space, because "foo|bar"
+          // is actually 2 beats.  We need to split the word into two words, "foo" and "bar"
+          // and then process each word separately.
+          const beatWords = word.split(barlineChars)
+          beatWords.forEach((function (beatWord) {
+            if (beatWord.length == 0) {
+              return;
+            }
+            // Replace each syllable with an asterisk, honoring '.' syllable separators
+            // and removing apostrophes.
+            // example: "l'en.fer" -> "**"
+            beatWord = beatWord.replace(/'/g, '')  // Remove apostrophes
+              .replace(/\p{L}+/gu, '*')            // Replace letter sequences with '*'
+              .replace(/\./g, '');                 // Remove dots
+            rhythm.push(beatWord);
+          }));
         }));
         return rhythm
-
       });
 
 
