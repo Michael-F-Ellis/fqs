@@ -3,7 +3,7 @@ import re
 
 def update(html_file, reference_file, output_file):
     """
-    Wraps the the reference file in a script tag and appends it to the html file.
+    Wraps the the reference file in a script tag and appends it to the fqs.html file.
     """
     with open(html_file, 'rb') as f:
         content = f.read().decode('utf-8')

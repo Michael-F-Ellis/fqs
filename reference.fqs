@@ -86,26 +86,25 @@ counter: 1
 : The 'counter' keyword places small beat numbers above the staff. It takes
 : a single number as an argument to enable support for pickup (partial) measures.
 
-text:  Key concepts in FQS.
+text:  Key concepts in FQS notation display.
 .
-   Pitch letter names instead of note symbols
+   Pitch:
+     Letter names instead of note symbols
+     Color (and italics) indicate altered (sharp or flat) pitches. Red for
+       ♯ and blue for ♭.
+     Compressed vertical spacing preserves melodic shape (like regular notation),
+       but allows 3 octaves to be displayed in a single stave.
+       The spacing is also 'true' in the sense that each semitone is rendered exactly
+       1/12th of an octave higher than the next lower pitch.
 .
-   Color (and italics) indicate altered (sharp or flat) pitches. Red for
-   ♯ and blue for ♭.
+   Rhythm:
+     Horizontal space separates beats. 
+     Pitches without space between them subdivide the beat equally.
+     Asterisk * is an attack.
+     Hyphen - is a sustain of a prior note or rest.
+     Semicolon ; indicates a rest.
 .
-   Compressed vertical spacing preserves melodic shape (like regular notation),
-   but allows 3 octaves to be displayed in a single stave.
-.
-   The spacing is also 'true' in the sense that each semitone is rendered exactly
-   1/12th of an octave higher than the next lower pitch.
-.
-   Horizontal space separates beats. Pitches without space between them
-   subdivide the beat equally.
-.
-   Semicolon ';' indicates a rest.
-.
-   The optional beat counter annotations help distinguish notes that are
-   sustained across beats.
+   The optional beat counter annotations are useful to further clarify the rhythm.
 
 
 text: LYRICS:
