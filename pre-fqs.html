@@ -64,40 +64,48 @@
 </head>
 
 <body>
-  <details class="controls">
-    <summary>
-      <em>Controls</em>
-    </summary>
+  <div class="controls" style="margin: 5%;">
+    <em>Controls</em><br>
     <button id="exportButton" onclick="exportScores()">Export</button> <em>Save the scores from this page in
       <code>.fqs</code> text
       format.</em><br>
     <button onclick="importFromFile()">Import File</button> <em>Import scores from a local <code>.fqs</code>
       file.</em><br>
     <button onclick="importFromURL()">Import URL</button> <em>Import a <code>.fqs</code> file from a URL.</em><br>
-    <button id="toggle-score-controls-btn">Show Edit Controls</button> <em>Toggle the visibility of the
-      edit controls for the scores below.</em><br>
-    <button id="toggle-layout-btn">Edit beside scores</button> <em>Toggle editor layout </em>
+    <button id="edit-btn">Show edit controls</button> <em>Display the editable source beside the score. </em>
 
     <script>
-      let scoreControlsShown = false;
-      const toggleButton = document.getElementById('toggle-score-controls-btn');
-      function toggleScoreControls() {
-        scoreControlsVisible(!scoreControlsShown);
-        scoreControlsShown = !scoreControlsShown;
-        toggleButton.textContent = scoreControlsShown ? 'Hide Edit Controls' : 'Show Edit Controls';
+      let editModeState = true;
+      const editButton = document.getElementById('edit-btn');
+      function toggleEdit() {
+        editModeState = !editModeState;
+        forceEditMode(editModeState);
       }
-      toggleButton.addEventListener('click', toggleScoreControls);
-
-      const layoutButton = document.getElementById('toggle-layout-btn');
-      function changeLayout() {
-        toggleLayout()
-        layoutButton.textContent = bookParameters.sideBySide ? 'Edit below scores' : 'Edit beside scores';
+      function forceEditMode(boolValue) {
+        newScoreBtnsVisible(editModeState);
+        const scoreDivs = document.querySelectorAll('div.score');
+        scoreDivs.forEach(div => {
+          const editor = div.querySelector('div.source-div');
+          const rendered = div.querySelector('div.inner-wrapper');
+          const deleteBtn = div.querySelector('button.delete-btn');
+          if (editModeState) {
+            editor.style.display = 'block';
+            editor.style.width = '50%';
+            rendered.style.width = '50%';
+            deleteBtn.style.display = 'inline-block';
+            editButton.textContent = 'Hide edit controls';
+          } else {
+            editor.style.display = 'none';
+            rendered.style.width = '100%';
+            deleteBtn.style.display = 'none';
+            editButton.textContent = 'Show edit controls';
+          }
+        });
       }
-      layoutButton.addEventListener('click', changeLayout);
-    </script>
+      editButton.addEventListener('click', toggleEdit);
     </script>
 
-  </details>
+  </div>
   <h3>
     Scores
   </h3>
@@ -143,7 +151,7 @@
       margin-left: 5%;
     }
 
-    details.controls {
+    div.edit {
       width: 100%;
       margin-left: 0;
       margin-right: 0;
@@ -171,21 +179,6 @@
       padding: 0;
     }
 
-    pre.source {
-      position: sticky;
-      top: 0;
-      padding-left: 5%;
-      max-height: 100vh;
-      overflow-y: auto;
-    }
-
-    svg {
-      /* Center the SVG element with 5% padding left, right and bottom*/
-      width: 90%;
-      height: 95%;
-      padding-left: 5%;
-
-    }
 
     /* Font sizes (adjusted dynamically at render time) */
     .lineproblem {
@@ -309,27 +302,31 @@
       margin-right: 5%;
     }
 
-    /* styles for toggling between side-by-side and top-down layouts */
-    .score-wrapper {
+    /* styles for side by side layout */
+    div.score-wrapper {
       display: flex;
-      flex-direction: column;
-    }
-
-    .score-wrapper.side-by-side {
       flex-direction: row;
     }
 
-    .score-wrapper.side-by-side svg,
-    .score-wrapper.side-by-side details {
-      width: 50%;
+    div.inner-wrapper {
+      position: sticky;
+      top: 0;
+      padding-left: 1%;
+      overflow-y: auto;
     }
 
-    .score-wrapper.side-by-side details {
-      margin-left: 10px;
+    pre.source {
+      position: sticky;
+      top: 0;
+      padding-left: 5%;
+      overflow-y: auto;
     }
 
-    .score-wrapper.side-by-side svg {
-      padding-left: 0;
+    /* Center SVG elements with 5% padding left, right and bottom*/
+    svg {
+      padding-left: 5%;
+      display: block !important;
+      width: 100% !important;
     }
   </style>
   <script type="text/javascript">
@@ -394,9 +391,13 @@
     // The LyricLine class interprets the text of a lyric line and
     // and determines the location of beats, attacks and barlines.
     // It provides a render() method that will render the lyric line
-    // into an svg element.
+    // into an svg element. The tight and show arguments control the
+    // spacing of the rendered score. We need both of these to handle
+    // the distinction music line groups (which never show lyrics)
+    // pitch plus lyric groups where lyrics are shown and tight is
+    // ignored.
     class LyricLine {
-      constructor(text) {
+      constructor(text, tight, show) {
         this.text = text;
         // trim leading or trailing whitespace
         this.text = this.text.trim();
@@ -419,30 +420,46 @@
         this.bars = [0,]; // barline positions
         this.attacks = [];
         this.rests = []
+        this.tight = tight;
+        this.showLyric = show;
+        let j = 0; // position index
         for (let i = 0; i < this.text.length; i++) {
+          // if tight is true and show is false, don't advance the position
+          // index if the character is a space
+          if (tight && !show && (i != 0)) {
+            if (this.text[i].match(/\s/)) {
+              j = j;
+            } else {
+              j++;
+            }
+          } else {
+            j = i; // normal non-tight behavior
+          }
+          // A barline is any character that matches the regular expression
+          // bookParameters.bar
           if (this.text[i].match(bookParameters.barlineRgx)) {
-            this.bars.push(i);
+            this.bars.push(j);
             continue;
           }
           if (this.text[i].match(/\*/)) {
-            this.attacks.push(i);
+            this.attacks.push(j);
             continue;
           }
           if (this.text[i].match(/;/)) {
-            this.rests.push(i);
+            this.rests.push(j);
             continue;
           }
           if (this.text[i].match(bookParameters.lyricRgx)) {
             if (i === 0) {
-              this.attacks.push(i);
+              this.attacks.push(j);
             } else if (this.text[i - 1].match(/[\s\-.;\*]/)) {
-              this.attacks.push(i);
+              this.attacks.push(j);
             }
           }
           // A beat begins with any character that is preceded by a space
           // except barline characters
           if (this.text[i].match(/\s/) && !(this.text[i + 1].match(/\|/))) {
-            this.beats.push(i + 1);
+            this.beats.push(j + 1);
           }
         }
         //console.log(this.beats)
@@ -489,6 +506,7 @@
 
 
       render = (function render(svg, x0, y0, fontwidth) {
+        if (this.tight && !this.showLyric) { return; } // tight mode does not render lyric lines as part of music lines
         // Draw each char in this.text starting at x0, y0 and incrementing
         // x by fontwidth for each char.
         let x = x0;
@@ -1064,10 +1082,16 @@
           prevPitch.octave = octave;
         }
       }
-      render = (function (svg, x0, y0, attacks, fontwidth, fontheight, bars) {
+      // render = (function (svg, x0, y0, attacks, fontwidth, fontheight, bars) {
+      render = (function (svg, x0, y0, bookParms, lyricLine) {
         // x0 is the x coordinate of the left edge of the line
         // y0 corresponds to the baseline of the center octave (0)
-        // Experimental: draw a thin gray horizontal lines at the base of 'c' in each octave
+        const fontheight = bookParms.lyricFontHeight;
+        const fontwidth = bookParms.lyricFontWidth;
+        const attacks = lyricLine.attacks;
+        const rests = lyricLine.rests;
+        const bars = lyricLine.bars;
+        // Draw the lines of the staff
         const yline0 = y0 + 2 * fontheight;
         const yline1 = yline0 - fontheight
         const yline2 = yline1 - fontheight
@@ -1111,8 +1135,15 @@
           }
           i++;
         }
+        // Now render the rests
+        for (let rest of rests) {
+          let x = x0;
+          let y = yline1; // rests are rendered in the middle of the staff
+          x = x0 + rest * fontwidth;
+          appendSVGTextChild(svg, x, y, ";", ["rest", "grey"]);
+        };
       });
-    };
+    }
 
     // The Cue class is used render cue text in the style specified in the style sheet.
     class Cue {
@@ -1494,7 +1525,7 @@
       // with one of the following keywords: 
       //   cue:, perbar:,  pernote:, perbeat:, 
       //   chord:, music:, lyric:
-
+      data.tight = false; // don't squeeze beats together.
       // loop through the blocks in reverse order.
       for (let i = blocks.length - 1; i >= 0; i--) {
         block = blocks[i].trim();
@@ -1505,6 +1536,11 @@
         }
         if (block.startsWith("postscript:")) {
           data.postscript = block.slice(11).trim();
+          blocks.splice(i, 1);
+          continue;
+        }
+        if (block.startsWith("tight:")) {
+          data.tight = true;
           blocks.splice(i, 1);
           continue;
         }
@@ -1580,13 +1616,15 @@
 
     // The renderScore function is used to render the score using the
     // members of the data object created by preprocessScore.
-    //  - svg is an svg element
+    //  - wrapper is a div element that will hold svg's we create
     //  - data is an object containing the score
-    function renderScore(svg, data) {
+    function renderScore(wrapper, data) {
       // clear any existing content of the SVG element
-      svg.innerHTML = "";
-
+      wrapper.innerHTML = "";
+      // create an svg element
+      let svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
       let y = 0; // y coordinate of the top of the rendered score
+      wrapper.appendChild(svg)
 
       // Render any line problems that were encountered in
       // preliminary processing
@@ -1606,11 +1644,16 @@
       }
       // Render the score
       data.lines.forEach((line, index) => {
+        // create an svg element
+        let svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+        let y = 0; // y coordinate of the top of the rendered score
+        wrapper.appendChild(svg)
         // If it's a text block, render it.
         if (line.text) {
           y += 2 * bookParameters.lyricFontHeight + bookParameters.textFontHeight;
           y = renderMultiline(svg, bookParameters.leftX, y,
             line.text, bookParameters.textFontHeight, 'text');
+          y += bookParameters.textFontHeight
           return;
         }
         // Handle the music lines. If present, a music line replaces the
@@ -1620,11 +1663,12 @@
           const { lyric, pitch } = musicToPitchLyric(line.music);
           line.lyric = lyric;
           line.pitch = pitch;
-          // line.showLyric = false;
+          line.showLyric = false;
         }
         let lyricline = undefined
         if (line.lyric) {
-          lyricline = new LyricLine(line.lyric);
+          lyricline = new LyricLine(
+            line.lyric, data.tight, line.showLyric);
         }
         y += bookParameters.lyricFontHeight
 
@@ -1662,7 +1706,7 @@
           y += 1.5 * bookParameters.lyricFontHeight;
           try {
             const pitchLine = new PitchLine(line.pitch);
-            pitchLine.render(svg, bookParameters.leftX, y, lyricline.attacks, bookParameters.lyricFontWidth, bookParameters.lyricFontHeight, lyricline.bars);
+            pitchLine.render(svg, bookParameters.leftX, y, bookParameters, lyricline);
             y += 2 * bookParameters.lyricFontHeight;
           } catch (e) {
             lineProblems.add("Pitch line error: " + e.message);
@@ -1715,11 +1759,13 @@
       });
 
       // Render the postscript, if any.
+      /*
       if (data.postscript) {
         y += 2 * bookParameters.lyricFontHeight;
         y = renderMultiline(svg, bookParameters.leftX, y,
           data.postscript, bookParameters.postscriptFontHeight, 'postscript');
       }
+      */
     }
 
     // deleteScore(id) deletes the score div with the given id and all its
@@ -1745,36 +1791,43 @@
     // the svg argument. Otherwise, a new SVG element is created and appended to the
     // to the div element and passed to renderScore().
     function renderEditedScoreSource(div) {
-      const wrapper = div.querySelector('div.score-wrapper');
-      const pre = wrapper.querySelector('details pre.source');
+      const outer = div.querySelector('div.score-wrapper');
+      outer.setAttribute('name', 'outer')
+      const pre = outer.querySelector('details pre.source');
       if (pre === null) {
         return
       }
       const data = preprocessScore(pre.textContent);
-      let svg = wrapper.querySelector('svg');
-      if (svg === null) {
-        svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-        wrapper.insertBefore(svg, wrapper.firstChild);
+      let inner = outer.querySelector('div.inner-wrapper');
+      if (inner === null) {
+        inner = document.createElement('div');
+        inner.classList.add('inner-wrapper')
+        outer.insertBefore(inner, outer.firstChild);
       }
-      renderScore(svg, data);
-      // calculate rendered height and adjust the svg height and viewbox
-      const height = svg.getBBox().height + 20;
-      svg.setAttribute('height', height);
-      let zoom = 100;
-      if (data.zoom) {
-        // if data.zoom can't be parsed, use 100% and add a message to the
-        // lineProblems object so that the error can be displayed in the
-        // SVG.
-        zoom = parseInt(data.zoom, 10);
-        if (isNaN(zoom)) {
-          lineProblems.add("Invalid zoom value: " + data.zoom);
-          zoom = 100;
+      inner.setAttribute('name', 'inner')
+      renderScore(inner, data);
+
+      const svgElements = inner.querySelectorAll('svg');
+      for (const svg of svgElements) {
+        // calculate rendered height and adjust the svg height and viewbox
+        let height = svg.getBBox().height + 30; // empirical
+        // svg.setAttribute('height', height);
+        let zoom = 100;
+        if (data.zoom) {
+          // if data.zoom can't be parsed, use 100% and add a message to the
+          // lineProblems object so that the error can be displayed in the
+          // SVG.
+          zoom = parseInt(data.zoom, 10);
+          if (isNaN(zoom)) {
+            lineProblems.add("Invalid zoom value: " + data.zoom);
+            zoom = 100;
+          }
+          // allow user to specify a zoom factor between 50 and 500%
+          zoom = Math.max(50, Math.min(500, parseInt(zoom, 10)));
         }
-        // allow user to specify a zoom factor between 50 and 200%
-        zoom = Math.max(50, Math.min(200, parseInt(zoom, 10)));
+        const xpix = 720 * 100. / zoom;
+        svg.setAttribute('viewBox', `0 0 ${xpix} ${height}`);
       }
-      const xpix = 720 * 100. / zoom;
-      svg.setAttribute('viewBox', `0 0 ${xpix} ${height}`);
       scoreToc(); // update the table of contents
       isDirty = true // signal that the score has been edited
     }
@@ -1801,7 +1854,7 @@
       }
       const ul = document.createElement('ul');
       for (const score of scores) {
-        const text = score.querySelector('details pre.source').textContent.split('\n');
+        const text = score.querySelector('pre.source').textContent.split('\n');
         // find the title line of the score's source
         const titleline = text.find(line => line.trim().startsWith('title:'));
         const title = titleline.split(':')[1].trim();
@@ -1856,68 +1909,113 @@ postscript: The postscript line is handy for copyright notices, etc.`,
           return choices.minimal
       }
     }
-    // makeNewScoreDivAndLink creates a new score div and a link to the div
-    // and returns them as an array. The div contains a <details> element that
-    // that contains the <pre> element that contains the source code. The link
-    // points to the table of scores in the document.  The caller is responsible
-    // for inserting the div and the link in the desired locations in the document.
-    function makeNewScoreDivAndLink(content) {
-      const div = document.createElement('div');
-      div.setAttribute('class', 'score');
-      const id = `score-${Math.random().toString(36).substring(2, 15)}`;
-      div.setAttribute('id', id);
+    class Score {
+      constructor(text) {
+        this.text = text;
+        this.outer = document.createElement('div');
+        this.outer.classList.add('score');
+        this.id = `score-${Math.random().toString(36).substring(2, 15)}`;
+        this.outer.setAttribute('id', this.id);
+        // the delete button goes at the top of the score
+        this.deleteBtn = document.createElement('button')
+        this.deleteBtn.textContent = 'Delete this score';
+        this.deleteBtn.classList.add('delete-btn');
+        this.outer.appendChild(this.deleteBtn)
+        // next comes a wrapper div that will contain the rendered
+        // and the editable source text.
+        this.wrapper = document.createElement('div');
+        this.wrapper.classList.add('score-wrapper');
+        this.outer.appendChild(this.wrapper)
+        // the inner wrapper div is where the svg's that comprise each
+        // line of the rendered score will go
+        this.inner = document.createElement('div');
+        this.inner.classList.add('inner-wrapper');
+        this.wrapper.appendChild(this.inner);
+        // the source div will contain the editable <pre> element that 
+        // holds the source text
+        this.sourcediv = document.createElement('div');
+        this.sourcediv.classList.add('source-div');
+        this.wrapper.appendChild(this.sourcediv)
+        // the editable pre element.
+        this.source = document.createElement('pre');
+        this.source.classList.add('source');
+        this.source.setAttribute('contenteditable', 'plaintext-only');
+        this.source.textContent = this.text;
+        this.sourcediv.appendChild(this.source);
+        // const tocId = "score-toc";
+        this.tocLink = document.createElement('a');
+        this.tocLink.setAttribute('href', `#score-toc`);
+        this.tocLink.setAttribute('class', 'link-to-toc');
+        this.tocLink.textContent = 'Table of Scores';
+        this.outer.appendChild(this.tocLink);
 
-      const details = document.createElement('details');
-      details.setAttribute('open', true);
-      summary = document.createElement('summary');
-      summary.textContent = 'Edit this score';
-      details.appendChild(summary);
+        // Add event listeners
+        this.deleteBtn.addEventListener('click', () => {
+          if (confirm(`Are you sure you want to delete this score?`)) {
+            deleteScore(this.id);
+          }
+        });
+        this.source.addEventListener('input', () => {
+          this.render();
+        });
+        // double click on the score to globally toggle editing
+        this.outer.addEventListener('dblclick', () => {
+          toggleEdit();
+        });
 
-      const pre = document.createElement('pre');
-      pre.setAttribute('class', 'source');
-      pre.setAttribute('contenteditable', 'plaintext-only');
-      pre.textContent = content;
-
-      // Add a delete button to the new score that invokes deleteScore()
-      // after asking for confirmation
-      const deleteButton = document.createElement('button');
-      deleteButton.setAttribute('class', 'delete-btn');
-      deleteButton.textContent = 'Delete';
-      deleteButton.addEventListener('click', () => {
-        if (confirm(`Are you sure you want to delete this score?`)) {
-          deleteScore(id);
-        }
-      });
-      details.appendChild(deleteButton);
-      details.appendChild(pre);
-
-      // Wrap the <details> element in a div to make it easier to toggle layouts
-      const wrapper = document.createElement('div');
-      wrapper.setAttribute('class', 'score-wrapper');
-      if (bookParameters.sideBySide) {
-        wrapper.classList.add('side-by-side');
+      }
+      // showSourceEditor() makes the source editor visible.
+      // by changing the the display style and width of the source div
+      // and the width of the inner div.
+      showSourceEditor() {
+        this.sourcediv.style.display = 'block';
+        this.sourcediv.style.width = '50%';
+        this.inner.style.width = '50%';
+      }
+      // hideSourceEditor() makes the source editor invisible.
+      // by changing the the display style and width of the source div
+      // and the width of the inner div.
+      hideSourceEditor() {
+        this.sourcediv.style.display = 'none';
+        this.inner.style.width = '100%';
       }
 
-      wrapper.appendChild(details);
-      div.appendChild(wrapper);
-      div.appendChild(document.createElement('hr'));
-
-      pre.addEventListener('input', () => {
-        renderEditedScoreSource(div);
-      });
-
-      const tocId = "score-toc";
-      const link = document.createElement('a');
-      link.setAttribute('href', `#${tocId}`);
-      link.setAttribute('class', 'link-to-toc');
-      link.textContent = 'Table of Scores';
-
-      return [div, link];
+      // render() renders the score into the inner div.
+      render() {
+        // get the source text from the source pre element
+        this.text = this.source.textContent;
+        const data = preprocessScore(this.text);
+        renderScore(this.inner, data);
+        const svgElements = this.inner.querySelectorAll('svg');
+        for (const svg of svgElements) {
+          // calculate rendered height and adjust the svg height and viewbox
+          let height = svg.getBBox().height + 30; // empirical
+          // svg.setAttribute('height', height);
+          let zoom = 100;
+          if (data.zoom) {
+            // if data.zoom can't be parsed, use 100% and add a message to the
+            // lineProblems object so that the error can be displayed in the
+            // SVG.
+            zoom = parseInt(data.zoom, 10);
+            if (isNaN(zoom)) {
+              lineProblems.add("Invalid zoom value: " + data.zoom);
+              zoom = 100;
+            }
+            // allow user to specify a zoom factor between 50 and 500%
+            zoom = Math.max(50, Math.min(500, parseInt(zoom,
+              10)));
+          }
+          const xpix = 720 * 100. / zoom;
+          svg.setAttribute('viewBox', `0 0 ${xpix} ${height}`);
+        }
+        scoreToc(); // update the table of contents
+        isDirty = true // signal that the score has been edited
+      }
     }
-
     function insertNewScore(button, intChoice) {
-      const content = newScoreContent(parseInt(intChoice));
-      const [div, link] = makeNewScoreDivAndLink(content);
+      const scoreText = newScoreContent(parseInt(intChoice));
+      scoreObj = new Score(scoreText);
+      let div = scoreObj.outer;
       button.parentNode.insertBefore(div, button.nextSibling);
 
       const newScoreButton = document.createElement('button');
@@ -1927,8 +2025,10 @@ postscript: The postscript line is handy for copyright notices, etc.`,
       newScoreButton.addEventListener('click', handleNewScoreButtonClick);
       div.parentNode.insertBefore(newScoreButton, div.nextSibling);
 
-      div.appendChild(link);
-      renderEditedScoreSource(div);
+      // div.appendChild(link);
+      insertPageBreak(div)
+      scoreObj.render()
+      forceEditMode(editModeState);
     }
     // handleNewScoreButtonClick inserts a new score into current page immediately before the
     // button that invoked it.  The new consists of a div with class'score' that contains
@@ -2001,10 +2101,6 @@ postscript: The postscript line is handy for copyright notices, etc.`,
           isDirty = false;
         }
       }, 1500);
-      // if the user cancels the download, do nothing. Otherwise clear isDirty
-      if (dialog.returnValue !== '') {
-        isDirty = false;
-      }
       // Revoke the object URL to avoid memory leaks.
       URL.revokeObjectURL(url);
       return false;
@@ -2013,7 +2109,8 @@ postscript: The postscript line is handy for copyright notices, etc.`,
     function appendScores(text) {
       const scoreTexts = text.split('\nEndOfScore\n');
       scoreTexts.forEach(scoreText => {
-        const [div, link] = makeNewScoreDivAndLink(scoreText);
+        scoreObj = new Score(scoreText);
+        let div = scoreObj.outer;
         const newScoreButtons = document.querySelectorAll(`button.new-score-btn`);
         let newScoreButton = newScoreButtons[newScoreButtons.length - 1]; // get the last new score button
         newScoreButton.parentNode.insertBefore(div, newScoreButton.nextSibling);
@@ -2025,12 +2122,12 @@ postscript: The postscript line is handy for copyright notices, etc.`,
         newScoreButton.addEventListener('click', handleNewScoreButtonClick);
         div.parentNode.insertBefore(newScoreButton, div.nextSibling);
 
-        div.appendChild(link);
-        renderEditedScoreSource(div);
-
-        // Honor the current visibility of edit controls
-        scoreControlsVisible(scoreControlsShown)
+        // div.appendChild(link);
+        insertPageBreak(div)
+        scoreObj.render()
       });
+      // Honor the current edit mode state.
+      forceEditMode(editModeState);
     }
 
     function importFromFile() {
@@ -2175,18 +2272,7 @@ postscript: The postscript line is handy for copyright notices, etc.`,
         btn.style.display = visible ? 'inline-block' : 'none';
       });
     }
-    function sourceEditorsVisible(visible) {
-      const scoreDivs = document.querySelectorAll('div.score');
-      scoreDivs.forEach(div => {
-        const details = div.querySelector('details');
-        details.open = false;
-        details.style.display = visible ? 'block' : 'none';
-      });
-    }
-    function scoreControlsVisible(visible) {
-      sourceEditorsVisible(visible);
-      newScoreBtnsVisible(visible);
-    }
+
     function startExportButtonUpdateTimer() {
       setInterval(updateExportButtonAppearance, 500);
     }
@@ -2201,6 +2287,15 @@ postscript: The postscript line is handy for copyright notices, etc.`,
       }
     }
 
+    // insertPageBreak inserts the follow content in the html document
+    // with element 'el'.
+    // <div style="break-after:page"></div>
+    // Credit: https://stackoverflow.com/a/58245474/426853
+    function insertPageBreak(el) {
+      const pageBreakDiv = document.createElement('div');
+      pageBreakDiv.style.breakAfter = 'page';
+      el.appendChild(pageBreakDiv);
+    }
 
     // When the window load is complete, render the scores and add listeners to
     // the buttons that invoke the functions to insert, save and delete scores.
@@ -2208,12 +2303,12 @@ postscript: The postscript line is handy for copyright notices, etc.`,
       // update the stylesheet with any font sizes specified in the bookParameters object
       // We need to make sure the font size vars in bookParameters and the style rules are in sync.
       updateFontSizes();
-      toggleScoreControls(); // initialize the controls 
       // Insert the built-in reference score.
       const b1 = document.getElementById('first-new-score-btn');
       insertNewScore(b1, 3);
       isDirty = false
       startExportButtonUpdateTimer();
+      toggleEdit();
     }
 
   </script>
