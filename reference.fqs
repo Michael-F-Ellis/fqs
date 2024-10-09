@@ -21,16 +21,83 @@ is a complete self-contained web app with no external dependencies. You can use 
 create, edit and display multiple scores using the simple text format (.fqs) described
 in this reference.
 .
-(In case you're wondering, the name comes from the initials of my three grandchildren
+(In case you're wondering, the name, FQS, comes from the initials of my three grandchildren
 Fiona, Quentin and Skylar.)
 .
 NOTE: This reference is a score, albeit one with far more text than usual. I encourage
 you to use the edit area to experiment with changes. You can even save your own version
 without losing this one since it's embedded in the fqs.html file.
 
-text: MAIN CONTROLS:
-   Click the "Controls" dropdown at the top of the page to show or hide the main
-   controls for the app.
+text: NOTATION BASICS:
+Let's start with an example:  Here's the melody for Happy Birthday, set in E major.
+
+music: K#4 bb | c b e | d - bb | c b ^f | e - bb |
+counter: 3
+
+music: K#4 ^b g e | d c ^aa | g e f | e - ; |
+counter: 1
+
+text:  KEY CONCEPTS
+.
+   Pitch:
+     - Letter names instead of note symbols
+.
+     - Color (and italics) indicate altered (sharp or flat) pitches. Red for
+       ♯ and blue for ♭.
+.
+     - Compressed vertical spacing preserves melodic shape (like regular notation),
+       but allows 3 octaves to be displayed in a single stave.
+       The spacing is also 'true' in the sense that each semitone is rendered exactly
+       1/12th of an octave higher than the next lower pitch.
+.
+   Rhythm:
+     - Horizontal space separates beats.
+. 
+     - Pitches without space between them subdivide the beat equally.
+.
+     - A semicolon ( ; )  indicates a rest.
+.
+     - Optional beat counter annotations below the staff clarify the rhythm.
+
+text: ENTRY AND EDITING
+.
+To enter notation, you must activate the editing mode. You can do this clicking the 
+`Show edit controls` button at the top of the page or by double-clicking inside the
+body of any score. If editing as already active, the same actions will hide the editor
+and return you to display mode so that the score display gets the full width of the page.
+.
+For example, the first line of the Happy Birthday sample above
+was created by entering the following two lines of text:
+
+text: music: K#4 bb | c b e | d - bb | c b ^f | e - bb |
+counter: 3
+
+text: The 'music:' keyword tells the app to interpret what follows as a line of FQS notation.
+.
+A key signature is required. In this example, K#4, indicates E major ( 4 sharps ).
+.
+No time signature is needed ( but you can indicate one with an annotation).
+.
+The vertical bar symbol ( | ) ends a measure.
+.
+A hyphen ( - ) indicates a sustained pitch.
+.
+By default, each pitch is rendered in the octave that puts it closest to
+the preceding pitch. A preceding caret ( ^ ) raises it to the next octave.
+A preceding forward slash ( / ) lowers it one octave.
+.
+The 'counter' keyword places small beat numbers below the staff. It takes
+a single number as an argument to enable support for pickup (partial) measures.
+In our example.
+
+text: Note: For technical reasons, editing scores is not possible with Firefox. 
+Other browsers including Chrome, Safari, etc., work correctly.
+
+
+
+text: PAGE CONTROLS:
+.
+Four buttons at the top of the page allow you to save, load, and edit your work.
 .
   Export -  allows you to save a local copy of all the scores on the page as
     a .fqs file.
@@ -41,13 +108,11 @@ text: MAIN CONTROLS:
 .
   Import URL - prompts your for a URL reference to load a remote .fqs file.
 .
-  Hide (Show) Edit Controls - toggles the visibility of the buttons for inserting,
+  Show (hide) Edit Controls - toggles the visibility of the buttons for inserting,
     editing and deleting scores.
 .
-  Edit Below (Beside) Scores - controls the position of the text editing windows
-  for scores.
-.
 EDIT CONTROLS:
+.
 When the Edit Controls are shown, each score has 3 buttons:
 .
    Edit this score - opens a text editing window containing the score source.
@@ -59,55 +124,13 @@ When the Edit Controls are shown, each score has 3 buttons:
    Insert New Score - Allows a new score to be inserted immediately after the
    current score.
 .
-   Note: For technical reasons, editing scores is not possible with Firefox. Other browsers
-   Chrome, Safari, etc., work correctly.
-.
 WAYS TO LOSE YOUR WORK:
    1. Closing or reloading the page (without exporting first)
    2. Using your browser's Back button. The scores will be gone when you return.
 
 
-text: NOTATION BASICS:
-Let's start with an example:  Here's the melody for Happy Birthday, set in E major.
-
-music: K#4 bb | c b e | d - bb | c b ^f | e - bb |
-counter: 3
-
-music: K#4 ^b g e | d c ^aa | g e f | e - ; |
-counter: 1
-
-: The 'music' key word tells the app to interpret what follows as a line of FQS notation.
-: The key signature is required. K#4 indicates E major ( 4 sharps ).
-: No time signature is needed ( but you can indicate one with an annotation)
-: The vertical bar symbol delimits measures.
-: A hyphen indicates a sustained pitch.
-: By default, each pitch is rendered in the octave that puts it closest to
-: the preceding pitch. A preceding caret raises it to the next octave.
-: The 'counter' keyword places small beat numbers above the staff. It takes
-: a single number as an argument to enable support for pickup (partial) measures.
-
-text:  Key concepts in FQS notation display.
-.
-   Pitch:
-     Letter names instead of note symbols
-     Color (and italics) indicate altered (sharp or flat) pitches. Red for
-       ♯ and blue for ♭.
-     Compressed vertical spacing preserves melodic shape (like regular notation),
-       but allows 3 octaves to be displayed in a single stave.
-       The spacing is also 'true' in the sense that each semitone is rendered exactly
-       1/12th of an octave higher than the next lower pitch.
-.
-   Rhythm:
-     Horizontal space separates beats. 
-     Pitches without space between them subdivide the beat equally.
-     Asterisk * is an attack.
-     Hyphen - is a sustain of a prior note or rest.
-     Semicolon ; indicates a rest.
-.
-   The optional beat counter annotations are useful to further clarify the rhythm.
-
-
 text: LYRICS:
+.
 FQS also supports lyrics. Here's Happy Birthday again - this time in E♭ major.
 
 pitch: K&3 bb | c b e | d bb | c b ^f | e bb |
@@ -118,25 +141,42 @@ pitch: K&3 ^b g e | d c ^aa | g e f | e |
 lyric: birth day dear | NAME * Hap.py | birth day to | you - - |
 counter: 1
 
-: When the 'lyric' keyword is present, it determines the rhythm and we write the
-: pitch names in the 'pitch' line. The 'pitch' key word is similar to the 'music'
-: keyword except that it is an error to include '-', '*', ';' or anything other
-: than pitches and barlines.
-
-text: When writing music with lyrics, we have to indicate which syllables get which pitches.
+text: The second line above was created from the following 3 lines of text:
 .
-   Dot, '.', separates syllables that occupy the same beat. Writing Happy as 'Hap.py'
+  pitch: K&3 ^b g e | d c ^aa | g e f | e |
+  lyric: birth day dear | NAME * Hap.py | birth day to | you - - |
+  counter: 1
+.
+Writing scores with lyrics requires specifying the pitches and lyrics on separate
+lines. The corresponding keywords are "pitch:" and "lyric:"
+. 
+PITCH:
+The syntax of the "pitch:" keyword is similar to that of the "music:" keyword
+except that you omit hyphens and semicolons and it's not necessary to use spaces 
+between pitches within a bar.  
+.
+In fact, bar lines are also optional, but it's wise to
+include them for clarity and also, to ensure that accidentals cancel at the 
+end of each measure.
+.
+LYRIC:
+The "lyric:" keyword contains the lyrics for the line, written in a special form
+that determines the placement and duration of the pitches. FQS uses certain
+punctation characters to accomplish this.
+.
+   A period ( . ) separates syllables that occupy the same beat. Writing Happy as 'Hap.py'
    tells FQS that the two syllables share a beat, each taking half.
 .
-   Hyphen, '-' indicates a syllable that is sustained for all or part of a beat.
-   After the word 'you' on beat 1 of the second full measure, '-;' means sustain
-   for first half of beat 2, then rest for the second half.
+   A hyphen, ( - ) indicates a syllable that is sustained for all or part of a beat and 
+   a semicolon ( ; ) is a rest. 
+   
 .
-   Asterisk, '*' indicates changes of pitch on the same syllable. In measure 6,
+   An asterisk, ( * ) indicates changes of pitch on the same syllable. In measure 6,
    the asterisk after 'NAME' indicates a change of pitch on the second beat.
 
 
 text: CHORDS:
+.
 FQS supports chord abbreviations. Chords can be placed on any beat.
 
 chord: Em7 _ _ _ A7 _ _ _ Dmaj7
