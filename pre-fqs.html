@@ -118,8 +118,7 @@
     <form method="dialog">
       <p>Choose an initial score template:</p>
       <label><input type="radio" name="choice" value="1" checked> Minimal</label><br>
-      <label><input type="radio" name="choice" value="2"> Full</label><br>
-      <label><input type="radio" name="choice" value="3"> Cheat sheet</label><br>
+      <label><input type="radio" name="choice" value="3"> FQS Reference</label><br>
       <button id="cancelBtn" type="reset">Cancel</button>
       <button id="confirmBtn" type="submit">Confirm</button>
     </form>
@@ -1635,13 +1634,6 @@
       y += 2 * bookParameters.titleFontHeight
       appendSVGTextChild(svg, bookParameters.leftX, bookParameters.titleFontHeight, data.title, ['title']);
 
-      // Render the preface, if any
-      if (data.preface) {
-        y += 0.5 * bookParameters.titleFontHeight
-        y = renderMultiline(svg, bookParameters.leftX, y,
-          data.preface, bookParameters.prefaceFontHeight, 'preface')
-        // y += bookParameters.pernoteFontHeight;
-      }
       // Render the score
       data.lines.forEach((line, index) => {
         // create an svg element
@@ -1758,14 +1750,6 @@
         lineProblems.clear();
       });
 
-      // Render the postscript, if any.
-      /*
-      if (data.postscript) {
-        y += 2 * bookParameters.lyricFontHeight;
-        y = renderMultiline(svg, bookParameters.leftX, y,
-          data.postscript, bookParameters.postscriptFontHeight, 'postscript');
-      }
-      */
     }
 
     // deleteScore(id) deletes the score div with the given id and all its
@@ -1880,30 +1864,11 @@ counter: 1
 
 `,
 
-        full: `title: My Score Title
-
-preface: This score has it all
-
-cue: This cue stands apart
-
-cue: This cue attaches to the notation
-chord: Cmaj7 _ Dm7
-perbeat: 1 2 3 4
-pitch: K0 c d e f |
-perbar: 4/4
-lyric: do re mi fa |
-pernote: mf
-
-
-postscript: The postscript line is handy for copyright notices, etc.`,
-
         cheatsheet: fqsReference
       }
       switch (intChoice) {
         case 1:
           return choices.minimal;
-        case 2:
-          return choices.full;
         case 3:
           return choices.cheatsheet
         default:

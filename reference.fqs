@@ -1,4 +1,6 @@
 
+: FQS REFERENCE SOURCE (You can safely edit and experiment with this)
+
 : Lines that start with a colon are comments. They don't appear in the rendered score.
 : This reference loads when you first open FQS. You can delete it with the button above.
 
@@ -6,7 +8,7 @@
 
 title: FQS Reference
 
-: zoom is optional. It defaults to 100, valid values are 50 - 200.  Try changing
+: zoom is optional. It defaults to 100, valid values are 50 - 500.  Try changing
 : the value below and watch the result.
 
 zoom: 130
@@ -26,7 +28,7 @@ Fiona, Quentin and Skylar.)
 .
 NOTE: This reference is a score, albeit one with far more text than usual. I encourage
 you to use the edit area to experiment with changes. You can even save your own version
-without losing this one since it's embedded in the fqs.html file.
+of the reference without losing this one since it's embedded in the fqs.html file.
 
 text: NOTATION BASICS:
 Let's start with an example:  Here's the melody for Happy Birthday, set in E major.
@@ -43,7 +45,7 @@ text:  KEY CONCEPTS
      - Letter names instead of note symbols
 .
      - Color (and italics) indicate altered (sharp or flat) pitches. Red for
-       ♯ and blue for ♭.
+       ♯ and blue for ♭. Double flats (green) and double sharps (orange) are also supported
 .
      - Compressed vertical spacing preserves melodic shape (like regular notation),
        but allows 3 octaves to be displayed in a single stave.
@@ -62,7 +64,7 @@ text:  KEY CONCEPTS
 text: ENTRY AND EDITING
 .
 To enter notation, you must activate the editing mode. You can do this clicking the 
-`Show edit controls` button at the top of the page or by double-clicking inside the
+"Show edit controls" button at the top of the page or by double-clicking inside the
 body of any score. If editing as already active, the same actions will hide the editor
 and return you to display mode so that the score display gets the full width of the page.
 .
@@ -106,10 +108,10 @@ Four buttons at the top of the page allow you to save, load, and edit your work.
 .
   Import File - loads a .fqs file from your disk drive.
 .
-  Import URL - prompts your for a URL reference to load a remote .fqs file.
+  Import URL - prompts you for a URL reference to load a remote .fqs file.
 .
-  Show (hide) Edit Controls - toggles the visibility of the buttons for inserting,
-    editing and deleting scores.
+  Show (hide) Edit Controls - toggles the visibility of the editor and the buttons 
+  for inserting and deleting scores.
 .
 EDIT CONTROLS:
 .
@@ -190,10 +192,11 @@ counter: 1
 lyric: Fly -me to the | moon ; let me | play -a mong the | stars - ; ; |
 
 text: ANNOTATIONS:
-You can add annotations at several levels of granularity.
-Text annotations, such as this one, may contain multiple lines and paragraphs.
-.
-CUE - cue annotations are text in a smaller font. They're limited to one line of text.
+You can add annotations at several levels of granularity. Text annotations, such as this one,
+may contain multiple lines and paragraphs. The built-in annotations for FQS work well, but 
+you may find it easier to save the score to a pdf and use a pdf editor to mark it up.
+
+text: CUE - cue annotations are text in a small monospace font. They're limited to one line of text.
 
 cue: Cues, such as this one, may stand apart from the notation.
 
@@ -270,41 +273,54 @@ music: ^ggg ggg ggg ggg | aaaa a-aa aa-a a--a | b-b -b- c - |
 counter: 1
 perbar: triplets 16ths_and_dotted_rhythms two_beat_triplet
 
-: Lyric lines:
-      : define the rhythm using the following characters.
-      : Attack: '*' or a syllable of alphabetic characters.
-      : Sustain: '-' continues the note from the prior attack.'
-      : Rest: ';' semicolon
-      : Whitespace: ' ' separates beats.
-      : Syllable Separator: '.' (period) separates syllables that fall in the same beat.
-      :                     | This is four beats | Four.six.teenth.notes  a.trip.let  two.eighths  ; |
-      : Barline: '|' separates measures.
+text: FQS SYNTAX SUMMARY
+.
+Lyric lines define the rhythm using the following characters.
+   Attack: ( * ) or a syllable of alphabetic characters.
+   Sustain: '-' continues the note from the prior attack.'
+   Rest: ( ; ) semicolon
+   Barline: ( | ) separates measures.
+   Whitespace: separates beats.
+   Period: A period ( . ) separates syllables that fall in the same beat.
 
-: Pitch lines:
-      : contain pitches, key signatures and barlines.
-      : Pitch examples:
-          :'c'    C, octave nearest to prior pitch, alteration determined by key signature or prior alteration
-          :'#d'   D-sharp, octave as above
-          :'##e'  E-double-sharp, octave as above
-          :'&f'   F-flat, octave as above
-          :'&&g'  G-double-flat, octave as above
-          :'/&a'  A-flat one octave lower
-          :'^&b'  B-flat one octave higher
-          :'//#c' C-sharp, two octaves lower
-      : Octave marks and accidentals PRECEDE the pitch, so '/#c', NOT '/c#'' or 'c#/''
-      : Whitespace is NOT signifcant between pitches. 'c d e f' is the same as 'cdef'
-      : Barlines: Needed so altered pitches cancel at end of measure.
-      : Key signatures: 'K0' or K#|&[1-7], i.e. 'K0' = C major, 'K#1' = G major, 'K#2' = D major, 'K&1' = F major, etc.
+text: Pitch lines contain pitches, key signatures and barlines.
+.
+   Key signatures: 'K0' or K#|&[1-7], 
+   K0 = C major, 
+   K#1 = G major
+   K#2 = D major
+   K&1 = F major
+   K&2 = B-flat major
+   etc...
+.
+   Pitch examples:
+       c : C natural, octave nearest to prior pitch 
+      #d : D-sharp
+     ##e : E-double-sharp
+      &f : F-flat
+     &&g : G-double-flat
+     /&a : A-flat one octave lower
+     ^&b : B-flat one octave higher
+    //#c : C-sharp, two octaves lower
+.
+Octave marks and accidentals PRECEDE the pitch, so '/#c', NOT '/c#'' or 'c#/''
+.
+With the 'pitch:' keyword,  whitespace is not  significant between pitches. 'c d e f' 
+is the same as 'cdef'. This is NOT true with the 'music:' keyword.
+.
+Barlines are needed so altered pitches cancel at end of measure.
 
-: Annotations (all optional):
-        : cue: A line of text you want to appear as a cue.
-        :      cues may be attached to the notation or stand alone if followed by a blank line.
-        : chord: chord symbols aligned to beats
-        : perbar: Items aligned to barlines, e.g. time signatures
-        : perbeat: Items aligned to beats, e.g. tempo markings
-        : pernote: Items aligned to attacks, e.g. dynamic markings
 
-: Underscores '_' are used to skip beats, barlines, or attacks in annotations.
+text: ANNOTATIONS (all optional):
+    cue: A line of text you want to appear as a cue.
+        cues may be attached to the notation or stand alone if followed by a blank line.
+    chord: chord symbols aligned to beats
+    perbar: Items aligned to barlines, e.g. time signatures
+    perbeat: Items aligned to beats, e.g. tempo markings
+    pernote: Items aligned to attacks, e.g. dynamic markings
+    finger: Fingering numbers. Rendered in tiny font above the staff.
+.
+Underscores ( _ ) are used to skip beats, barlines, or attacks in annotations.
         : e.g. 'perbar: 4/4 _ 3/4' puts 4/4 at the first measure and 3/4 at the third measure.
 
 
