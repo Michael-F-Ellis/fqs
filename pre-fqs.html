@@ -228,6 +228,10 @@
       font: 12px monospace;
     }
 
+    .chord-pitch {
+      text-decoration: underline;
+    }
+
     .pernote {
       font: 8px monospace;
       font-style: italic;
@@ -434,6 +438,7 @@
           } else {
             j = i; // normal non-tight behavior
           }
+
           // A barline is any character that matches the regular expression
           // bookParameters.bar
           if (this.text[i].match(bookParameters.barlineRgx)) {
@@ -451,7 +456,7 @@
           if (this.text[i].match(bookParameters.lyricRgx)) {
             if (i === 0) {
               this.attacks.push(j);
-            } else if (this.text[i - 1].match(/[\s\-.;\*]/)) {
+            } else if (this.text[i - 1].match(/[\(\s\-.;\*]/)) {
               this.attacks.push(j);
             }
           }
@@ -828,14 +833,21 @@
         this.letter = letter;
         this.octave = octave; // octave is an offset relative to a center octave whose value is 0
         this.accidentalClass = accidentalClass; // one of '', '𝄫', '♯', '𝄪' or ''
+        this.classes = [accidentalClass, "pitch"];
       }
+      // addClass() is used to add a class to the pitch. At present, this is used to add the
+      // 'chord-pitch' class to the pitch when it is part of a chord.
+      addClass = (className) => {
+        this.classes.push(className);
+      }
+      // render() is a closure that renders the pitch at the specified x, y coordinates.
       render = (function render(svg, x, y, fontheight) {
         // Draw the pitch at the specified x, y coordinates.
         // Adjust the y coordinate by the octave and vertical offset for this pitch
         y -= this.octave * fontheight;
         const gOffset = 7 // causes the pitch to be rendered as though each staff line is on g natural.
         y += (gOffset + vOffsets[this.accidentalClass + this.letter]) * (fontheight / 12);
-        appendSVGTextChild(svg, x, y, this.letter, [this.accidentalClass, "pitch"]);
+        appendSVGTextChild(svg, x, y, this.letter, this.classes);
       });
     }
     // The PitchLine class is used to render a single line of pitches from a
@@ -859,6 +871,7 @@
         // easier to read and edit. However, omitting bar lines may result
         // in accidentals propagating beyond the bar lines defined in the lyric line.
         this.tokens = [];
+        let pitchToken = "";
         for (let i = 0; i < this.beatTokens.length; i++) {
           let beatToken = this.beatTokens[i];
           // Handle key designator of the form "K[#&]?[0-7]".
@@ -878,10 +891,12 @@
             continue;
           }
           // Now we split the beat token into individual pitch tokens.
-          let pitchToken = "";
+          // let pitchToken = "";
           for (let j = 0; j < beatToken.length; j++) {
             if (beatToken == '|' || beatToken == '|:' || beatToken[j] == ':|') {
               this.tokens.push(beatToken)
+            } else if (beatToken[j].match(/\(/)) {
+              pitchToken += beatToken[j];
             } else if (beatToken[j].match(/[\^\/]/)) {
               pitchToken += beatToken[j];
             } else if (beatToken[j].match(/[#&%]/)) {
@@ -890,6 +905,8 @@
               pitchToken += beatToken[j];
               this.tokens.push(pitchToken);
               pitchToken = "";
+            } else if (beatToken[j].match(/\)/)) {
+              pitchToken += beatToken[j];
             } else {
               //throw new Error("Invalid pitch token: " + beatToken);
               lineProblems.add("Invalid pitch token: " + beatToken);
@@ -915,12 +932,27 @@
         // The following are all invalid pitch tokens:
         // 'h', '###f', '#&g', '^/a'
         this.pitches = [];
+        this.inChord = -1;
         this.alterations = new Alterations("0"); // default key is C major
         for (let i = 0; i < this.tokens.length; i++) {
           // Handle key designator of the form "K(0|[#&]?[1-7])".
           if (this.tokens[i].match(/K/)) {
             this.alterations = new Alterations(this.tokens[i].slice(1));
             continue;
+          }
+          // If the pitch token begins with a '(', we're starting a chord.
+          if (this.tokens[i].match(/\(/)) {
+            this.inChord = 1;
+            // remove the '(' from the token
+            this.tokens[i] = this.tokens[i].slice(1);
+
+          }
+          // If the pitch token begins with a ')', we're ending a chord.
+          if (this.tokens[i].match(/\)/)) {
+            this.inChord = -1;
+            // remove the ')' from the token
+            this.tokens[i] = this.tokens[i].slice(1);
+
           }
           // first, get the pitch letter from the token
           // it's the last char in the token. It's an error if the token is empty
@@ -1075,7 +1107,11 @@
           // TODO deal properly with key signatures and persistence of
           // accidentals for remainder of the bar.
           accClass = this.alterations.get(letter, octave, accClass);
-          this.pitches.push(new Pitch(letter, octave, accClass));
+          let pitch = new Pitch(letter, octave, accClass);
+          if (this.inChord > -1) {
+            pitch.addClass('chord-pitch');
+          }
+          this.pitches.push(pitch);
           // console.log(letter, octave, accClass)
           prevPitch.letter = letter;
           prevPitch.octave = octave;
