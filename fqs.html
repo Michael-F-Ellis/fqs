@@ -65,6 +65,9 @@
 </head>
 
 <body>
+  <!--YouTube player div-->
+  <div id="player"></div>
+  <!-- Page controls -->
   <div class="controls" style="margin: 5%;">
     <em>Controls</em><br>
     <button id="exportButton" onclick="exportScores()">Export</button> <em>Save the scores from this page in
@@ -76,6 +79,15 @@
     <button id="edit-btn">Show edit controls</button> <em>Display the editable source beside the score. </em>
 
     <script>
+      // Add right after the first <script> tag
+      let tag = document.createElement('script');
+      tag.src = "https://www.youtube.com/iframe_api";
+      tag.onload = () => {
+        console.log('YouTube IFrame API script loaded');
+      };
+      let firstScriptTag = document.getElementsByTagName('script')[0];
+      firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+
       let editModeState = true;
       const editButton = document.getElementById('edit-btn');
       function toggleEdit() {
@@ -347,6 +359,23 @@
       // that render the scores. If you need to change the font size, you should do so 
       // in the style tag in this file with id "fqs-style".
     }
+    // Minimal player initialization. This implementation avoids third-party cookie issues.
+    // See https://stackoverflow.com/a/64444601/426853
+    let player;
+    function onYouTubeIframeAPIReady() {
+      console.log('YouTube IFrame API ready');
+      player = new YT.Player('player', {
+        height: '0',
+        width: '0',
+        videoId: '',
+        host: 'https://www.youtube-nocookie.com',
+        playerVars: {
+          'playsinline': 1,
+          origin: window.location.host
+        }
+      });
+    }
+
 
     // appendSVGTextChild(svg, x, y, textContent, classList) adds a text element
     // to the svg element with the given x, y coordinates and textContent. The
@@ -1612,6 +1641,11 @@
       // loop through the blocks in reverse order.
       for (let i = blocks.length - 1; i >= 0; i--) {
         block = blocks[i].trim();
+        if (block.startsWith("youtube:")) {
+          data.youtubeId = block.slice(8).trim();
+          blocks.splice(i, 1);
+          continue;
+        }
         if (block.startsWith("preface:")) {
           data.preface = block.slice(8);
           blocks.splice(i, 1);
@@ -1652,9 +1686,24 @@
           part.trim()
           const [key, value] = splitFirst(part, ': ');
           k = key.trim();
-          if (k !== "" && value !== undefined) {
-            obj[k] = value.trim();
+          // Special handling for play:
+          switch (k) {
+            case "play":
+              const parts = value.trim().split(/\s+/);
+              const [min, sec] = parts[0].split(':');
+              obj[k] = parseInt(min) * 60 + parseInt(sec);
+              if (parts[1]) {
+                obj.playRate = parseFloat(parts[1]);
+              } else {
+                obj.playRate = 1.0;
+              }
+              break;
+            default:
+              if (k !== "" && value !== undefined) {
+                obj[k] = value.trim();
+              }
           }
+
         });
         return obj;
       });
@@ -1696,7 +1745,26 @@
 
       return y;
     }
-
+    let currentlyPlaying = false;
+    function playYouTubeAt(videoId, timeSeconds, rate = 1.0) {
+      if (player.getPlayerState() === YT.PlayerState.PLAYING) {
+        player.pauseVideo();
+        return;
+      }
+      if (player.getVideoData().video_id !== videoId) {
+        player.loadVideoById(videoId, timeSeconds);
+      } else {
+        player.seekTo(timeSeconds);
+      }
+      try {
+        player.setPlaybackRate(rate);
+      } catch (e) {
+        alert("Can't play this video at that rate. Check the  video to see what rates are supported.");
+        console.log(e);
+        return;
+      }
+      player.playVideo();
+    }
     // The renderScore function is used to render the score using the
     // members of the data object created by preprocessScore.
     //  - wrapper is a div element that will hold svg's we create
@@ -1832,8 +1900,15 @@
         // Render any line problems that were encountered
         y = lineProblems.render(svg, bookParameters.leftX, y);
         lineProblems.clear();
-      });
 
+        // Add click handler for play click handlers
+        if (data.youtubeId && line.play !== undefined) {
+          svg.style.cursor = 'pointer';
+          svg.addEventListener('click', () => {
+            playYouTubeAt(data.youtubeId, line.play, line.rate);
+          });
+        }
+      });
     }
 
     // deleteScore(id) deletes the score div with the given id and all its
