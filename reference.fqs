@@ -61,11 +61,28 @@ text:  KEY CONCEPTS
 .
      - Optional beat counter annotations below the staff clarify the rhythm.
 
+text: TIGHT MODE
+.
+FQS supports a slightly different display format known as "tight mode" where the 
+space between beats is suppressed in the notation display. It can be useful in some 
+scores where the rhythm of each measure is fairly constant. Some movements from
+the Bach Cello Suites are a good example of this having the majority of the measures
+notated as groups of eighth notes under a single bar line.
+.
+Tight mode makes such scores more closely resemble the original and may enable
+you to pack more measures into a line. The tradeoff is that measures with complex
+rhythms may be harder to read. To use tight mode, include the keyword "tight:" on
+an isolated line anywhere in your score text. The colon (:) after the word is 
+required. You can conveniently toggle tight mode on and off by deleting or adding 
+the colon.
+
+tight 
+
 text: ENTRY AND EDITING
 .
 To enter notation, you must activate the editing mode. You can do this clicking the 
 "Show edit controls" button at the top of the page or by double-clicking inside the
-body of any score. If editing as already active, the same actions will hide the editor
+body of any score. If editing is already active, the same actions will hide the editor
 and return you to display mode so that the score display gets the full width of the page.
 .
 For example, the first line of the Happy Birthday sample above
@@ -88,14 +105,27 @@ By default, each pitch is rendered in the octave that puts it closest to
 the preceding pitch. A preceding caret ( ^ ) raises it to the next octave.
 A preceding forward slash ( / ) lowers it one octave.
 .
-The 'counter' keyword places small beat numbers below the staff. It takes
-a single number as an argument to enable support for pickup (partial) measures.
-In our example.
+The 'counter' keyword is optional.  It places small beat numbers below the staff.
+It takes a single number as an argument to enable support for pickup (partial) measures.
 
-text: Note: For technical reasons, editing scores is not possible with Firefox. 
+text: NOTE: For technical reasons, editing scores is not possible with Firefox. 
 Other browsers including Chrome, Safari, etc., work correctly.
 
+text: NOTATED CHORDS:
+.
+FQS supports a simple notation for pitches sounded simultaneously. A chord is rendered on
+the staff as a group of pitches decorated by underlines.  Like this:
 
+music: K0 (ceg&b) /cegb c |
+counter: 1
+
+text: In the example above, the underscores indicate that all the pitches in the 
+first beat are to be sounded together as a chord for one beat whereas the the four
+pitches in the second beat are to be played as four sixteenth notes (assuming a quarter note beat).
+.
+The example above was entered as:
+
+cue: music: K0 (ceg&b) /cegb c |
 
 text: PAGE CONTROLS:
 .

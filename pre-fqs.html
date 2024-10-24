@@ -401,72 +401,119 @@
     // ignored.
     class LyricLine {
       constructor(text, tight, show) {
-        this.text = text;
         // trim leading or trailing whitespace
-        this.text = this.text.trim();
         // split the text on whitespace
-        this.words = text.split(/\s+/);
         // join the text back together with single spaces
+        this.words = text.trim().split(/\s+/);
         this.text = this.words.join(" ");
         // Create an array of attack indices. An attack is an alpha character [a-zA-Z]
         // that is preceded by a any of the following:
         //   a space,
+        //   a left parenthesis '(',
         //   the beginning of the text,
         //   a dash '-',
         //   a period '.', or
-        //   an asterisk '*'.
-        // An asterisk is also an attack
+        //   an asteri
         // We need to store the indices of the attacks in the text as well as
         // the indices of the beats and barlines. We use these indices to
         // position pitch symbols and annotations.
-        this.beats = [0,]; // beat positions
+        // A beat begins with a space (or the beginning of the text)
+        // followed by an alpha character [a-zA-Z], a dash '-', a rest ';' or an asterisk '*'.
+        // We also support chords. If the the left parenthesis that begins a chord
+        // is preceded by a space (or the beginning of the text), that is also
+        // a beat start.
+        this.beats = []; // beat positions
         this.bars = [0,]; // barline positions
         this.attacks = [];
         this.rests = []
         this.tight = tight;
         this.showLyric = show;
-        let j = 0; // position index
-        for (let i = 0; i < this.text.length; i++) {
-          // if tight is true and show is false, don't advance the position
-          // index if the character is a space
-          if (tight && !show && (i != 0)) {
-            if (this.text[i].match(/\s/)) {
-              j = j;
-            } else {
-              j++;
-            }
-          } else {
-            j = i; // normal non-tight behavior
+        // Call this closure to detect a beat and push its position
+        const detectAndPushBeat = (i, pos) => {
+          if (i == 0 || (this.text[i - 1] == " ")) {
+            this.beats.push(pos);
+            return;
           }
-
-          // A barline is any character that matches the regular expression
-          // bookParameters.bar
-          if (this.text[i].match(bookParameters.barlineRgx)) {
-            this.bars.push(j);
-            continue;
-          }
-          if (this.text[i].match(/\*/)) {
-            this.attacks.push(j);
-            continue;
-          }
-          if (this.text[i].match(/;/)) {
-            this.rests.push(j);
-            continue;
-          }
-          if (this.text[i].match(bookParameters.lyricRgx)) {
-            if (i === 0) {
-              this.attacks.push(j);
-            } else if (this.text[i - 1].match(/[\(\s\-.;\*]/)) {
-              this.attacks.push(j);
-            }
-          }
-          // A beat begins with any character that is preceded by a space
-          // except barline characters
-          if (this.text[i].match(/\s/) && !(this.text[i + 1].match(/\|/))) {
-            this.beats.push(j + 1);
+          if ((this.text[i - 1] == '(') && (i == 1 || (this.text[i - 2] == ' '))) {
+            this.beats.push(pos);
           }
         }
-        //console.log(this.beats)
+        // loop over the lyric text, detecting the positions of attacks, beats,
+        // rests and barlines.
+        let pos = 0; // position index
+        for (let i = 0; i < this.text.length; i++) {
+          const c = this.text[i];
+          switch (c) {
+            case " ":
+              // Spaces advance pos only if tight is false or show is true.
+              if (!tight || show) {
+                pos++
+              }
+              continue;
+            case "(":
+              // ignore left parenthesis. Don't advance pos.
+              continue;
+            case ")":
+              // ignore right parenthesis. Don't advance pos.
+              continue;
+            case "|":
+              // barlines are never attacks or beat starts
+              this.bars.push(pos);
+              pos++
+              continue;
+            case "-":
+              // a dash is never an attack but it may be a beat start.
+              if (this.text[i - 1] == " ") {
+                this.beats.push(pos);
+              }
+              pos++;
+              continue;
+            case ";":
+              this.rests.push(pos);
+              // a rest is never an attack but it may be a beat start.
+              if (this.text[i - 1] == " ") {
+                this.beats.push(pos);
+              }
+              pos++;
+              continue;
+            case ".":
+              // a period is indicates that the next character is an attack
+              // within a beat.  We check for that in the lyric regex case, so
+              // we don't need to do anything here except advance pos.
+              pos++
+              continue;
+            case "*":
+              // an asterisk is always an attack. It is also a beat start if
+              // it is preceded by a space (or the beginning of the text) or
+              // a space followed by a left parenthesis, i.e. " ("
+              this.attacks.push(pos);
+              detectAndPushBeat(i, pos);
+              pos++;
+              continue;
+            default:
+              // Handle lyric characters (including pitch characters).
+              if (c.match(bookParameters.lyricRgx)) {
+                if (!show) {
+                  // This lyric is synthesized from the a music line. The only chars
+                  // that match lyricRgx will be /[a-g]/. These chars are always attacks
+                  // in this situation. 
+                  this.attacks.push(pos);
+                  detectAndPushBeat(i, pos);
+                } else { // we are showing the lyric
+                  if (i == 0 || (this.text[i - 1].match(/[\(\s\-.;\*]/))) {
+                    this.attacks.push(pos);
+                    detectAndPushBeat(i, pos);
+                  }
+                }
+                pos++
+              }
+          }
+        }
+        console.log("\ntext: " + this.text)
+        console.log("bars: " + this.bars)
+        console.log("beats: " + this.beats)
+        console.log("attacks: " + this.attacks)
+        console.log("rests: " + this.rests)
       }
 
       extractRhythm = (function () {
@@ -940,17 +987,17 @@
             this.alterations = new Alterations(this.tokens[i].slice(1));
             continue;
           }
-          // If the pitch token begins with a '(', we're starting a chord.
-          if (this.tokens[i].match(/\(/)) {
-            this.inChord = 1;
-            // remove the '(' from the token
-            this.tokens[i] = this.tokens[i].slice(1);
-
-          }
           // If the pitch token begins with a ')', we're ending a chord.
           if (this.tokens[i].match(/\)/)) {
             this.inChord = -1;
             // remove the ')' from the token
+            this.tokens[i] = this.tokens[i].slice(1);
+
+          }
+          // If the pitch token begins with a '(', we're starting a chord.
+          if (this.tokens[i].match(/\(/)) {
+            this.inChord = 1;
+            // remove the '(' from the token
             this.tokens[i] = this.tokens[i].slice(1);
 
           }

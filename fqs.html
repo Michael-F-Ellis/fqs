@@ -229,6 +229,10 @@
       font: 12px monospace;
     }
 
+    .chord-pitch {
+      text-decoration: underline;
+    }
+
     .pernote {
       font: 8px monospace;
       font-style: italic;
@@ -398,71 +402,119 @@
     // ignored.
     class LyricLine {
       constructor(text, tight, show) {
-        this.text = text;
         // trim leading or trailing whitespace
-        this.text = this.text.trim();
         // split the text on whitespace
-        this.words = text.split(/\s+/);
         // join the text back together with single spaces
+        this.words = text.trim().split(/\s+/);
         this.text = this.words.join(" ");
         // Create an array of attack indices. An attack is an alpha character [a-zA-Z]
         // that is preceded by a any of the following:
         //   a space,
+        //   a left parenthesis '(',
         //   the beginning of the text,
         //   a dash '-',
         //   a period '.', or
-        //   an asterisk '*'.
-        // An asterisk is also an attack
+        //   an asteri
         // We need to store the indices of the attacks in the text as well as
         // the indices of the beats and barlines. We use these indices to
         // position pitch symbols and annotations.
-        this.beats = [0,]; // beat positions
+        // A beat begins with a space (or the beginning of the text)
+        // followed by an alpha character [a-zA-Z], a dash '-', a rest ';' or an asterisk '*'.
+        // We also support chords. If the the left parenthesis that begins a chord
+        // is preceded by a space (or the beginning of the text), that is also
+        // a beat start.
+        this.beats = []; // beat positions
         this.bars = [0,]; // barline positions
         this.attacks = [];
         this.rests = []
         this.tight = tight;
         this.showLyric = show;
-        let j = 0; // position index
-        for (let i = 0; i < this.text.length; i++) {
-          // if tight is true and show is false, don't advance the position
-          // index if the character is a space
-          if (tight && !show && (i != 0)) {
-            if (this.text[i].match(/\s/)) {
-              j = j;
-            } else {
-              j++;
-            }
-          } else {
-            j = i; // normal non-tight behavior
+        // Call this closure to detect a beat and push its position
+        const detectAndPushBeat = (i, pos) => {
+          if (i == 0 || (this.text[i - 1] == " ")) {
+            this.beats.push(pos);
+            return;
           }
-          // A barline is any character that matches the regular expression
-          // bookParameters.bar
-          if (this.text[i].match(bookParameters.barlineRgx)) {
-            this.bars.push(j);
-            continue;
-          }
-          if (this.text[i].match(/\*/)) {
-            this.attacks.push(j);
-            continue;
-          }
-          if (this.text[i].match(/;/)) {
-            this.rests.push(j);
-            continue;
-          }
-          if (this.text[i].match(bookParameters.lyricRgx)) {
-            if (i === 0) {
-              this.attacks.push(j);
-            } else if (this.text[i - 1].match(/[\s\-.;\*]/)) {
-              this.attacks.push(j);
-            }
-          }
-          // A beat begins with any character that is preceded by a space
-          // except barline characters
-          if (this.text[i].match(/\s/) && !(this.text[i + 1].match(/\|/))) {
-            this.beats.push(j + 1);
+          if ((this.text[i - 1] == '(') && (i == 1 || (this.text[i - 2] == ' '))) {
+            this.beats.push(pos);
           }
         }
-        //console.log(this.beats)
+        // loop over the lyric text, detecting the positions of attacks, beats,
+        // rests and barlines.
+        let pos = 0; // position index
+        for (let i = 0; i < this.text.length; i++) {
+          const c = this.text[i];
+          switch (c) {
+            case " ":
+              // Spaces advance pos only if tight is false or show is true.
+              if (!tight || show) {
+                pos++
+              }
+              continue;
+            case "(":
+              // ignore left parenthesis. Don't advance pos.
+              continue;
+            case ")":
+              // ignore right parenthesis. Don't advance pos.
+              continue;
+            case "|":
+              // barlines are never attacks or beat starts
+              this.bars.push(pos);
+              pos++
+              continue;
+            case "-":
+              // a dash is never an attack but it may be a beat start.
+              if (this.text[i - 1] == " ") {
+                this.beats.push(pos);
+              }
+              pos++;
+              continue;
+            case ";":
+              this.rests.push(pos);
+              // a rest is never an attack but it may be a beat start.
+              if (this.text[i - 1] == " ") {
+                this.beats.push(pos);
+              }
+              pos++;
+              continue;
+            case ".":
+              // a period is indicates that the next character is an attack
+              // within a beat.  We check for that in the lyric regex case, so
+              // we don't need to do anything here except advance pos.
+              pos++
+              continue;
+            case "*":
+              // an asterisk is always an attack. It is also a beat start if
+              // it is preceded by a space (or the beginning of the text) or
+              // a space followed by a left parenthesis, i.e. " ("
+              this.attacks.push(pos);
+              detectAndPushBeat(i, pos);
+              pos++;
+              continue;
+            default:
+              // Handle lyric characters (including pitch characters).
+              if (c.match(bookParameters.lyricRgx)) {
+                if (!show) {
+                  // This lyric is synthesized from the a music line. The only chars
+                  // that match lyricRgx will be /[a-g]/. These chars are always attacks
+                  // in this situation. 
+                  this.attacks.push(pos);
+                  detectAndPushBeat(i, pos);
+                } else { // we are showing the lyric
+                  if (i == 0 || (this.text[i - 1].match(/[\(\s\-.;\*]/))) {
+                    this.attacks.push(pos);
+                    detectAndPushBeat(i, pos);
+                  }
+                }
+                pos++
+              }
+          }
+        }
+        console.log("\ntext: " + this.text)
+        console.log("bars: " + this.bars)
+        console.log("beats: " + this.beats)
+        console.log("attacks: " + this.attacks)
+        console.log("rests: " + this.rests)
       }
 
       extractRhythm = (function () {
@@ -829,14 +881,21 @@
         this.letter = letter;
         this.octave = octave; // octave is an offset relative to a center octave whose value is 0
         this.accidentalClass = accidentalClass; // one of '', '𝄫', '♯', '𝄪' or ''
+        this.classes = [accidentalClass, "pitch"];
       }
+      // addClass() is used to add a class to the pitch. At present, this is used to add the
+      // 'chord-pitch' class to the pitch when it is part of a chord.
+      addClass = (className) => {
+        this.classes.push(className);
+      }
+      // render() is a closure that renders the pitch at the specified x, y coordinates.
       render = (function render(svg, x, y, fontheight) {
         // Draw the pitch at the specified x, y coordinates.
         // Adjust the y coordinate by the octave and vertical offset for this pitch
         y -= this.octave * fontheight;
         const gOffset = 7 // causes the pitch to be rendered as though each staff line is on g natural.
         y += (gOffset + vOffsets[this.accidentalClass + this.letter]) * (fontheight / 12);
-        appendSVGTextChild(svg, x, y, this.letter, [this.accidentalClass, "pitch"]);
+        appendSVGTextChild(svg, x, y, this.letter, this.classes);
       });
     }
     // The PitchLine class is used to render a single line of pitches from a
@@ -860,6 +919,7 @@
         // easier to read and edit. However, omitting bar lines may result
         // in accidentals propagating beyond the bar lines defined in the lyric line.
         this.tokens = [];
+        let pitchToken = "";
         for (let i = 0; i < this.beatTokens.length; i++) {
           let beatToken = this.beatTokens[i];
           // Handle key designator of the form "K[#&]?[0-7]".
@@ -879,10 +939,12 @@
             continue;
           }
           // Now we split the beat token into individual pitch tokens.
-          let pitchToken = "";
+          // let pitchToken = "";
           for (let j = 0; j < beatToken.length; j++) {
             if (beatToken == '|' || beatToken == '|:' || beatToken[j] == ':|') {
               this.tokens.push(beatToken)
+            } else if (beatToken[j].match(/\(/)) {
+              pitchToken += beatToken[j];
             } else if (beatToken[j].match(/[\^\/]/)) {
               pitchToken += beatToken[j];
             } else if (beatToken[j].match(/[#&%]/)) {
@@ -891,6 +953,8 @@
               pitchToken += beatToken[j];
               this.tokens.push(pitchToken);
               pitchToken = "";
+            } else if (beatToken[j].match(/\)/)) {
+              pitchToken += beatToken[j];
             } else {
               //throw new Error("Invalid pitch token: " + beatToken);
               lineProblems.add("Invalid pitch token: " + beatToken);
@@ -916,12 +980,27 @@
         // The following are all invalid pitch tokens:
         // 'h', '###f', '#&g', '^/a'
         this.pitches = [];
+        this.inChord = -1;
         this.alterations = new Alterations("0"); // default key is C major
         for (let i = 0; i < this.tokens.length; i++) {
           // Handle key designator of the form "K(0|[#&]?[1-7])".
           if (this.tokens[i].match(/K/)) {
             this.alterations = new Alterations(this.tokens[i].slice(1));
             continue;
+          }
+          // If the pitch token begins with a ')', we're ending a chord.
+          if (this.tokens[i].match(/\)/)) {
+            this.inChord = -1;
+            // remove the ')' from the token
+            this.tokens[i] = this.tokens[i].slice(1);
+
+          }
+          // If the pitch token begins with a '(', we're starting a chord.
+          if (this.tokens[i].match(/\(/)) {
+            this.inChord = 1;
+            // remove the '(' from the token
+            this.tokens[i] = this.tokens[i].slice(1);
+
           }
           // first, get the pitch letter from the token
           // it's the last char in the token. It's an error if the token is empty
@@ -1076,7 +1155,11 @@
           // TODO deal properly with key signatures and persistence of
           // accidentals for remainder of the bar.
           accClass = this.alterations.get(letter, octave, accClass);
-          this.pitches.push(new Pitch(letter, octave, accClass));
+          let pitch = new Pitch(letter, octave, accClass);
+          if (this.inChord > -1) {
+            pitch.addClass('chord-pitch');
+          }
+          this.pitches.push(pitch);
           // console.log(letter, octave, accClass)
           prevPitch.letter = letter;
           prevPitch.octave = octave;
@@ -2344,11 +2427,28 @@ text:  KEY CONCEPTS
 .
      - Optional beat counter annotations below the staff clarify the rhythm.
 
+text: TIGHT MODE
+.
+FQS supports a slightly different display format known as "tight mode" where the 
+space between beats is suppressed in the notation display. It can be useful in some 
+scores where the rhythm of each measure is fairly constant. Some movements from
+the Bach Cello Suites are a good example of this having the majority of the measures
+notated as groups of eighth notes under a single bar line.
+.
+Tight mode makes such scores more closely resemble the original and may enable
+you to pack more measures into a line. The tradeoff is that measures with complex
+rhythms may be harder to read. To use tight mode, include the keyword "tight:" on
+an isolated line anywhere in your score text. The colon (:) after the word is 
+required. You can conveniently toggle tight mode on and off by deleting or adding 
+the colon.
+
+tight 
+
 text: ENTRY AND EDITING
 .
 To enter notation, you must activate the editing mode. You can do this clicking the 
 "Show edit controls" button at the top of the page or by double-clicking inside the
-body of any score. If editing as already active, the same actions will hide the editor
+body of any score. If editing is already active, the same actions will hide the editor
 and return you to display mode so that the score display gets the full width of the page.
 .
 For example, the first line of the Happy Birthday sample above
@@ -2371,14 +2471,27 @@ By default, each pitch is rendered in the octave that puts it closest to
 the preceding pitch. A preceding caret ( ^ ) raises it to the next octave.
 A preceding forward slash ( / ) lowers it one octave.
 .
-The 'counter' keyword places small beat numbers below the staff. It takes
-a single number as an argument to enable support for pickup (partial) measures.
-In our example.
+The 'counter' keyword is optional.  It places small beat numbers below the staff.
+It takes a single number as an argument to enable support for pickup (partial) measures.
 
-text: Note: For technical reasons, editing scores is not possible with Firefox. 
+text: NOTE: For technical reasons, editing scores is not possible with Firefox. 
 Other browsers including Chrome, Safari, etc., work correctly.
 
+text: NOTATED CHORDS:
+.
+FQS supports a simple notation for pitches sounded simultaneously. A chord is rendered on
+the staff as a group of pitches decorated by underlines.  Like this:
 
+music: K0 (ceg&b) /cegb c |
+counter: 1
+
+text: In the example above, the underscores indicate that all the pitches in the 
+first beat are to be sounded together as a chord for one beat whereas the the four
+pitches in the second beat are to be played as four sixteenth notes (assuming a quarter note beat).
+.
+The example above was entered as:
+
+cue: music: K0 (ceg&b) /cegb c |
 
 text: PAGE CONTROLS:
 .
