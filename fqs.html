@@ -1642,7 +1642,20 @@
       for (let i = blocks.length - 1; i >= 0; i--) {
         block = blocks[i].trim();
         if (block.startsWith("youtube:")) {
-          data.youtubeId = block.slice(8).trim();
+          // youtube video id with optional default play rate
+          // e.g. youtube:12345678 0.75
+          parts = block.slice(8).trim().split(" ");
+          data.youtubeId = parts[0];
+          if (parts.length > 1) {
+            data.playRate = parseFloat(parts[1]);
+          } else {
+            data.playRate = 1.0;
+          }
+          blocks.splice(i, 1);
+          continue;
+        }
+        if (block.startsWith("zoom:")) {
+          data.zoom = block.slice(5).trim();
           blocks.splice(i, 1);
           continue;
         }
@@ -1695,7 +1708,7 @@
               if (parts[1]) {
                 obj.playRate = parseFloat(parts[1]);
               } else {
-                obj.playRate = 1.0;
+                obj.playRate = data.playRate;
               }
               break;
             default:
@@ -1763,7 +1776,8 @@
         console.log(e);
         return;
       }
-      player.playVideo();
+      console.log("Playing " + videoId + " from " + timeSeconds + " seconds at " + rate + "x");
+      player.playVideo()
     }
     // The renderScore function is used to render the score using the
     // members of the data object created by preprocessScore.
@@ -1905,7 +1919,7 @@
         if (data.youtubeId && line.play !== undefined) {
           svg.style.cursor = 'pointer';
           svg.addEventListener('click', () => {
-            playYouTubeAt(data.youtubeId, line.play, line.rate);
+            playYouTubeAt(data.youtubeId, line.play, line.playRate);
           });
         }
       });
