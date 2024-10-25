@@ -21,10 +21,14 @@ text: ABOUT:
 FQS is a musical notation system that makes music easier to read. This page, fqs.html,
 is a complete self-contained web app with no external dependencies. You can use it to
 create, edit and display multiple scores using the simple text format (.fqs) described
-in this reference.
+in this reference. 
 .
 (In case you're wondering, the name, FQS, comes from the initials of my three grandchildren
 Fiona, Quentin and Skylar.)
+.
+You can also map each line of notation to a specific starting time in a YouTube recording
+of the piece and specify the play rate - typically to slow the playback down for careful
+listening.
 .
 NOTE: This reference is a score, albeit one with far more text than usual. I encourage
 you to use the edit area to experiment with changes. You can even save your own version
@@ -49,7 +53,8 @@ text:  KEY CONCEPTS
 .
      - Compressed vertical spacing preserves melodic shape (like regular notation),
        but allows 3 octaves to be displayed in a single stave.
-       The spacing is also 'true' in the sense that each semitone is rendered exactly
+.
+     - The spacing is also 'true' in the sense that each semitone is rendered exactly
        1/12th of an octave higher than the next lower pitch.
 .
    Rhythm:
@@ -88,8 +93,9 @@ and return you to display mode so that the score display gets the full width of 
 For example, the first line of the Happy Birthday sample above
 was created by entering the following two lines of text:
 
-text: music: K#4 bb | c b e | d - bb | c b ^f | e - bb |
-counter: 3
+cue: music: K#4 bb | c b e | d - bb | c b ^f | e - bb |
+
+cue: counter: 3
 
 text: The 'music:' keyword tells the app to interpret what follows as a line of FQS notation.
 .
@@ -159,6 +165,51 @@ When the Edit Controls are shown, each score has 3 buttons:
 WAYS TO LOSE YOUR WORK:
    1. Closing or reloading the page (without exporting first)
    2. Using your browser's Back button. The scores will be gone when you return.
+
+text: YOUTUBE PLAYBACK:
+FQS supports synchronized playback from YouTube videos. To enable this:
+.
+1. Add a youtube keyword with the video ID at the start of your score, e.g:
+   youtube: dQw4w9WgXcQ
+. 
+   The youtube keyword takes an optional second argument to specify the 
+   default playback speed. Most YouTube music videos support 
+   0.25, 0.5, 1.0, 1.5, or 2.0 as allowed playback speed values.
+.
+2. Add a play keyword to any music or pitch/lyric line group, e.g.:
+   play: 1:30 0.5
+.  
+  The play keyword takes two arguments:
+     - Start time in minutes:seconds format (required)
+     - Playback speed: 0.25, 0.5, 1.0, 1.5, or 2.0 (optional, defaults to 1.0)
+      If given, line playback speed overrides the default speed.
+.
+Click any line with a 'play' keyword to start playback from its specified time.
+Click again to stop playback.
+.
+Tip: Set the start time a couple of seconds before the first measure in the line to
+give yourself enough time to get ready to play the passage along with the recording.
+.
+Here's a complete example. The recording is the Sarabande from J.S. Bach's Cello Suite II
+in C Major, played live by Yo Yo Ma. Click either line to start playback at that line.
+.
+Note: The groups of underlined notes are FQS's way of indicating chords.
+
+youtube: icx52BLixaw
+
+cue: Largo (mm=48)
+
+cue: A section (player begins at repeat)
+music: K0 (cg^e^c) (/d^c)--a b | (/cg^e^&b) (fb)--g a | (/bd)-ef (cg^f)--d ef | cbca bd /gf | 
+counter: 1
+play: 11:18
+
+cue: 5
+music: K0 (/e^c^a) (/a^g)--e #fdfa | (/da^#f^c)--a (/g^d^c)--a cbag | (/#c^ga)-&bc (/d^b)-ac &e/#f | g (/g^g) - |
+counter: 1
+play: 11:38
+
+
 
 
 text: LYRICS:

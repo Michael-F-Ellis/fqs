@@ -1918,8 +1918,15 @@
         // Add click handler for play click handlers
         if (data.youtubeId && line.play !== undefined) {
           svg.style.cursor = 'pointer';
-          svg.addEventListener('click', () => {
-            playYouTubeAt(data.youtubeId, line.play, line.playRate);
+          svg.addEventListener('click', (event) => {
+            if (event.detail === 1) { // Single click
+              setTimeout(() => {
+                if (!event.target.clickProcessed) {
+                  playYouTubeAt(data.youtubeId, line.play, line.playRate || 1.0);
+                }
+              }, 200); // Delay to allow for double click detection
+            }
+            event.target.clickProcessed = (event.detail === 2);
           });
         }
       });
