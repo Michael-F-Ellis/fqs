@@ -241,7 +241,7 @@
     }
 
     .chord-pitch {
-      text-decoration: underline;
+      font: 12px monospace;
     }
 
     .pernote {
@@ -279,7 +279,7 @@
     .♭ {
       /* flat */
       fill: rgb(152, 140, 254);
-      font-style: italic;
+      /* font-style: italic; */
 
     }
 
@@ -292,7 +292,7 @@
     .♯ {
       /* sharp */
       fill: red;
-      font-style: italic;
+      /* font-style: italic; */
     }
 
     .𝄪 {
@@ -348,7 +348,7 @@
     let isDirty = false; // global flag that is set when we edit a score and cleared when export the scores
     const bookParameters = {
       // bookParameters control the behavior of the score editor and display.
-      leftX: 0, // Pixel position of the left edge of the score.
+      leftX: 7, // Pixel position of the left edge of the score.
       sideBySide: true, // if true, render scores side-by-side with edit area
       barlineRgx: /:?\|:?/, // regular expression to match barlines
       lyricRgx: /[\p{L}']/u, // regular expression to match lyric alpha characters and apostrophes
@@ -385,6 +385,12 @@
       text.setAttribute("x", x);
       text.setAttribute("y", y);
       text.textContent = textContent;
+      // Check if this pitch is part of a chord
+      let rotate = 0;
+      if (classList.includes('chord-pitch')) {
+        rotate = 340; // rotate 20 degrees counterclockwise
+      }
+      text.setAttribute("transform", `rotate(${rotate}, ${x}, ${y})`);
       if (classList) {
         text.classList.add(...classList);
       }
@@ -2448,12 +2454,12 @@ counter: 1
       // update the stylesheet with any font sizes specified in the bookParameters object
       // We need to make sure the font size vars in bookParameters and the style rules are in sync.
       updateFontSizes();
-      // Insert the built-in reference score.
-      const b1 = document.getElementById('first-new-score-btn');
-      insertNewScore(b1, 3);
+      // Simulate click on first new score button to let user choose template
+      const firstNewScoreBtn = document.getElementById('first-new-score-btn');
+      firstNewScoreBtn.click();
       isDirty = false
       startExportButtonUpdateTimer();
-      toggleEdit();
+      // toggleEdit();
     }
 
   </script>
