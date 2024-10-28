@@ -337,6 +337,15 @@
       overflow-y: auto;
     }
 
+    .section-editor {
+      width: 90%;
+      min-height: 100px;
+      margin: 10px 5% 5% 10px;
+      padding: 1em;
+      border: 1px solid #ccc;
+      background: #f5f5f5;
+    }
+
     /* Center SVG elements with 5% padding left, right and bottom*/
     svg {
       padding-left: 5%;
@@ -345,6 +354,7 @@
     }
   </style>
   <script type="text/javascript">
+    const scoreMap = new Map();
     let isDirty = false; // global flag that is set when we edit a score and cleared when export the scores
     const bookParameters = {
       // bookParameters control the behavior of the score editor and display.
@@ -1784,17 +1794,64 @@
       console.log("Playing " + videoId + " from " + timeSeconds + " seconds at " + rate + "x");
       player.playVideo()
     }
+    function reconstructSectionText(line) {
+      let text = '';
+      // Build section text from line properties
+      if (line.cue) text += `cue: ${line.cue}\n`;
+      if (line.music) {
+        text += `music: ${line.music}\n`;
+      } else if (line.pitch) {
+        text = `pitch: ${line.pitch}\n`;
+      }
+      if (line.lyric) text += `lyric: ${line.lyric}\n`;
+      if (line.counter) text += `counter: ${line.counter}\n`;
+      if (line.chord) text += `chord: ${line.chord}\n`;
+      if (line.text) text += `text: ${line.text}\n`;
+      if (line.play) {
+        const minutes = line.play % 60;
+        const seconds = line.play - minutes * 60;
+        text += `play: ${minutes}:${seconds}\n`
+      }
+      if (line.finger) text += `finger: ${line.finger}\n`;
+      if (line.perbeat) text += `perbeat: ${line.perbeat}\n`;
+      if (line.pernote) text += `pernote: ${line.pernote}\n`;
+      if (line.perbar) text += `perbar: ${line.perbar}\n`;
+      // ... add other line properties
+      return text;
+    }
+
+    function reconstructFullScoreText(title, sectionEditors) {
+      let text = `title: ${title}\n\n`;
+      sectionEditors.forEach(editor => {
+        text += editor.textContent + '\n';
+      });
+      return text;
+    }
     // The renderScore function is used to render the score using the
     // members of the data object created by preprocessScore.
     //  - wrapper is a div element that will hold svg's we create
     //  - data is an object containing the score
     function renderScore(wrapper, data) {
+      addEditor = (svg) => {
+        // Creates separate editing area for an SVG section
+        const editor = document.createElement('pre');
+        editor.classList.add('section-editor');
+        editor.setAttribute('contenteditable', 'plaintext-only');
+        editor.style.display = 'none';
+        wrapper.appendChild(editor);
+        // Add double-click handler to toggle editor
+        svg.addEventListener('dblclick', () => {
+          editor.style.display = editor.style.display === 'none' ? 'block' : 'none';
+        });
+        return editor;
+      }
       // clear any existing content of the SVG element
       wrapper.innerHTML = "";
       // create an svg element
       let svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
       let y = 0; // y coordinate of the top of the rendered score
       wrapper.appendChild(svg)
+      addEditor(svg)
 
       // Render any line problems that were encountered in
       // preliminary processing
@@ -1805,12 +1862,39 @@
       y += 2 * bookParameters.titleFontHeight
       appendSVGTextChild(svg, bookParameters.leftX, bookParameters.titleFontHeight, data.title, ['title']);
 
+      // Special handling for first SVG's section editor (title block)
+      const titleEditor = wrapper.querySelector('.section-editor');
+      if (titleEditor) {
+        let titleText = `title: ${data.title}`;
+
+        if (data.zoom) {
+          titleText += `\n\nzoom: ${data.zoom}`;
+        }
+
+        if (data.youtubeId) {
+          titleText += `\n\nyoutube: ${data.youtubeId}`;
+          if (data.playRate && data.playRate !== 1.0) {
+            titleText += ` ${data.playRate}`;
+          }
+        }
+
+        if (data.tight) {
+          titleText += `\n\ntight:`;
+        }
+
+        titleEditor.textContent = titleText;
+      }
+
       // Render the score
       data.lines.forEach((line, index) => {
         // create an svg element
         let svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
         let y = 0; // y coordinate of the top of the rendered score
         wrapper.appendChild(svg)
+        let sectionEditor = addEditor(svg);
+        // Populate editor with this section's source
+        sectionEditor.textContent = reconstructSectionText(line);
+
         // If it's a text block, render it.
         if (line.text) {
           y += 2 * bookParameters.lyricFontHeight + bookParameters.textFontHeight;
@@ -1935,6 +2019,44 @@
           });
         }
       });
+      // Add input handler to each section editor
+      const sectionEditors = wrapper.querySelectorAll('.section-editor');
+      sectionEditors.forEach(editor => {
+        editor.addEventListener('input', () => {
+          const activeEditor = document.activeElement;
+          // Get array of all editors. 
+          const allEditors = wrapper.querySelectorAll('.section-editor');
+
+          // Update main source and render
+          const fullText = Array.from(allEditors)
+            .map(ed => ed.textContent.trim())
+            .filter(text => text.length > 0)
+            .join('\n\n');
+
+          const scoreDiv = wrapper.closest('div.score');
+          const mainEditor = scoreDiv.querySelector('pre.source');
+          mainEditor.textContent = fullText;
+
+        });
+        editor.addEventListener('dblclick', () => {
+          // Save editor state
+          const activeEditor = document.activeElement;
+          // Get index of active editor among siblings
+          const allEditors = wrapper.querySelectorAll('.section-editor');
+          const activeIndex = Array.from(allEditors).indexOf(activeEditor);
+
+          const scoreDiv = wrapper.closest('div.score');
+          score = scoreMap.get(scoreDiv.id);
+          score.render();
+
+          // Find and restore state of new editor at same index
+          const newEditors = wrapper.querySelectorAll('.section-editor');
+          const newActiveEditor = newEditors[activeIndex];
+          newActiveEditor.style.display = 'block';
+          newActiveEditor.focus();
+          // newActiveEditor.selectionStart = newActiveEditor.selectionEnd = cursorPosition;
+        });
+      });
     }
 
     // deleteScore(id) deletes the score div with the given id and all its
@@ -1951,54 +2073,6 @@
         insertButton.remove();
       }
       scoreToc(); // update the table of contents
-    }
-
-    // renderEditedScoreSource takes as its argument a div element. If the div element
-    // contains a <pre> of class 'source', the contents of the <pre> are passed
-    // preprocessScore() and the result is used as the data argument to renderScore().:
-    // If the div already contains an SVG element, it is passed to renderScore() as
-    // the svg argument. Otherwise, a new SVG element is created and appended to the
-    // to the div element and passed to renderScore().
-    function renderEditedScoreSource(div) {
-      const outer = div.querySelector('div.score-wrapper');
-      outer.setAttribute('name', 'outer')
-      const pre = outer.querySelector('details pre.source');
-      if (pre === null) {
-        return
-      }
-      const data = preprocessScore(pre.textContent);
-      let inner = outer.querySelector('div.inner-wrapper');
-      if (inner === null) {
-        inner = document.createElement('div');
-        inner.classList.add('inner-wrapper')
-        outer.insertBefore(inner, outer.firstChild);
-      }
-      inner.setAttribute('name', 'inner')
-      renderScore(inner, data);
-
-      const svgElements = inner.querySelectorAll('svg');
-      for (const svg of svgElements) {
-        // calculate rendered height and adjust the svg height and viewbox
-        let height = svg.getBBox().height + 30; // empirical
-        // svg.setAttribute('height', height);
-        let zoom = 100;
-        if (data.zoom) {
-          // if data.zoom can't be parsed, use 100% and add a message to the
-          // lineProblems object so that the error can be displayed in the
-          // SVG.
-          zoom = parseInt(data.zoom, 10);
-          if (isNaN(zoom)) {
-            lineProblems.add("Invalid zoom value: " + data.zoom);
-            zoom = 100;
-          }
-          // allow user to specify a zoom factor between 50 and 500%
-          zoom = Math.max(50, Math.min(500, parseInt(zoom, 10)));
-        }
-        const xpix = 720 * 100. / zoom;
-        svg.setAttribute('viewBox', `0 0 ${xpix} ${height}`);
-      }
-      scoreToc(); // update the table of contents
-      isDirty = true // signal that the score has been edited
     }
     // scoreToc is a function that generates a table of contents for the scores in the
     // current page. It creates a ul element that contains li elements for each score.
@@ -2067,6 +2141,7 @@ counter: 1
         this.outer.classList.add('score');
         this.id = `score-${Math.random().toString(36).substring(2, 15)}`;
         this.outer.setAttribute('id', this.id);
+        scoreMap.set(this.id, this);
         // the delete button goes at the top of the score
         this.deleteBtn = document.createElement('button')
         this.deleteBtn.textContent = 'Delete this score';
@@ -2110,11 +2185,13 @@ counter: 1
           this.render();
         });
         // double click on the score to globally toggle editing
+        /*
         this.outer.addEventListener('dblclick', () => {
           toggleEdit();
         });
-
+        */
       }
+
       // showSourceEditor() makes the source editor visible.
       // by changing the the display style and width of the source div
       // and the width of the inner div.
@@ -2155,9 +2232,10 @@ counter: 1
             // allow user to specify a zoom factor between 50 and 500%
             zoom = Math.max(50, Math.min(500, parseInt(zoom,
               10)));
+
+            const xpix = 720 * 100. / zoom;
+            svg.setAttribute('viewBox', `0 0 ${xpix} ${height}`);
           }
-          const xpix = 720 * 100. / zoom;
-          svg.setAttribute('viewBox', `0 0 ${xpix} ${height}`);
         }
         scoreToc(); // update the table of contents
         isDirty = true // signal that the score has been edited

@@ -338,6 +338,15 @@
       overflow-y: auto;
     }
 
+    .section-editor {
+      width: 90%;
+      min-height: 100px;
+      margin: 10px 5% 5% 10px;
+      padding: 1em;
+      border: 1px solid #ccc;
+      background: #f5f5f5;
+    }
+
     /* Center SVG elements with 5% padding left, right and bottom*/
     svg {
       padding-left: 5%;
@@ -346,6 +355,7 @@
     }
   </style>
   <script type="text/javascript">
+    const scoreMap = new Map();
     let isDirty = false; // global flag that is set when we edit a score and cleared when export the scores
     const bookParameters = {
       // bookParameters control the behavior of the score editor and display.
@@ -1785,17 +1795,64 @@
       console.log("Playing " + videoId + " from " + timeSeconds + " seconds at " + rate + "x");
       player.playVideo()
     }
+    function reconstructSectionText(line) {
+      let text = '';
+      // Build section text from line properties
+      if (line.cue) text += `cue: ${line.cue}\n`;
+      if (line.music) {
+        text += `music: ${line.music}\n`;
+      } else if (line.pitch) {
+        text = `pitch: ${line.pitch}\n`;
+      }
+      if (line.lyric) text += `lyric: ${line.lyric}\n`;
+      if (line.counter) text += `counter: ${line.counter}\n`;
+      if (line.chord) text += `chord: ${line.chord}\n`;
+      if (line.text) text += `text: ${line.text}\n`;
+      if (line.play) {
+        const minutes = line.play % 60;
+        const seconds = line.play - minutes * 60;
+        text += `play: ${minutes}:${seconds}\n`
+      }
+      if (line.finger) text += `finger: ${line.finger}\n`;
+      if (line.perbeat) text += `perbeat: ${line.perbeat}\n`;
+      if (line.pernote) text += `pernote: ${line.pernote}\n`;
+      if (line.perbar) text += `perbar: ${line.perbar}\n`;
+      // ... add other line properties
+      return text;
+    }
+
+    function reconstructFullScoreText(title, sectionEditors) {
+      let text = `title: ${title}\n\n`;
+      sectionEditors.forEach(editor => {
+        text += editor.textContent + '\n';
+      });
+      return text;
+    }
     // The renderScore function is used to render the score using the
     // members of the data object created by preprocessScore.
     //  - wrapper is a div element that will hold svg's we create
     //  - data is an object containing the score
     function renderScore(wrapper, data) {
+      addEditor = (svg) => {
+        // Creates separate editing area for an SVG section
+        const editor = document.createElement('pre');
+        editor.classList.add('section-editor');
+        editor.setAttribute('contenteditable', 'plaintext-only');
+        editor.style.display = 'none';
+        wrapper.appendChild(editor);
+        // Add double-click handler to toggle editor
+        svg.addEventListener('dblclick', () => {
+          editor.style.display = editor.style.display === 'none' ? 'block' : 'none';
+        });
+        return editor;
+      }
       // clear any existing content of the SVG element
       wrapper.innerHTML = "";
       // create an svg element
       let svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
       let y = 0; // y coordinate of the top of the rendered score
       wrapper.appendChild(svg)
+      addEditor(svg)
 
       // Render any line problems that were encountered in
       // preliminary processing
@@ -1806,12 +1863,39 @@
       y += 2 * bookParameters.titleFontHeight
       appendSVGTextChild(svg, bookParameters.leftX, bookParameters.titleFontHeight, data.title, ['title']);
 
+      // Special handling for first SVG's section editor (title block)
+      const titleEditor = wrapper.querySelector('.section-editor');
+      if (titleEditor) {
+        let titleText = `title: ${data.title}`;
+
+        if (data.zoom) {
+          titleText += `\n\nzoom: ${data.zoom}`;
+        }
+
+        if (data.youtubeId) {
+          titleText += `\n\nyoutube: ${data.youtubeId}`;
+          if (data.playRate && data.playRate !== 1.0) {
+            titleText += ` ${data.playRate}`;
+          }
+        }
+
+        if (data.tight) {
+          titleText += `\n\ntight:`;
+        }
+
+        titleEditor.textContent = titleText;
+      }
+
       // Render the score
       data.lines.forEach((line, index) => {
         // create an svg element
         let svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
         let y = 0; // y coordinate of the top of the rendered score
         wrapper.appendChild(svg)
+        let sectionEditor = addEditor(svg);
+        // Populate editor with this section's source
+        sectionEditor.textContent = reconstructSectionText(line);
+
         // If it's a text block, render it.
         if (line.text) {
           y += 2 * bookParameters.lyricFontHeight + bookParameters.textFontHeight;
@@ -1936,6 +2020,44 @@
           });
         }
       });
+      // Add input handler to each section editor
+      const sectionEditors = wrapper.querySelectorAll('.section-editor');
+      sectionEditors.forEach(editor => {
+        editor.addEventListener('input', () => {
+          const activeEditor = document.activeElement;
+          // Get array of all editors. 
+          const allEditors = wrapper.querySelectorAll('.section-editor');
+
+          // Update main source and render
+          const fullText = Array.from(allEditors)
+            .map(ed => ed.textContent.trim())
+            .filter(text => text.length > 0)
+            .join('\n\n');
+
+          const scoreDiv = wrapper.closest('div.score');
+          const mainEditor = scoreDiv.querySelector('pre.source');
+          mainEditor.textContent = fullText;
+
+        });
+        editor.addEventListener('dblclick', () => {
+          // Save editor state
+          const activeEditor = document.activeElement;
+          // Get index of active editor among siblings
+          const allEditors = wrapper.querySelectorAll('.section-editor');
+          const activeIndex = Array.from(allEditors).indexOf(activeEditor);
+
+          const scoreDiv = wrapper.closest('div.score');
+          score = scoreMap.get(scoreDiv.id);
+          score.render();
+
+          // Find and restore state of new editor at same index
+          const newEditors = wrapper.querySelectorAll('.section-editor');
+          const newActiveEditor = newEditors[activeIndex];
+          newActiveEditor.style.display = 'block';
+          newActiveEditor.focus();
+          // newActiveEditor.selectionStart = newActiveEditor.selectionEnd = cursorPosition;
+        });
+      });
     }
 
     // deleteScore(id) deletes the score div with the given id and all its
@@ -1952,54 +2074,6 @@
         insertButton.remove();
       }
       scoreToc(); // update the table of contents
-    }
-
-    // renderEditedScoreSource takes as its argument a div element. If the div element
-    // contains a <pre> of class 'source', the contents of the <pre> are passed
-    // preprocessScore() and the result is used as the data argument to renderScore().:
-    // If the div already contains an SVG element, it is passed to renderScore() as
-    // the svg argument. Otherwise, a new SVG element is created and appended to the
-    // to the div element and passed to renderScore().
-    function renderEditedScoreSource(div) {
-      const outer = div.querySelector('div.score-wrapper');
-      outer.setAttribute('name', 'outer')
-      const pre = outer.querySelector('details pre.source');
-      if (pre === null) {
-        return
-      }
-      const data = preprocessScore(pre.textContent);
-      let inner = outer.querySelector('div.inner-wrapper');
-      if (inner === null) {
-        inner = document.createElement('div');
-        inner.classList.add('inner-wrapper')
-        outer.insertBefore(inner, outer.firstChild);
-      }
-      inner.setAttribute('name', 'inner')
-      renderScore(inner, data);
-
-      const svgElements = inner.querySelectorAll('svg');
-      for (const svg of svgElements) {
-        // calculate rendered height and adjust the svg height and viewbox
-        let height = svg.getBBox().height + 30; // empirical
-        // svg.setAttribute('height', height);
-        let zoom = 100;
-        if (data.zoom) {
-          // if data.zoom can't be parsed, use 100% and add a message to the
-          // lineProblems object so that the error can be displayed in the
-          // SVG.
-          zoom = parseInt(data.zoom, 10);
-          if (isNaN(zoom)) {
-            lineProblems.add("Invalid zoom value: " + data.zoom);
-            zoom = 100;
-          }
-          // allow user to specify a zoom factor between 50 and 500%
-          zoom = Math.max(50, Math.min(500, parseInt(zoom, 10)));
-        }
-        const xpix = 720 * 100. / zoom;
-        svg.setAttribute('viewBox', `0 0 ${xpix} ${height}`);
-      }
-      scoreToc(); // update the table of contents
-      isDirty = true // signal that the score has been edited
     }
     // scoreToc is a function that generates a table of contents for the scores in the
     // current page. It creates a ul element that contains li elements for each score.
@@ -2068,6 +2142,7 @@ counter: 1
         this.outer.classList.add('score');
         this.id = `score-${Math.random().toString(36).substring(2, 15)}`;
         this.outer.setAttribute('id', this.id);
+        scoreMap.set(this.id, this);
         // the delete button goes at the top of the score
         this.deleteBtn = document.createElement('button')
         this.deleteBtn.textContent = 'Delete this score';
@@ -2111,11 +2186,13 @@ counter: 1
           this.render();
         });
         // double click on the score to globally toggle editing
+        /*
         this.outer.addEventListener('dblclick', () => {
           toggleEdit();
         });
-
+        */
       }
+
       // showSourceEditor() makes the source editor visible.
       // by changing the the display style and width of the source div
       // and the width of the inner div.
@@ -2156,9 +2233,10 @@ counter: 1
             // allow user to specify a zoom factor between 50 and 500%
             zoom = Math.max(50, Math.min(500, parseInt(zoom,
               10)));
+
+            const xpix = 720 * 100. / zoom;
+            svg.setAttribute('viewBox', `0 0 ${xpix} ${height}`);
           }
-          const xpix = 720 * 100. / zoom;
-          svg.setAttribute('viewBox', `0 0 ${xpix} ${height}`);
         }
         scoreToc(); // update the table of contents
         isDirty = true // signal that the score has been edited
@@ -2466,24 +2544,11 @@ counter: 1
   </script>
 <script type="text/javascript">
 // This is the reference score that documents FQS usage
-fqsReference=`
-: FQS REFERENCE SOURCE (You can safely edit and experiment with this)
-
-: Lines that start with a colon are comments. They don't appear in the rendered score.
-: This reference loads when you first open FQS. You can delete it with the button above.
-
-: Every score needs a title
-
-title: FQS Reference
-
-: zoom is optional. It defaults to 100, valid values are 50 - 500.  Try changing
-: the value below and watch the result.
+fqsReference=`title: FQS Reference
 
 zoom: 130
 
-: The text key word inserts blocks of text into the score.
-: A dot, '.', as the first non-space character in a line is
-: replaced with a single space.
+youtube: icx52BLixaw
 
 text: ABOUT:
 FQS is a musical notation system that makes music easier to read. This page, fqs.html,
@@ -2511,7 +2576,7 @@ counter: 3
 music: K#4 ^b g e | d c ^aa | g e f | e - ; |
 counter: 1
 
-text:  KEY CONCEPTS
+text: KEY CONCEPTS
 .
    Pitch:
      - Letter names instead of note symbols
@@ -2549,14 +2614,20 @@ an isolated line anywhere in your score text. The colon (:) after the word is
 required. You can conveniently toggle tight mode on and off by deleting or adding 
 the colon.
 
-tight 
-
 text: ENTRY AND EDITING
 .
-To enter notation, you must activate the editing mode. You can do this clicking the 
-"Show edit controls" button at the top of the page or by double-clicking inside the
-body of any score. If editing is already active, the same actions will hide the editor
-and return you to display mode so that the score display gets the full width of the page.
+To enter notation, you must activate an editing mode. You can do this clicking the 
+"Show edit controls" button at the top of the page or by double-clicking on any line in
+the body of any score. The difference is that the button will open a pane at the side of
+the score showing the entire text of the score, whereas clicking in the score will open
+a small editor for just that line.  
+.
+In either case, if editing is already active, the same actions will hide the editor
+and return you to display mode.
+.
+One important difference is that editing in the side pane will update the displayed
+notation immediately, whereas you must double click in the small editors to see
+the result of your changes.
 .
 For example, the first line of the Happy Birthday sample above
 was created by entering the following two lines of text:
@@ -2588,12 +2659,12 @@ Other browsers including Chrome, Safari, etc., work correctly.
 text: NOTATED CHORDS:
 .
 FQS supports a simple notation for pitches sounded simultaneously. A chord is rendered on
-the staff as a group of pitches decorated by underlines.  Like this:
+the staff as a group of pitches rotated left by 30°,  like this:
 
 music: K0 (ceg&b) /cegb c |
 counter: 1
 
-text: In the example above, the underscores indicate that all the pitches in the 
+text: In the example above, the slanted characters indicate that all the pitches in the 
 first beat are to be sounded together as a chord for one beat whereas the the four
 pitches in the second beat are to be played as four sixteenth notes (assuming a quarter note beat).
 .
@@ -2661,24 +2732,19 @@ give yourself enough time to get ready to play the passage along with the record
 Here's a complete example. The recording is the Sarabande from J.S. Bach's Cello Suite II
 in C Major, played live by Yo Yo Ma. Click either line to start playback at that line.
 .
-Note: The groups of underlined notes are FQS's way of indicating chords.
-
-youtube: icx52BLixaw
+Note: The groups of back-slanted notes are FQS's way of indicating chords.
 
 cue: Largo (mm=48)
 
 cue: A section (player begins at repeat)
-music: K0 (cg^e^c) (/d^c)--a b | (/cg^e^&b) (fb)--g a | (/bd)-ef (cg^f)--d ef | cbca bd /gf | 
+music: K0 (cg^e^c) (/d^c)--a b | (/cg^e^&b) (fb)--g a | (/bd)-ef (cg^f)--d ef | cbca bd /gf |
 counter: 1
-play: 11:18
+play: 18:-402
 
 cue: 5
 music: K0 (/e^c^a) (/a^g)--e #fdfa | (/da^#f^c)--a (/g^d^c)--a cbag | (/#c^ga)-&bc (/d^b)-ac &e/#f | g (/g^g) - |
 counter: 1
-play: 11:38
-
-
-
+play: 38:-1582
 
 text: LYRICS:
 .
@@ -2719,26 +2785,21 @@ punctation characters to accomplish this.
    tells FQS that the two syllables share a beat, each taking half.
 .
    A hyphen, ( - ) indicates a syllable that is sustained for all or part of a beat and 
-   a semicolon ( ; ) is a rest. 
-   
-.
-   An asterisk, ( * ) indicates changes of pitch on the same syllable. In measure 6,
-   the asterisk after 'NAME' indicates a change of pitch on the second beat.
-
+   a semicolon ( ; ) is a rest.
 
 text: CHORDS:
 .
 FQS supports chord abbreviations. Chords can be placed on any beat.
 
-chord: Em7 _ _ _ A7 _ _ _ Dmaj7
-counter: 1
 music: K#2 ^^g f e d | c b a g | f - - - |
+counter: 1
+chord: Em7 _ _ _ A7 _ _ _ Dmaj7
 
 text: Chords can also be aligned with lyrics alone. (Very handy for songwriting.)
 
-chord: Am7 _ _ _ Dm7 _ _ _ G7 _ _ _ Cmaj7
-counter: 1
 lyric: Fly -me to the | moon ; let me | play -a mong the | stars - ; ; |
+counter: 1
+chord: Am7 _ _ _ Dm7 _ _ _ G7 _ _ _ Cmaj7
 
 text: ANNOTATIONS:
 You can add annotations at several levels of granularity. Text annotations, such as this one,
@@ -2764,8 +2825,8 @@ markings but, again, use them in whatever way is useful to you.
 
 pitch: K&3 ^b g e | d c ^aa | g e f | e |
 lyric: birth day dear | NAME * Hap.py | birth day to | you - - |
-perbeat: mm=120 _ rall. _ 𝄐 _a_tempo _ _ molto_rall.
 counter: 1
+perbeat: mm=120 _ rall. _ 𝄐 _a_tempo _ _ molto_rall.
 
 text: PER NOTE - note annotations attach to individual notes. Use them
 as you wish. I tend to use them for dynamic markings.
@@ -2777,37 +2838,12 @@ pernote: mf cresc. _ _ _ ff
 text: EVERYTHING - Here's the last line of Happy Birthday once again, this time
 with all possible annotations.
 
-cue: Joe and Susan enter with the cake, candles lit.
-perbeat: mm=120 _ rall. _ 𝄐 _a_tempo _ _ molto_rall.
-counter: 1
 pitch: K&3 ^b g e | d c ^aa | g e f | e |
 lyric: birth day dear | NAME * Hap.py | birth day to | you - - |
-perbar: 3/4_Brightly
+counter: 1
+perbeat: mm=120 _ rall. _ 𝄐 _a_tempo _ _ molto_rall.
 pernote: mf cresc. _ _ _ ff
-
-
-
-: SCORE ENTRY FORMAT:
-An FQS score consists a title and lines of music and optional lines of text
-between. FQS looks for certain keywords at the beginning of lines to decide how
-to interpret and render them.
-.
-"title: Your title here" displays the title at the top of the score.
-.
-"zoom: N" scales the score display by N%. N must be between 50 and 200.
-  zoom defaults to 100 if omitted.
-.
-"text: One of more lines of text ..." inserts a text block into the score.
-  A blank line ends the block.
-
-
-: LINE BLOCKS:
-: FQS uses blank lines to separate text paragraphs and music line blocks.
-: If you look closely at the examples above this will become obvious.
-
-A music line block is one or more music, lyric, pitch and annotation lines.
-Together, they tell FQS how to render a single line of music.
-
+perbar: 3/4_Brightly
 
 text: RHYTHM:
 .
@@ -2859,7 +2895,6 @@ is the same as 'cdef'. This is NOT true with the 'music:' keyword.
 .
 Barlines are needed so altered pitches cancel at end of measure.
 
-
 text: ANNOTATIONS (all optional):
     cue: A line of text you want to appear as a cue.
         cues may be attached to the notation or stand alone if followed by a blank line.
@@ -2870,11 +2905,7 @@ text: ANNOTATIONS (all optional):
     finger: Fingering numbers. Rendered in tiny font above the staff.
 .
 Underscores ( _ ) are used to skip beats, barlines, or attacks in annotations.
-        : e.g. 'perbar: 4/4 _ 3/4' puts 4/4 at the first measure and 3/4 at the third measure.
-
-
-
-    `
+        : e.g. 'perbar: 4/4 _ 3/4' puts 4/4 at the first measure and 3/4 at the third measure.`
 </script>
 </body>
 </html>

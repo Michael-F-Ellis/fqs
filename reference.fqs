@@ -1,21 +1,8 @@
-
-: FQS REFERENCE SOURCE (You can safely edit and experiment with this)
-
-: Lines that start with a colon are comments. They don't appear in the rendered score.
-: This reference loads when you first open FQS. You can delete it with the button above.
-
-: Every score needs a title
-
 title: FQS Reference
-
-: zoom is optional. It defaults to 100, valid values are 50 - 500.  Try changing
-: the value below and watch the result.
 
 zoom: 130
 
-: The text key word inserts blocks of text into the score.
-: A dot, '.', as the first non-space character in a line is
-: replaced with a single space.
+youtube: icx52BLixaw
 
 text: ABOUT:
 FQS is a musical notation system that makes music easier to read. This page, fqs.html,
@@ -43,7 +30,7 @@ counter: 3
 music: K#4 ^b g e | d c ^aa | g e f | e - ; |
 counter: 1
 
-text:  KEY CONCEPTS
+text: KEY CONCEPTS
 .
    Pitch:
      - Letter names instead of note symbols
@@ -81,14 +68,20 @@ an isolated line anywhere in your score text. The colon (:) after the word is
 required. You can conveniently toggle tight mode on and off by deleting or adding 
 the colon.
 
-tight 
-
 text: ENTRY AND EDITING
 .
-To enter notation, you must activate the editing mode. You can do this clicking the 
-"Show edit controls" button at the top of the page or by double-clicking inside the
-body of any score. If editing is already active, the same actions will hide the editor
-and return you to display mode so that the score display gets the full width of the page.
+To enter notation, you must activate an editing mode. You can do this clicking the 
+"Show edit controls" button at the top of the page or by double-clicking on any line in
+the body of any score. The difference is that the button will open a pane at the side of
+the score showing the entire text of the score, whereas clicking in the score will open
+a small editor for just that line.  
+.
+In either case, if editing is already active, the same actions will hide the editor
+and return you to display mode.
+.
+One important difference is that editing in the side pane will update the displayed
+notation immediately, whereas you must double click in the small editors to see
+the result of your changes.
 .
 For example, the first line of the Happy Birthday sample above
 was created by entering the following two lines of text:
@@ -120,12 +113,12 @@ Other browsers including Chrome, Safari, etc., work correctly.
 text: NOTATED CHORDS:
 .
 FQS supports a simple notation for pitches sounded simultaneously. A chord is rendered on
-the staff as a group of pitches decorated by underlines.  Like this:
+the staff as a group of pitches rotated left by 30°,  like this:
 
 music: K0 (ceg&b) /cegb c |
 counter: 1
 
-text: In the example above, the underscores indicate that all the pitches in the 
+text: In the example above, the slanted characters indicate that all the pitches in the 
 first beat are to be sounded together as a chord for one beat whereas the the four
 pitches in the second beat are to be played as four sixteenth notes (assuming a quarter note beat).
 .
@@ -193,24 +186,19 @@ give yourself enough time to get ready to play the passage along with the record
 Here's a complete example. The recording is the Sarabande from J.S. Bach's Cello Suite II
 in C Major, played live by Yo Yo Ma. Click either line to start playback at that line.
 .
-Note: The groups of underlined notes are FQS's way of indicating chords.
-
-youtube: icx52BLixaw
+Note: The groups of back-slanted notes are FQS's way of indicating chords.
 
 cue: Largo (mm=48)
 
 cue: A section (player begins at repeat)
-music: K0 (cg^e^c) (/d^c)--a b | (/cg^e^&b) (fb)--g a | (/bd)-ef (cg^f)--d ef | cbca bd /gf | 
+music: K0 (cg^e^c) (/d^c)--a b | (/cg^e^&b) (fb)--g a | (/bd)-ef (cg^f)--d ef | cbca bd /gf |
 counter: 1
-play: 11:18
+play: 18:-402
 
 cue: 5
 music: K0 (/e^c^a) (/a^g)--e #fdfa | (/da^#f^c)--a (/g^d^c)--a cbag | (/#c^ga)-&bc (/d^b)-ac &e/#f | g (/g^g) - |
 counter: 1
-play: 11:38
-
-
-
+play: 38:-1582
 
 text: LYRICS:
 .
@@ -251,26 +239,21 @@ punctation characters to accomplish this.
    tells FQS that the two syllables share a beat, each taking half.
 .
    A hyphen, ( - ) indicates a syllable that is sustained for all or part of a beat and 
-   a semicolon ( ; ) is a rest. 
-   
-.
-   An asterisk, ( * ) indicates changes of pitch on the same syllable. In measure 6,
-   the asterisk after 'NAME' indicates a change of pitch on the second beat.
-
+   a semicolon ( ; ) is a rest.
 
 text: CHORDS:
 .
 FQS supports chord abbreviations. Chords can be placed on any beat.
 
-chord: Em7 _ _ _ A7 _ _ _ Dmaj7
-counter: 1
 music: K#2 ^^g f e d | c b a g | f - - - |
+counter: 1
+chord: Em7 _ _ _ A7 _ _ _ Dmaj7
 
 text: Chords can also be aligned with lyrics alone. (Very handy for songwriting.)
 
-chord: Am7 _ _ _ Dm7 _ _ _ G7 _ _ _ Cmaj7
-counter: 1
 lyric: Fly -me to the | moon ; let me | play -a mong the | stars - ; ; |
+counter: 1
+chord: Am7 _ _ _ Dm7 _ _ _ G7 _ _ _ Cmaj7
 
 text: ANNOTATIONS:
 You can add annotations at several levels of granularity. Text annotations, such as this one,
@@ -296,8 +279,8 @@ markings but, again, use them in whatever way is useful to you.
 
 pitch: K&3 ^b g e | d c ^aa | g e f | e |
 lyric: birth day dear | NAME * Hap.py | birth day to | you - - |
-perbeat: mm=120 _ rall. _ 𝄐 _a_tempo _ _ molto_rall.
 counter: 1
+perbeat: mm=120 _ rall. _ 𝄐 _a_tempo _ _ molto_rall.
 
 text: PER NOTE - note annotations attach to individual notes. Use them
 as you wish. I tend to use them for dynamic markings.
@@ -309,37 +292,12 @@ pernote: mf cresc. _ _ _ ff
 text: EVERYTHING - Here's the last line of Happy Birthday once again, this time
 with all possible annotations.
 
-cue: Joe and Susan enter with the cake, candles lit.
-perbeat: mm=120 _ rall. _ 𝄐 _a_tempo _ _ molto_rall.
-counter: 1
 pitch: K&3 ^b g e | d c ^aa | g e f | e |
 lyric: birth day dear | NAME * Hap.py | birth day to | you - - |
-perbar: 3/4_Brightly
+counter: 1
+perbeat: mm=120 _ rall. _ 𝄐 _a_tempo _ _ molto_rall.
 pernote: mf cresc. _ _ _ ff
-
-
-
-: SCORE ENTRY FORMAT:
-An FQS score consists a title and lines of music and optional lines of text
-between. FQS looks for certain keywords at the beginning of lines to decide how
-to interpret and render them.
-.
-"title: Your title here" displays the title at the top of the score.
-.
-"zoom: N" scales the score display by N%. N must be between 50 and 200.
-  zoom defaults to 100 if omitted.
-.
-"text: One of more lines of text ..." inserts a text block into the score.
-  A blank line ends the block.
-
-
-: LINE BLOCKS:
-: FQS uses blank lines to separate text paragraphs and music line blocks.
-: If you look closely at the examples above this will become obvious.
-
-A music line block is one or more music, lyric, pitch and annotation lines.
-Together, they tell FQS how to render a single line of music.
-
+perbar: 3/4_Brightly
 
 text: RHYTHM:
 .
@@ -391,7 +349,6 @@ is the same as 'cdef'. This is NOT true with the 'music:' keyword.
 .
 Barlines are needed so altered pitches cancel at end of measure.
 
-
 text: ANNOTATIONS (all optional):
     cue: A line of text you want to appear as a cue.
         cues may be attached to the notation or stand alone if followed by a blank line.
@@ -403,7 +360,3 @@ text: ANNOTATIONS (all optional):
 .
 Underscores ( _ ) are used to skip beats, barlines, or attacks in annotations.
         : e.g. 'perbar: 4/4 _ 3/4' puts 4/4 at the first measure and 3/4 at the third measure.
-
-
-
-    
