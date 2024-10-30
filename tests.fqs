@@ -1,0 +1,19 @@
+title: Annotation Tests
+
+zoom: 150
+
+cue: Per note: Underscore positioning only
+music: K0 c d e f | g a b-c d | c b a g |
+counter: 1
+pernote: _ _ _ E _ _ _ _ _ C _ _ _ B
+
+cue: Per note: @ positioning only
+music: K0 c d e f | g a b-c d | c b a g |
+counter: 1
+pernote: @1.3.1 E @2.3.2 C @3.2 B
+
+cue: Per note: mixed positioning
+music: K0 c d e f | g a b-c d | c b a g |
+counter: 1
+pernote: _ _ _ E @2.3.2 C _ _ _ B
+
