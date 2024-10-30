@@ -1875,9 +1875,9 @@
       if (line.chord) text += `chord: ${line.chord}\n`;
       if (line.text) text += `text: ${line.text}\n`;
       if (line.play) {
-        const minutes = line.play % 60;
-        const seconds = line.play - minutes * 60;
-        text += `play: ${minutes}:${seconds}\n`
+        const minutes = Math.floor(line.play / 60);
+        const seconds = line.play - (minutes * 60);
+        text += `play: ${minutes}:${seconds < 10 ? '0' + seconds : seconds}\n`
       }
       if (line.finger) text += `finger: ${line.finger}\n`;
       if (line.perbeat) text += `perbeat: ${line.perbeat}\n`;
