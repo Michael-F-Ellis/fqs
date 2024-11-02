@@ -19,12 +19,12 @@ cue: -------- PER BEAT ----------------
 cue: Underscore positioning only
 music: K0 c d e f | g a b-c d | c b a g |
 counter: 1
-perbeat: _ _ _ _ G A _ _ _ C
+perbeat: _ _ _ _ G A _ _  C _ _ G
 
 cue: Barlines in positioning
 music: K0 c d e f | g a b-c d | c b a g |
 counter: 1
-perbeat: | G A | C
+perbeat: | G A | C _ _ G
 
 cue: --------- PER BAR ----------------
 
@@ -49,4 +49,16 @@ cue: Barlines in positioning
 music: K0 c d e f | g a b-c d | cac dbd |
 counter: 1
 finger: | 0 _ II
+
+cue: --------- ERRORS (intended)  -----
+
+cue: Underscore positioning only
+music: K0 c d e f | g a b-c d |
+counter: 1
+finger: _ _ _ _ O _ II _ _ III
+
+cue: Barlines in positioning
+music: K0 c d e f | g a b-c d |
+counter: 1
+finger: | 0 _ II _ _ III
 

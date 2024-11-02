@@ -92,13 +92,13 @@ cue: counter: 3
 
 text: The 'music:' keyword tells the app to interpret what follows as a line of FQS notation.
 .
-A key signature is required. In this example, K#4, indicates E major ( 4 sharps ).
+   - A key signature is required. In this example, K#4, indicates E major ( 4 sharps ).
 .
-No time signature is needed ( but you can indicate one with an annotation).
+   - No time signature is needed ( but you can indicate one with an annotation).
 .
-The vertical bar symbol ( | ) ends a measure.
+   - The vertical bar symbol ( | ) ends a measure.
 .
-A hyphen ( - ) indicates a sustained pitch.
+   - A hyphen ( - ) indicates a sustained pitch.
 .
 By default, each pitch is rendered in the octave that puts it closest to
 the preceding pitch. A preceding caret ( ^ ) raises it to the next octave.
@@ -107,7 +107,8 @@ A preceding forward slash ( / ) lowers it one octave.
 The 'counter' keyword is optional.  It places small beat numbers below the staff.
 It takes a single number as an argument to enable support for pickup (partial) measures.
 
-text: NOTE: For technical reasons, editing scores is not possible with Firefox. 
+text: COMPATIBILITY: 
+For technical reasons, editing scores is not possible with Firefox. 
 Other browsers including Chrome, Safari, etc., work correctly.
 
 text: NOTATED CHORDS:
@@ -118,7 +119,7 @@ the staff as a group of pitches rotated left by 30°,  like this:
 music: K0 (ceg&b) /cegb c |
 counter: 1
 
-text: In the example above, the slanted characters indicate that all the pitches in the 
+text: In the example above, the smaller, back-slanted characters indicate that all the pitches in the 
 first beat are to be sounded together as a chord for one beat whereas the the four
 pitches in the second beat are to be played as four sixteenth notes (assuming a quarter note beat).
 .
@@ -193,12 +194,12 @@ cue: Largo (mm=48)
 cue: A section (player begins at repeat)
 music: K0 (cg^e^c) (/d^c)--a b | (/cg^e^&b) (fb)--g a | (/bd)-ef (cg^f)--d ef | cbca bd /gf |
 counter: 1
-play: 18:-402
+play: 11:18
 
 cue: 5
 music: K0 (/e^c^a) (/a^g)--e #fdfa | (/da^#f^c)--a (/g^d^c)--a cbag | (/#c^ga)-&bc (/d^b)-ac &e/#f | g (/g^g) - |
 counter: 1
-play: 38:-1582
+play: 11:38
 
 text: LYRICS:
 .
@@ -289,12 +290,18 @@ pitch: K&3 ^b g e | d c ^aa | g e f | e |
 lyric: birth day dear | NAME * Hap.py | birth day to | you - - |
 pernote: mf cresc. _ _ _ ff
 
+text: FINGERING - finger annotations attach to individual notes above the staff.
+
+music: K0 ^g | c d e f | g - - - |
+finger: 0 4 1 -1 2 4
+
 text: EVERYTHING - Here's the last line of Happy Birthday once again, this time
 with all possible annotations.
 
 pitch: K&3 ^b g e | d c ^aa | g e f | e |
 lyric: birth day dear | NAME * Hap.py | birth day to | you - - |
 counter: 1
+finger: | | 0 1 3
 perbeat: mm=120 _ rall. _ 𝄐 _a_tempo _ _ molto_rall.
 pernote: mf cresc. _ _ _ ff
 perbar: 3/4_Brightly
@@ -358,5 +365,16 @@ text: ANNOTATIONS (all optional):
     pernote: Items aligned to attacks, e.g. dynamic markings
     finger: Fingering numbers. Rendered in tiny font above the staff.
 .
-Underscores ( _ ) are used to skip beats, barlines, or attacks in annotations.
-        : e.g. 'perbar: 4/4 _ 3/4' puts 4/4 at the first measure and 3/4 at the third measure.
+    LAYOUT CHARACTERS:
+    In perbar, perbeat, pernote and finger annotations, the underscore (_) and barline (|)
+    are treated specially.
+.
+    Underscores ( _ ) are used to skip beats, barlines, or attacks in annotations. For example:
+    "perbar: a_tempo _ molto_rall." puts 'a tempo' at the first measure and 'molto rall.' at 
+    the third measure.
+.   
+    Barlines ( | ) advance the layout to the next barline. This is particularly useful in per note
+    annotations to reduce the number of underscores needed to correctly place an annotation.
+
+music: K0 ^^g f e d | c b a g | f e d b | c - - - |
+pernote: a_tempo | | molto_rall.

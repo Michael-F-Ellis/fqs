@@ -241,7 +241,7 @@
     }
 
     .chord-pitch {
-      font: 12px monospace;
+      font: 10px monospace;
     }
 
     .pernote {
@@ -1367,23 +1367,29 @@
               x += pos * bookParameters.lyricFontWidth;
               // Replace underscores with spaces in the rendered text
               appendSVGTextChild(svg, x, this.y0, token.replace(/_/g, ' '), this.cssClasses);
-              // Move to next step
+              // Move to next step position if one is available
               switch (step) {
                 case 'bar':
-                  pos = this.nextBar(pos);
+                  if (pos < this.bars[this.bars.length - 1]) {
+                    pos = this.nextBar(pos);
+                  }
                   break;
                 case 'beat':
-                  pos = this.nextBeat(pos);
+                  if (pos < this.beats[this.beats.length - 1]) {
+                    pos = this.nextBeat(pos);
+                  }
                   break;
                 case 'note':
-                  pos = this.nextNote(pos)
+                  if (pos < this.attacks[this.attacks.length - 1]) {
+                    pos = this.nextNote(pos);
+                  }
                   break;
                 default:
                   break;
               }
+              break;
           }
           console.log(token, pos);
-          // pos++;
         });
       }
     }
