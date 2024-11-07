@@ -15,3 +15,6 @@ resources/.arch-internal-preview.css
 
 # generated files
 fqs.html
+
+# untracked files
+pushio.py

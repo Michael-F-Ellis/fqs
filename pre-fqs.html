@@ -354,7 +354,7 @@
     let isDirty = false; // global flag that is set when we edit a score and cleared when export the scores
     const bookParameters = {
       // bookParameters control the behavior of the score editor and display.
-      leftX: 7, // Pixel position of the left edge of the score.
+      leftX: 16, // Pixel position of the left edge of the score.
       sideBySide: true, // if true, render scores side-by-side with edit area
       barlineRgx: /:?\|:?/, // regular expression to match barlines
       lyricRgx: /[\p{L}']/u, // regular expression to match lyric alpha characters and apostrophes
@@ -1241,19 +1241,6 @@
           line.setAttribute("stroke-width", 0.5);
           svg.appendChild(line);
         }
-        // Add a pencil icon just after the last barline and set a click handler
-        // to open the associated editor.
-        let x = x0 + (bars[bars.length - 1] + 0.5) * fontwidth;
-        let y = yline2;
-        const pencil = appendSVGTextChild(svg, x, y, "✎", ['pencil-icon']);
-        pencil.addEventListener("click", function (e) {
-          e.stopPropagation();
-          e.preventDefault();
-          e.stopImmediatePropagation();
-          console.log("pencil click");
-          return false;
-        }, true);
-
         // Loop through the pitches and render them at the corresponding 
         // attack locations. It is not an error if the number of pitches
         // is not equal to the number of attack locations because we may
@@ -1856,48 +1843,70 @@
     //  - wrapper is a div element that will hold svg's we create
     //  - data is an object containing the score
     function renderScore(wrapper, data) {
+      // The addEditor function is a closure that adds editing capabilities to a
+      // section of the score. The svg argument is the svg element that will
+      // be edited.  
       addEditor = (svg) => {
-        // Creates separate editing area for an SVG section
+        // Create a div that will hold the editor and the reload button.
+        const editorDiv = document.createElement('div');
+        editorDiv.setAttribute('class', 'section-editor-div');
+        editorDiv.style.display = 'none';
+        editorDiv.style.alignItems = 'flex-start';
+        // Create the reload button
+        const reloadButton = document.createElement('button');
+        reloadButton.textContent = '↻';
+        reloadButton.setAttribute('class', 'reload-icon');
+        // Create the editor element
         const editor = document.createElement('pre');
         editor.classList.add('section-editor');
         editor.setAttribute('contenteditable', 'plaintext-only');
-        editor.style.display = 'none';
-        wrapper.appendChild(editor);
-        // Add triple tap detection because mobile devices use double-tap for zooming.
-        let tapCount = 0;
-        let lastTap = 0;
+        editor.style.display = 'block';
+        // Wrap the button and editor in the editor div.
+        editorDiv.appendChild(reloadButton);
+        editorDiv.appendChild(editor);
+        wrapper.appendChild(editorDiv);
 
-        svg.addEventListener('touchend', (e) => {
-          const currentTime = new Date().getTime();
-          const tapLength = currentTime - lastTap;
+        // Create a pencil icon  that shows and hides the editor.
+        const pencil = appendSVGTextChild(svg, 0, 16, "✎", ['pencil-icon']);
+        pencil.addEventListener("click", function (e) {
+          e.stopPropagation();
+          e.preventDefault();
+          e.stopImmediatePropagation();
+          editorDiv.style.display = editorDiv.style.display === 'none' ? 'flex' : 'none';
+          return false;
+        }, true);
+        // Each input event on the editor will update the main source
+        editor.addEventListener('input', () => {
+          const sectionEditors = wrapper.querySelectorAll('.section-editor');
+          // Update main source and render
+          const fullText = Array.from(sectionEditors)
+            .map(ed => ed.textContent.trim())
+            .filter(text => text.length > 0)
+            .join('\n\n');
 
-          if (tapLength < 500) { // Detect taps within 500ms
-            tapCount++;
-          } else {
-            tapCount = 1;
-            // Create and dispatch a click event for single taps
-            const clickEvent = new MouseEvent('click', {
-              bubbles: true,
-              cancelable: true,
-              view: window
-            });
-            e.target.dispatchEvent(clickEvent);
-          }
-
-          lastTap = currentTime;
-
-          if (tapCount === 3) {
-            editor.style.display = editor.style.display === 'none' ? 'block' : 'none';
-            tapCount = 0;
-          }
+          const scoreDiv = wrapper.closest('div.score');
+          const mainEditor = scoreDiv.querySelector('pre.source');
+          mainEditor.textContent = fullText;
         });
-        // Add double-click handler to toggle editor
-        /*
-        svg.addEventListener('dblclick', () => {
-          editor.style.display = editor.style.display === 'none' ? 'block' : 'none';
+        // The reload button will reload the edited score.
+        reloadButton.addEventListener('click', () => {
+          // Save editor state
+          const activeEditor = editor;
+          // Get index of active editor among siblings
+          const allEditors = wrapper.querySelectorAll('.section-editor');
+          const activeIndex = Array.from(allEditors).indexOf(activeEditor);
+
+          const scoreDiv = wrapper.closest('div.score');
+          score = scoreMap.get(scoreDiv.id);
+          score.render();
+
+          // Find and restore state of new editor at same index
+          const newEditorDivs = wrapper.querySelectorAll('.section-editor-div');
+          const newActiveEditor = newEditorDivs[activeIndex];
+          newActiveEditor.style.display = 'flex';
+          newActiveEditor.focus();
         });
-        */
-        return editor;
+        return editor; // so caller can add initial text content
       }
       // clear any existing content of the SVG element
       wrapper.innerHTML = "";
@@ -1914,7 +1923,7 @@
 
       // Render the title at the top of the SVG element
       y += 2 * bookParameters.titleFontHeight
-      appendSVGTextChild(svg, bookParameters.leftX, bookParameters.titleFontHeight, data.title, ['title']);
+      appendSVGTextChild(svg, bookParameters.leftX, y, data.title, ['title']);
 
       // Special handling for first SVG's section editor (title block)
       const titleEditor = wrapper.querySelector('.section-editor');
@@ -2073,44 +2082,6 @@
             event.target.clickProcessed = (event.detail === 2);
           });
         }
-      });
-      // Add input handler to each section editor
-      const sectionEditors = wrapper.querySelectorAll('.section-editor');
-      sectionEditors.forEach(editor => {
-        editor.addEventListener('input', () => {
-          const activeEditor = document.activeElement;
-          // Get array of all editors. 
-          const allEditors = wrapper.querySelectorAll('.section-editor');
-
-          // Update main source and render
-          const fullText = Array.from(allEditors)
-            .map(ed => ed.textContent.trim())
-            .filter(text => text.length > 0)
-            .join('\n\n');
-
-          const scoreDiv = wrapper.closest('div.score');
-          const mainEditor = scoreDiv.querySelector('pre.source');
-          mainEditor.textContent = fullText;
-
-        });
-        editor.addEventListener('dblclick', () => {
-          // Save editor state
-          const activeEditor = document.activeElement;
-          // Get index of active editor among siblings
-          const allEditors = wrapper.querySelectorAll('.section-editor');
-          const activeIndex = Array.from(allEditors).indexOf(activeEditor);
-
-          const scoreDiv = wrapper.closest('div.score');
-          score = scoreMap.get(scoreDiv.id);
-          score.render();
-
-          // Find and restore state of new editor at same index
-          const newEditors = wrapper.querySelectorAll('.section-editor');
-          const newActiveEditor = newEditors[activeIndex];
-          newActiveEditor.style.display = 'block';
-          newActiveEditor.focus();
-          // newActiveEditor.selectionStart = newActiveEditor.selectionEnd = cursorPosition;
-        });
       });
     }
 
