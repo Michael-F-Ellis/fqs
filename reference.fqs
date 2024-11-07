@@ -80,15 +80,13 @@ In either case, if editing is already active, the same actions will hide the edi
 and return you to display mode.
 .
 One important difference is that editing in the side pane will update the displayed
-notation immediately, whereas you must double click in the small editors to see
+notation immediately, whereas you must click the reload icon in the small editors to see
 the result of your changes.
 .
-For example, the first line of the Happy Birthday sample above
-was created by entering the following two lines of text:
+Try it out! Click the pencil icon beside the line of music below and make some changes.
 
-cue: music: K#4 bb | c b e | d - bb | c b ^f | e - bb |
-
-cue: counter: 3
+music: K#4 bb | c b e | d - bb | c b ^f | e - bb |
+counter: 3
 
 text: The 'music:' keyword tells the app to interpret what follows as a line of FQS notation.
 .
@@ -123,9 +121,8 @@ text: In the example above, the smaller, back-slanted characters indicate that a
 first beat are to be sounded together as a chord for one beat whereas the the four
 pitches in the second beat are to be played as four sixteenth notes (assuming a quarter note beat).
 .
-The example above was entered as:
-
-cue: music: K0 (ceg&b) /cegb c |
+To enter notes as a chord, surround them with parentheses, e.g. (cegb). Try editing the
+music line above to add another chord.
 
 text: PAGE CONTROLS:
 .
