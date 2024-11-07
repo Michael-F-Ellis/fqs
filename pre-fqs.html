@@ -67,7 +67,7 @@
   <!--YouTube player div-->
   <div id="player"></div>
   <!-- Page controls -->
-  <div class="controls" style="margin: 5%;">
+  <div style="margin-left: 5%; margin-right: 5%;">
     <em>Controls</em><br>
     <button id="exportButton" onclick="exportScores()">Export</button> <em>Save the scores from this page in
       <code>.fqs</code> text
@@ -171,14 +171,6 @@
       padding-left: 5%;
     }
 
-    details.controls summary {
-      width: 100%;
-      margin-left: 0;
-      margin-right: 0;
-      margin-top: 2em;
-      margin-bottom: 0;
-      padding-left: 0%;
-    }
 
     div.score,
     div.score-toc {
@@ -190,6 +182,10 @@
       padding: 0;
     }
 
+    .pencil-icon {
+      font-size: 16px;
+      fill: green;
+    }
 
     /* Font sizes (adjusted dynamically at render time) */
     .lineproblem {
@@ -391,21 +387,23 @@
     // classList argument is an array of class names to be added to the text
     // element. The text element is returned.
     function appendSVGTextChild(svg, x, y, textContent, classList) {
-      const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
-      text.setAttribute("x", x);
-      text.setAttribute("y", y);
-      text.textContent = textContent;
-      // Check if this pitch is part of a chord
-      let rotate = 0;
+      const textEl = document.createElementNS("http://www.w3.org/2000/svg", "text");
+      textEl.setAttribute("x", x);
+      textEl.setAttribute("y", y);
+      textEl.textContent = textContent;
+      // Check if this is a chord pitch or the pencil icon.
       if (classList.includes('chord-pitch')) {
-        rotate = 340; // rotate 20 degrees counterclockwise
+        // rotate 20 degrees counterclockwise
+        textEl.setAttribute("transform", `rotate(340, ${x}, ${y})`);
+      } else if (classList.includes('pencil-icon')) {
+        // rotate 90 degrees clockwise
+        textEl.setAttribute("transform", `rotate(90, ${x}, ${y})`);
       }
-      text.setAttribute("transform", `rotate(${rotate}, ${x}, ${y})`);
       if (classList) {
-        text.classList.add(...classList);
+        textEl.classList.add(...classList);
       }
-      svg.appendChild(text);
-      return text;
+      svg.appendChild(textEl);
+      return textEl;
     }
 
     // The LineProblem class holds error and warning messages generated during
@@ -1243,6 +1241,18 @@
           line.setAttribute("stroke-width", 0.5);
           svg.appendChild(line);
         }
+        // Add a pencil icon just after the last barline and set a click handler
+        // to open the associated editor.
+        let x = x0 + (bars[bars.length - 1] + 0.5) * fontwidth;
+        let y = yline2;
+        const pencil = appendSVGTextChild(svg, x, y, "✎", ['pencil-icon']);
+        pencil.addEventListener("click", function (e) {
+          e.stopPropagation();
+          e.preventDefault();
+          e.stopImmediatePropagation();
+          console.log("pencil click");
+          return false;
+        }, true);
 
         // Loop through the pitches and render them at the corresponding 
         // attack locations. It is not an error if the number of pitches
@@ -1853,10 +1863,40 @@
         editor.setAttribute('contenteditable', 'plaintext-only');
         editor.style.display = 'none';
         wrapper.appendChild(editor);
+        // Add triple tap detection because mobile devices use double-tap for zooming.
+        let tapCount = 0;
+        let lastTap = 0;
+
+        svg.addEventListener('touchend', (e) => {
+          const currentTime = new Date().getTime();
+          const tapLength = currentTime - lastTap;
+
+          if (tapLength < 500) { // Detect taps within 500ms
+            tapCount++;
+          } else {
+            tapCount = 1;
+            // Create and dispatch a click event for single taps
+            const clickEvent = new MouseEvent('click', {
+              bubbles: true,
+              cancelable: true,
+              view: window
+            });
+            e.target.dispatchEvent(clickEvent);
+          }
+
+          lastTap = currentTime;
+
+          if (tapCount === 3) {
+            editor.style.display = editor.style.display === 'none' ? 'block' : 'none';
+            tapCount = 0;
+          }
+        });
         // Add double-click handler to toggle editor
+        /*
         svg.addEventListener('dblclick', () => {
           editor.style.display = editor.style.display === 'none' ? 'block' : 'none';
         });
+        */
         return editor;
       }
       // clear any existing content of the SVG element
