@@ -66,7 +66,7 @@
 </head>
 
 <body>
-<p>Build: main-2c9dd52-dirty</p>
+<p>Build: main-039ba91-dirty</p>
   <!--YouTube player div-->
   <div id="player"></div>
   <!-- Page controls -->
@@ -2255,8 +2255,19 @@ counter: 1
     function updateFontSizes() {
       // Update the font sizes if user has specified them.
       // First, get a reference to the stylesheet,
-      const stylesheet = document.getElementById('fqs-style').sheet;
+      const stylesheet = Array.from(document.styleSheets)
+        .find(sheet => sheet.href && sheet.href.includes('fqs.css'));
+
+      console.log("Stylesheets:", document.styleSheets);
+      console.log("Found stylesheet:", stylesheet);
+
+      if (!stylesheet) {
+        console.log("fqs.css stylesheet not found");
+        return;
+      }
+
       const rules = stylesheet.cssRules || stylesheet.rules;
+      console.log("CSS rules:", rules);
       // define a closure that will update the font size of a rule
       // whose index is i if the font height, fh is specified in 
       // or if not specified, assign a numeric value

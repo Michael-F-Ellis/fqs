@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+	<meta charset="utf-8">
+	<link rel="stylesheet" href="fqs.css">
+</head>
+
+<body>
+	<div id="player"></div>
+	<script type="module">
+		import { Score, initYouTubeAPI, onYouTubeIframeAPIReady } from './fqs.js';
+		// Make onYouTubeIframeAPIReady globally available
+		window.onYouTubeIframeAPIReady = onYouTubeIframeAPIReady;
+
+		initYouTubeAPI();
+
+		const scoreText = `title: Simple Score
+
+youtube: icx52BLixaw
+
+music: K0 (/c^a^#f)-----ga gfef gefa | (/a^#f^c)-----de dcbc dbce | d/b  c^a (/d^b)c | (/g^d^c)b ab g/a |
+counter: 1
+play: 12:36
+rhythm:`;
+
+		const score = new Score(scoreText);
+		document.body.appendChild(score.outer);
+		score.render();
+	</script>
+</body>
+
+</html>
