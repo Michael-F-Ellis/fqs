@@ -80,7 +80,8 @@ class Book {
     const insertButton = document.createElement('button');
     insertButton.textContent = 'Insert new score';
     insertButton.onclick = () => {
-      const newScore = this.addScore("title: New Score", score.outer.nextSibling);
+      const newScore = this.addScore("title: New Score", score.outer);
+      //const newScore = this.addScore("title: New Score", score.outer.nextSibling);
       newScore.showSourceEditor();
     };
     actionsDiv.appendChild(insertButton);
