@@ -2,29 +2,20 @@
 import re
 import subprocess
 
-def update(html_file, reference_file, output_file):
+def update(input_file, output_file):
     """
-    Wraps the the reference file in a script tag and appends it to the fqs.html file.
+    Adds the build number to the input file and writes the result to the
+    output file.
     """
     
     build = get_build()
 
-    with open(html_file, 'rb') as f:
+    with open(input_file, 'rb') as f:
         content = f.read().decode('utf-8')
 
     # Insert the build into the html content as a <p> element as the first
     # element in the body.
-    content = re.sub(r'<body>', f'<body>\n<p>Build: {build}</p>', content)
-
-    with open(reference_file, 'r') as f:
-        reference_content = f.read()
-
-    warn = '<!-- This file is auto-generated. Do not edit it manually. -->' 
-    tag = '<script type="text/javascript">'
-    cmt = '// This is the reference score that documents FQS usage'
-    end = '</script>\n</body>\n</html>'
-
-    updated_content = f"{warn}\n{content}\n{tag}\n{cmt}\nfqsReference=`{reference_content}`\n{end}" 
+    updated_content = re.sub(r'<body>', f'<body>\n<p>Build: {build}</p>', content)
 
     with open(output_file, 'w') as f:
        f.write(updated_content)
@@ -63,7 +54,7 @@ def get_build():
 
 if __name__ == "__main__":
     print(get_build())
-    err = update('pre-fqs.html', 'reference.fqs', 'fqs.html')
+    err = update('pre-fqs.html', 'fqs.html')
     if err is not None:
         print(err)
         exit(1)
