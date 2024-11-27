@@ -73,14 +73,34 @@ text: This test should succeed. The image should be
 displayable. The picture icon should be present and functional
 and it should be possible to play the audio.
 
-cue: From Cello Suite No. 3, Sarabande, by J. S. Bach
+cue: From Cello Suite No. 3, Sarabande, by J. S. Bach (image scale default 90%)
 music: K0 (/c^g^e^c) (/d^c)--a b | (//c^g^e^&b) (fb)--g a | (/bd)-ef (/c^g^f)--d ef | cbca bd /gf |
 counter: 1
 play: 11:18 1
 image: https://michael-f-ellis.github.io/fqs/sarabande.png
-view: 70 15 325 40
 
-text: All the following should generate line problem messages,
+cue: (img scale 50%)
+music: K0 (/c^g^e^c) (/d^c)--a b | (//c^g^e^&b) (fb)--g a | (/bd)-ef (/c^g^f)--d ef | cbca bd /gf |
+counter: 1
+play: 11:18 1
+image: https://michael-f-ellis.github.io/fqs/sarabande.png 0.5
+
+text: The following should generate line problems.
+
+cue: Bad file extension 
+music: K0 (/c^g^e^c) (/d^c)--a b | (//c^g^e^&b) (fb)--g a | (/bd)-ef (/c^g^f)--d ef | cbca bd /gf |
+counter: 1
+play: 11:18 1
+image: https://michael-f-ellis.github.io/fqs/sarabande.pdf
+
+cue: negative scale
+music: K0 (/c^g^e^c) (/d^c)--a b | (//c^g^e^&b) (fb)--g a | (/bd)-ef (/c^g^f)--d ef | cbca bd /gf |
+counter: 1
+play: 11:18 1
+image: https://michael-f-ellis.github.io/fqs/sarabande.png -0.5
+
+
+text: All the following should generate alerts when the score icon is clicked,
 but the music should be rendered and the audio should be playable.
 
 cue: No such file
@@ -88,61 +108,10 @@ music: K0 (/c^g^e^c) (/d^c)--a b | (//c^g^e^&b) (fb)--g a | (/bd)-ef (/c^g^f)--d
 counter: 1
 play: 11:18 1
 image: https://michael-f-ellis.github.io/fqs/nonesuch.png
-view: 100 100  200 100
 
 cue: Bad URL (non routable domain)
 music: K0 (/c^g^e^c) (/d^c)--a b | (//c^g^e^&b) (fb)--g a | (/bd)-ef (/c^g^f)--d ef | cbca bd /gf |
 counter: 1
 play: 11:18 1
 image: https://example.com/fqs/sarabande.png
-view: 100 100 100 200
-
-cue: Bad view (wrong number of values)
-music: K0 (/c^g^e^c) (/d^c)--a b | (//c^g^e^&b) (fb)--g a | (/bd)-ef (/c^g^f)--d ef | cbca bd /gf |
-counter: 1
-play: 11:18 1
-image: https://michael-f-ellis.github.io/fqs/sarabande.png
-view: 100 100 100 200 100
-
-cue: Bad view value (not a number)
-music: K0 (/c^g^e^c) (/d^c)--a b | (//c^g^e^&b) (fb)--g a | (/bd)-ef (/c^g^f)--d ef | cbca bd /gf |
-counter: 1
-play: 11:18 1
-image: https://michael-f-ellis.github.io/fqs/sarabande.png
-view: 100 100 100 xyz
-
-cue: Bad view value (not a number)
-music: K0 (/c^g^e^c) (/d^c)--a b | (//c^g^e^&b) (fb)--g a | (/bd)-ef (/c^g^f)--d ef | cbca bd /gf |
-counter: 1
-play: 11:18 1
-image: https://michael-f-ellis.github.io/fqs/sarabande.png
-view: 100 100 100 xyz
-
-cue: Out of Bounds height and width (img is 593 x 248)
-music: K0 (/c^g^e^c) (/d^c)--a b | (//c^g^e^&b) (fb)--g a | (/bd)-ef (/c^g^f)--d ef | cbca bd /gf |
-counter: 1
-play: 11:18 1
-image: https://michael-f-ellis.github.io/fqs/sarabande.png
-view: 100 100 1000 1000
-
-cue: Out of Bounds X and Y (img is 593 x 248)
-music: K0 (/c^g^e^c) (/d^c)--a b | (//c^g^e^&b) (fb)--g a | (/bd)-ef (/c^g^f)--d ef | cbca bd /gf |
-counter: 1
-play: 11:18 1
-image: https://michael-f-ellis.github.io/fqs/sarabande.png
-view: 700 400 100 200
-
-cue: View keyword without image keyword
-music: K0 (/c^g^e^c) (/d^c)--a b | (//c^g^e^&b) (fb)--g a | (/bd)-ef (/c^g^f)--d ef | cbca bd /gf |
-counter: 1
-play: 11:18 1
-view: 100 100 100 200
-
-cue: Image keyword without view keyword
-music: K0 (/c^g^e^c) (/d^c)--a b | (//c^g^e^&b) (fb)--g a | (/bd)-ef (/c^g^f)--d ef | cbca bd /gf |
-counter: 1
-play: 11:18 1
-image: https://michael-f-ellis.github.io/fqs/sarabande.png
-
-
 EndOfScore
