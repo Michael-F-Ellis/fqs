@@ -20,9 +20,37 @@ function onYouTubeIframeAPIReady() {
     playerVars: {
       'playsinline': 1,
       origin: window.location.host
+    },
+    events: {
+      'onStateChange': onPlayerStateChange
     }
   });
 }
+
+// Add this new function to handle player state changes
+function onPlayerStateChange(event) {
+  const speakerIcons = document.querySelectorAll('.speaker-icon');
+  const TIME_TOLERANCE = 0.5; // Half second tolerance
+
+  if (event.data === YT.PlayerState.PLAYING) {
+    const currentTime = player.getCurrentTime();
+    // Add active class to current speaker icon
+    speakerIcons.forEach(icon => {
+      const iconTime = parseFloat(icon.dataset.timestamp);
+      if (Math.abs(currentTime - iconTime) < TIME_TOLERANCE) {
+        icon.classList.add('speaker-icon-active');
+      }
+    });
+  } else if (event.data === YT.PlayerState.ENDED ||
+    event.data === YT.PlayerState.PAUSED ||
+    event.data === YT.PlayerState.STOPPED) {
+    // Remove active class from all speaker icons
+    speakerIcons.forEach(icon => {
+      icon.classList.remove('speaker-icon-active');
+    });
+  }
+}
+
 const defaultParameters = {
   // parameters control the behavior of the score editor and display.
   leftX: 16, // Pixel position of the left edge of the score.
@@ -2272,10 +2300,17 @@ function renderScore(wrapper, data) {
       svg.style.cursor = 'pointer';
       const speaker = appendSVGTextChild(svg, 0, 48, "🔊", ["speaker-icon"]);
 
+      // Add timestamp data attribute used by onPlayerStateChange()
+      speaker.dataset.timestamp = String(line.play);
+
       speaker.addEventListener('click', (event) => {
         if (event.detail === 1) { // Single click
           setTimeout(() => {
             if (!event.target.clickProcessed) {
+              // Remove active class from all icons first
+              document.querySelectorAll('.speaker-icon').forEach(icon => {
+                icon.classList.remove('speaker-icon-active');
+              });
               playYouTubeAt(data.youtubeId, line.play, line.playRate || 1.0);
             }
           }, 200); // Delay to allow for double click detection
