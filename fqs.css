@@ -126,7 +126,8 @@
   }
 
   .fingering {
-    font: 4px monospace;
+    font: 6px monospace;
+    fill: rgb(2, 94, 2);
   }
 
   .perbar {

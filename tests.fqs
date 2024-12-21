@@ -1,3 +1,46 @@
+title: Basic Tests
+
+zoom: 150
+
+cue: two notes per beat with lyrics
+pitch: K0 cb dc ed fe |
+lyric: one* two* three* four* |
+counter: 1
+
+cue: chords
+music: K0 (/c^g^e^c) (/df^c) e f |
+counter: 1
+
+
+cue: As simple as it gets
+music: K0 c d e f |
+counter: 1
+
+cue: Same with lyrics
+pitch: K0 c d e f |
+lyric: one two three four |
+counter: 1
+
+cue: Two notes per beat
+music: K0 cb dc ed fe |
+counter: 1
+
+
+EndOfScore
+title: Tuplet Tests
+
+zoom: 150
+
+cue: Should see 4 beats with "def" as a triplet spanning beats 2 and 3.
+music: K0 c 2def g |
+counter: 1
+
+cue: Same as above but with text lyrics. Rhythm markers should align with syllables.
+pitch: K0 cdefg |
+lyric: do 2re.mi.fa sol |
+counter: 1
+
+EndOfScore
 title: Annotation Tests
 
 zoom: 150
