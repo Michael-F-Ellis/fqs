@@ -447,7 +447,14 @@ class LyricLine {
     // trim leading or trailing whitespace
     // split the text on whitespace
     // join the text back together with single spaces
-    this.words = text.trim().split(/\s+/);
+    this.tuplets = text.trim().split(/\s+/).map(word => {
+      const tupletMatch = word.match(/^([2-9])(.+)$/);
+      return tupletMatch ? { text: tupletMatch[2], tupletSize: parseInt(tupletMatch[1]) } : { text: word, tupletSize: 1 };
+    });
+    // put the texts of the  tuplets into an array
+    this.words = this.tuplets.map(tuplet => {
+      return tuplet.text;
+    });
     this.text = this.words.join(" ");
     // Create an array of attack indices. An attack is an alpha character [a-zA-Z]
     // that is preceded by a any of the following:
@@ -563,9 +570,16 @@ class LyricLine {
           }
       }
     }
+    // Finallly, we  want to remove barlines from this.tuplets so that
+    // we can index tuplets the same as beats.
+    this.tuplets = this.tuplets.filter(tuplet => {
+      return !tuplet.text.includes("|");
+    });
     //console.log("\ntext: " + this.text)
     //console.log("bars: " + this.bars)
-    //console.log("beats: " + this.beats)
+    console.log("tuplets: " + this.tuplets)
+    console.log("beats: " + this.beats)
+    console.log("subBeats: " + this.subBeats)
     //console.log("attacks: " + this.attacks)
     //console.log("rests: " + this.rests)
   }
@@ -1519,17 +1533,23 @@ class Finger {
 
 // The Counter class is similar to the PerBeat class. It provides
 // an automated method for rendering beat numbers above the beats.
-// The constructor takes 4 arguments, 
+// The constructor takes 2 arguments:
 //    n, the first beat number (should be 1 unless we're starting with a partial measure)
-//    beats, an array of beat x positions,
-//    bars, an array of of bar x positions.
-// .  rhythm, an array of rhythm markup,  as created by LyricLine.extractRhythm()`
+//    lyricLine, an object containing beats and bars arrays for positioning
+//    markers, an array of RhythmMarkers used to compute the locations of tuplet beats
 class Counter {
-  constructor(n, beats, bars, rhythm) {
+  constructor(n, lyricLine, markers) {
     this.n = n;
-    this.beats = beats;
-    this.bars = bars;
-    this.rhythm = rhythm;
+    this.beats = lyricLine.beats;
+    this.subBeats = lyricLine.subBeats;
+    this.bars = lyricLine.bars;
+    if (this.bars[0] == 0) {
+      this.bars.shift(); // drop the pseudo barline at 0
+    }
+    this.markers = markers;
+    this.tuplets = lyricLine.tuplets;
+    this.interpolateTuplets();
+
     // We need to generate a list of beat numbers that resets to 1
     // each time the beat position exceeds the next bar position.
     // The counting will begin with n unless n is <= 0, in which
@@ -1550,7 +1570,75 @@ class Counter {
       count++;
     }
   }
+  reverseInterpolate(deltaPairs, targetY) {
+    // Convert delta pairs to cumulative coordinates
+    let points = [[0, 0]];
+    let sumX = 0, sumY = 0;
 
+    for (const [dx, dy] of deltaPairs) {
+      sumX += dx;
+      sumY += dy;
+      points.push([sumX, sumY]);
+    }
+
+    // Find interval containing targetY
+    for (let i = 0; i < points.length - 1; i++) {
+      const [x0, y0] = points[i];
+      const [x1, y1] = points[i + 1];
+
+      if (targetY >= y0 && targetY <= y1) {
+        // Linear interpolation within interval
+        const fraction = (targetY - y0) / (y1 - y0);
+        return x0 + fraction * (x1 - x0);
+      }
+    }
+
+    return null; // Target Y is outside the function's range
+  }
+
+  getNEqualDivisions(deltaPairs, N) {
+    // Calculate total Y accumulation
+    const totalY = deltaPairs.reduce((sum, [_, dy]) => sum + dy, 0);
+
+    // Calculate Y increment for N divisions
+    const increment = totalY / N;
+
+    // Generate array of target Y values
+    const divisions = [];
+    for (let i = 1; i < N; i++) {
+      const targetY = i * increment;
+      const x = this.reverseInterpolate(deltaPairs, targetY);
+      divisions.push(x);
+    }
+
+    return divisions;
+  }
+
+  interpolateTuplets() {
+    const interpolatedBeats = [];
+
+    for (const [i, beat] of this.beats.entries()) {
+      interpolatedBeats.push(beat);
+
+      const fractions = this.markers.beatFractions[i];
+      if (!fractions || fractions.length <= 1) continue;
+
+      // Convert fractions to delta pairs
+      const deltaPairs = fractions.map(f => [f.span, f.val]);
+
+      // Calculate actual beat span from the sum of spans
+      const beatSpan = deltaPairs.reduce((sum, [dx, _]) => sum + dx, 0);
+
+      // Get N-1 interpolated positions for N-tuplet
+      const divisions = this.getNEqualDivisions(deltaPairs, this.tuplets[i].tupletSize);
+
+      // Map the normalized positions to actual beat positions
+      const positions = divisions.map(x => beat + x);
+      interpolatedBeats.push(...positions);
+    }
+
+    this.beats = interpolatedBeats;
+  }
   render = (function (svg, x0, y0, fontwidth) {
     // x0 is the x coordinate of the left edge of the line y0 is the
     // y coordinate of the baseline of the line. 
@@ -2499,9 +2587,13 @@ function renderScore(wrapper, data) {
       const perbeat = new PerBeat(line.perbeat)
       perbeat.render(svg, defaultParameters.leftX, y, lyricline)
     }
+    // Generate rhythm markers. They're needed by Counter.
+    let rhythm = undefined;
+    if (lyricline) {
+      rhythm = new RhythmMarkers(lyricline);
+    }
     // Render the rhythm markers unless nomarkers has been set.
     if (line.lyric && !line.nomarkers) {
-      const rhythm = new RhythmMarkers(lyricline);
       // check that there is a least one non-empty rhythm marker before
       // rendering them. This saves vertical space when possible.
       if (rhythm.beatFractions.map(r => r.length > 0).reduce((a, b) => a || b, true)) {
@@ -2562,11 +2654,7 @@ function renderScore(wrapper, data) {
           lineProblems.add(`Invalid counter value: ${line.counter}`);
         }
       }
-      let bars = lyricline.bars;
-      if (bars[0] == 0) {
-        bars = bars.slice(1); // ignore the pseudo barline at 0
-      }
-      const counter = new Counter(npartial, lyricline.beats, bars, lyricline.extractRhythm());
+      const counter = new Counter(npartial, lyricline, rhythm);;
       counter.render(svg, defaultParameters.leftX, y, defaultParameters.lyricFontWidth)
       // y += bookParameters.counterFontHeight / 3;
     }
