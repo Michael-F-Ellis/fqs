@@ -1621,7 +1621,8 @@ class Counter {
       interpolatedBeats.push(beat);
 
       const fractions = this.markers.beatFractions[i];
-      if (!fractions || fractions.length <= 1) continue;
+      // if (!fractions || fractions.length <= 1) continue;
+      if (!fractions) continue;
 
       // Convert fractions to delta pairs
       const deltaPairs = fractions.map(f => [f.span, f.val]);
@@ -1765,12 +1766,14 @@ class RhythmMarkers {
     const fh = defaultParameters.lyricFontHeight
     const width = fontwidth / 4; // marker width is 1/4 of font width
     for (let fractions of this.beatFractions) {
+      let nBeats = this.lyricLine.tuplets[i].tupletSize
       let x = x0 + beats[i] * fontwidth;
       let xb0 = x; let xb1 = x; // left and right ends of the beat
       let y = y0 - fh;
       let height = 0;
       for (let fraction of fractions) {
-        height = fraction.val * fh;
+        height = fraction.val * fh * nBeats;
+        height = Math.min(height, fh);
         switch (fraction.kind) {
           case '*':
             appendSVGLineChild(svg, x, y, x, y + height, ["pitch-marker"]);
@@ -1788,6 +1791,10 @@ class RhythmMarkers {
       // Now draw a thin connector line across the top of the rhythm markers
       // for the beat.
       appendSVGLineChild(svg, xb0, y, xb1, y, ["rhythm-connector"]);
+      if (nBeats > 1) {
+        // Draw the beat count just to left of the connector line
+        appendSVGTextChild(svg, xb0 - 6, y + 8, nBeats, ["pernote", "red"]);
+      }
       i++;
     }
   }

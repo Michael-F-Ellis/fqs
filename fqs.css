@@ -107,6 +107,10 @@
     fill: rgb(216, 223, 12);
   }
 
+  .red {
+    fill: rgb(209, 34, 34);
+  }
+
   .lyric {
     font: 12px monospace;
   }
