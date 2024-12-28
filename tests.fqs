@@ -41,6 +41,39 @@ lyric: do 2re.mi.fa sol |
 counter: 1
 
 EndOfScore
+title: Partial Beat Tests
+
+zoom: 130 
+
+cue: Simple pickup and turnaround
+music: K0 ^f_ ed | cb ag fe dc | ab cd e_ |
+counter: 3
+
+cue: Simple pickup and turnaround with chord
+music: K0 (d^a^f)_ ed | cb ag fe dc | ab cd e_ |
+counter: 3
+
+cue: Simple pickup measure and turnaround with 2-tuples
+music: K0 2^fed_ | 2cbag 2fedc | 2abcd e_ |
+counter: 3
+
+cue: Simple pickup measure with lyrics
+pitch: K0 ^f ed | cb ag fe dc | ab cd e |
+lyric: and_ so.it | goes.and goes.and goes.and goes.and | goes.and goes.and goes_ |
+counter: 3
+
+cue: Uneven groupings
+music: K0 abc abc abc ac_ | abc abc abc ac_ |
+counter: 1
+perbar: 11/8
+
+cue: Bad placement of underscores
+music: K0 ^_f e_d | cb ag fe dc | ab cd e_ |
+counter: 3
+
+
+
+EndOfScore
 title: Annotation Tests
 
 zoom: 150

@@ -84,10 +84,3 @@ if __name__ == "__main__":
                 print("Version not created.")
                 exit(1)
 
-            create_tag = input(f"Version {version} does not exist as a tag in the repo. Do you want to create one? (y/n) ")
-            if create_tag.lower() == 'y':
-                subprocess.run(['git', 'tag', version])
-                subprocess.run(['git', 'push', 'origin', version])
-            else:
-                print("Version not created.")
-                exit(1)
