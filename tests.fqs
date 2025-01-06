@@ -8,9 +8,8 @@ lyric: one* two* three* four* |
 counter: 1
 
 cue: chords
-music: K0 (/c^g^e^c) (/df^c) e f |
+music: K0 (/cgec) (/dfc) e f |
 counter: 1
-
 
 cue: As simple as it gets
 music: K0 c d e f |
@@ -24,8 +23,6 @@ counter: 1
 cue: Two notes per beat
 music: K0 cb dc ed fe |
 counter: 1
-
-
 EndOfScore
 title: Tuplet Tests
 
@@ -150,43 +147,42 @@ displayable. The picture icon should be present and functional
 and it should be possible to play the audio.
 
 cue: From Cello Suite No. 3, Sarabande, by J. S. Bach (image scale default 90%)
-music: K0 (/c^g^e^c) (/d^c)--a b | (//c^g^e^&b) (fb)--g a | (/bd)-ef (/c^g^f)--d ef | cbca bd /gf |
+music: K0 (/cgec) (/dc)--a b | (//cge&b) (fb)--g a | (/bd)-ef (/cgf)--d ef | cbca bd /gf |
 counter: 1
 play: 11:18 1
 image: https://michael-f-ellis.github.io/fqs/sarabande.png
 
 cue: (img scale 50%)
-music: K0 (/c^g^e^c) (/d^c)--a b | (//c^g^e^&b) (fb)--g a | (/bd)-ef (/c^g^f)--d ef | cbca bd /gf |
+music: K0 (/cgec) (/dc)--a b | (//cge&b) (fb)--g a | (/bd)-ef (/cgf)--d ef | cbca bd /gf |
 counter: 1
 play: 11:18 1
 image: https://michael-f-ellis.github.io/fqs/sarabande.png 0.5
 
 text: The following should generate line problems.
 
-cue: Bad file extension 
-music: K0 (/c^g^e^c) (/d^c)--a b | (//c^g^e^&b) (fb)--g a | (/bd)-ef (/c^g^f)--d ef | cbca bd /gf |
+cue: Bad file extension
+music: K0 (/cgec) (/dc)--a b | (//cge&b) (fb)--g a | (/bd)-ef (/cgf)--d ef | cbca bd /gf |
 counter: 1
 play: 11:18 1
 image: https://michael-f-ellis.github.io/fqs/sarabande.pdf
 
 cue: negative scale
-music: K0 (/c^g^e^c) (/d^c)--a b | (//c^g^e^&b) (fb)--g a | (/bd)-ef (/c^g^f)--d ef | cbca bd /gf |
+music: K0 (/cgec) (/dc)--a b | (//cge&b) (fb)--g a | (/bd)-ef (/cgf)--d ef | cbca bd /gf |
 counter: 1
 play: 11:18 1
 image: https://michael-f-ellis.github.io/fqs/sarabande.png -0.5
-
 
 text: All the following should generate alerts when the score icon is clicked,
 but the music should be rendered and the audio should be playable.
 
 cue: No such file
-music: K0 (/c^g^e^c) (/d^c)--a b | (//c^g^e^&b) (fb)--g a | (/bd)-ef (/c^g^f)--d ef | cbca bd /gf |
+music: K0 (/cgec) (/dc)--a b | (//cge&b) (fb)--g a | (/bd)-ef (/cgf)--d ef | cbca bd /gf |
 counter: 1
 play: 11:18 1
 image: https://michael-f-ellis.github.io/fqs/nonesuch.png
 
 cue: Bad URL (non routable domain)
-music: K0 (/c^g^e^c) (/d^c)--a b | (//c^g^e^&b) (fb)--g a | (/bd)-ef (/c^g^f)--d ef | cbca bd /gf |
+music: K0 (/cgec) (/dc)--a b | (//cge&b) (fb)--g a | (/bd)-ef (/cgf)--d ef | cbca bd /gf |
 counter: 1
 play: 11:18 1
 image: https://example.com/fqs/sarabande.png
