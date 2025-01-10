@@ -1,6 +1,6 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
-# Untracked script to update website. It copies fqs.html to michael-f-ellis.github.io
+# Script to update website. It copies files to michael-f-ellis.github.io
 # repository and pushes to the github remote
 
 import shutil
@@ -9,7 +9,8 @@ import subprocess
 
 # Copy fqs.html, fqs.js, fqs.css to ../michael-f-ellis.github.io/fqs/
 sources = ("abc2fqs.js", "abc2fqs.test.js", "abcjs-basic.js", "abcjs-editor.html",
-	"fqs.html", "fqs.js", "fqs.css", "reference.fqs")
+	"fqs.html", "fqs.js", "fqs.css", "reference.fqs",
+	"ytpdf.html", "ytpdf.js")
 destinationdir = "../michael-f-ellis.github.io/fqs/"
 
 # Ensure destination directory exists
