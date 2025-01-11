@@ -11,6 +11,17 @@ class YTPDFViewer {
 		this.pageLabels = new Map(); // Store labels by page number
 		this.canvas = document.getElementById('pdf-render');
 		this.ctx = this.canvas.getContext('2d');
+		this.modes = {
+			PERFORMANCE: 'performance',
+			GROUP_REHEARSAL: 'group_rehearsal',
+			INDIVIDUAL_REHEARSAL: 'individual_rehearsal',
+			EDITING: 'editing',
+			MARKING: 'marking'
+		};
+		this.currentMode = this.modes.PERFORMANCE; // Default mode
+
+		// Add mode toolbar
+		this.addModeControls();
 
 		// Save/Load controls
 		this.addSaveLoadControls();
@@ -39,6 +50,51 @@ class YTPDFViewer {
 
 		// Add property to store original file handle
 		this.pdfFileHandle = null;
+	}
+	addModeControls() {
+		const modeBar = document.createElement('div');
+		modeBar.id = 'mode-toolbar';
+
+		// Create mode buttons with icons
+		const modeButtons = [
+			{ mode: this.modes.PERFORMANCE, icon: '🎭' },
+			{ mode: this.modes.GROUP_REHEARSAL, icon: '👥' },
+			{ mode: this.modes.INDIVIDUAL_REHEARSAL, icon: '🎧' },
+			{ mode: this.modes.EDITING, icon: '✏️' },
+			{ mode: this.modes.MARKING, icon: '➕' }
+		];
+
+		modeButtons.forEach(({ mode, icon }) => {
+			const button = document.createElement('button');
+			button.innerHTML = icon;
+			button.dataset.mode = mode; // Add data attribute for mode
+			button.onclick = () => this.setMode(mode);
+			modeBar.appendChild(button);
+		});
+
+		document.getElementById('toolbar').appendChild(modeBar);
+
+		// Initialize button states
+		this.setMode(this.currentMode);
+	}
+
+	setMode(mode) {
+		this.currentMode = mode;
+		// Update button appearances
+		const modeButtons = document.querySelectorAll('#mode-toolbar button');
+		modeButtons.forEach(button => {
+			// Dim all buttons by default
+			button.style.opacity = '0.5';
+			button.style.filter = 'grayscale(1)';
+		});
+
+		// Highlight the active mode button
+		const activeButton = document.querySelector(`#mode-toolbar button[data-mode="${mode}"]`);
+		if (activeButton) {
+			activeButton.style.opacity = '1.0';
+			activeButton.style.filter = 'none';
+		}
+		this.updateUIForMode();
 	}
 
 	addSaveLoadControls() {
@@ -84,7 +140,99 @@ class YTPDFViewer {
 		document.getElementById('toolbar').appendChild(gotoButton);
 		document.getElementById('toolbar').appendChild(tocDiv);
 	}
+	updateUIForMode() {
+		switch (this.currentMode) {
+			case this.modes.PERFORMANCE:
+				this.hideYouTubeIcons();
+				this.disableAudio();
+				this.disableEditing();
+				this.setCursor('default');
+				break;
 
+			case this.modes.GROUP_REHEARSAL:
+				this.hideYouTubeIcons();
+				this.disableAudio();
+				this.enableEditing();
+				this.setCursor('default');
+				break;
+
+			case this.modes.INDIVIDUAL_REHEARSAL:
+				this.showYouTubeIcons();
+				this.enableAudio();
+				this.disableEditing();
+				this.setCursor('default');
+				break;
+
+			case this.modes.EDITING:
+				this.showYouTubeIcons();
+				this.enableAudio();
+				this.enableEditing();
+				this.setCursor('url(pencil.cur), auto');
+				break;
+
+			case this.modes.MARKING:
+				this.showYouTubeIcons();
+				this.enableAudio();
+				this.enableEditing();
+				this.setCursor('crosshair');
+				break;
+		}
+	}
+	hideYouTubeIcons() {
+		const speakerIcons = document.querySelectorAll('text.speaker-icon');
+		speakerIcons.forEach(icon => {
+			icon.style.display = 'none';
+		});
+	}
+
+	showYouTubeIcons() {
+		const speakerIcons = document.querySelectorAll('text.speaker-icon');
+		speakerIcons.forEach(icon => {
+			icon.style.display = ''; // Restore default display value
+		});
+	}
+	disableAudio() {
+		// Stop any currently playing audio
+		if (this.player && this.player.getPlayerState() === YT.PlayerState.PLAYING) {
+			this.player.pauseVideo();
+		}
+		// Set flag to prevent new playback
+		this.audioEnabled = false;
+	}
+
+	enableAudio() {
+		// Enable audio playback
+		this.audioEnabled = true;
+	}
+	enableEditing() {
+		// Set editing state flag
+		this.editingEnabled = true;
+
+		// Make annotation icons clickable
+		const annotationIcons = document.querySelectorAll('.annotation-icon');
+		annotationIcons.forEach(icon => {
+			icon.style.pointerEvents = 'auto';
+			icon.style.cursor = 'pointer';
+		});
+	}
+
+	disableEditing() {
+		// Clear editing state flag
+		this.editingEnabled = false;
+
+		// Make annotation icons non-interactive
+		const annotationIcons = document.querySelectorAll('.annotation-icon');
+		annotationIcons.forEach(icon => {
+			icon.style.pointerEvents = 'none';
+			icon.style.cursor = 'default';
+		});
+	}
+	setCursor(cursorStyle) {
+		// Use text cursor for editing mode instead of custom pencil
+		const cursor = cursorStyle === 'url(pencil.cur), auto' ? 'text' : cursorStyle;
+		this.canvas.style.cursor = cursor;
+		document.getElementById('pdf-container').style.cursor = cursor;
+	}
 	addVideoControls() {
 		const videoButton = document.createElement('button');
 		videoButton.id = 'set-video';
@@ -252,10 +400,17 @@ class YTPDFViewer {
 	}
 
 	async renderPage(num) {
+		this.pageNum = num;
 		const page = await this.pdfDoc.getPage(num);
 		const viewport = page.getViewport({ scale: 1.0 });
 		this.canvas.height = viewport.height;
 		this.canvas.width = viewport.width;
+
+		// Remove old SVG entirely and create fresh one
+		if (this.svg) {
+			this.svg.remove();
+			this.svg = null;
+		}
 
 		const renderContext = {
 			canvasContext: this.ctx,
@@ -266,19 +421,6 @@ class YTPDFViewer {
 		// Update page number display
 		document.getElementById('page-num').textContent = num;
 
-		// Clear existing SVG overlay
-		if (this.svg) {
-			this.svg.innerHTML = '';
-		}
-
-		// Load the correct video for this page if needed
-		/*
-		const videoId = this.videoIds.get(this.pageNum);
-		if (videoId && this.player &&
-			this.player.getVideoData().video_id !== videoId) {
-			this.player.loadVideoById(videoId);
-		}
-			*/
 
 		// Redraw markers for current page
 		const pageMarkers = this.markers.get(this.pageNum) || [];
@@ -327,6 +469,11 @@ class YTPDFViewer {
 	}
 
 	playYouTubeAt(videoId, timeSeconds, rate = 1.0) {
+		// Check if audio is enabled before attempting playback
+		if (!this.audioEnabled) {
+			return;
+		}
+
 		if (!this.player || !this.player.playVideo) {
 			setTimeout(() => this.playYouTubeAt(videoId, timeSeconds, rate), 100);
 			return;
@@ -417,6 +564,7 @@ class YTPDFViewer {
 		const speaker = document.createElementNS('http://www.w3.org/2000/svg', 'text');
 		speaker.setAttribute('x', x);
 		speaker.setAttribute('y', y);
+		speaker.setAttribute('class', 'speaker-icon');
 		speaker.textContent = '🔊';
 		speaker.style.cursor = 'pointer';
 		// Enable pointer events just for the speaker icon
