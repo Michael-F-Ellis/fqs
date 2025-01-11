@@ -173,7 +173,7 @@ class YTPDFViewer {
 			case this.modes.MARKING:
 				this.showYouTubeIcons();
 				this.enableAudio();
-				this.enableEditing();
+				this.disableEditing();
 				this.setCursor('crosshair');
 				break;
 		}
