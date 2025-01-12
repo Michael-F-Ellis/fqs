@@ -40,41 +40,53 @@ Normal pointer cursor in Performance Mode, Group Rehearsal Mode, Individual Rehe
 For Editing Mode, use a pencil cursor.
 For Marking Mode, use a plus cursor.
 
-## Implementation Notes - Mode System
+# Areas for Enhancement
+From code review by Cody 1/12/25
 
-The mode system has been implemented with these key components:
+## State Management
+- Implement dedicated state management system for mode transitions and UI updates
+- Add pub/sub pattern or state machine for mode changes
 
-1. Mode Management
-- Modes defined as class properties
-- Default mode is PERFORMANCE
-- Mode toolbar with emoji icons
-- Visual feedback through dimmed/bright icons
-- Cursor changes by mode
+## UI/UX Enhancements 
+- Add keyboard shortcuts for page navigation and mode switching
+- Implement touch gestures for mobile/tablet users
+- Add visual feedback for page transitions
+- Create prominent mode indicator beyond toolbar icons
 
-2. Mode-specific Behaviors
-- YouTube icon visibility control
-- Audio enable/disable
-- Editing permission control
-- Cursor style changes
+## Code Organization
+- Split YTPDFViewer class into focused components:
+  - PDF rendering logic
+  - YouTube integration 
+  - Annotation management
+  - Mode management
+  - Dialog system
 
-3. Dialog System
-- Standard dialog styling extracted to reusable method
-- Consistent layout and behavior
-- Support for both creation and editing
-- Separate dialogs for:
-  - YouTube timestamps (🔊)
-  - Text annotations (⚠️)
-  - Video ID assignment
-  - Mark type selection
+## Error Handling & Recovery
+- Add error boundaries
+- Implement auto-save for annotations
+- Add validation for YouTube IDs and timestamps
+- Improve error messages and user feedback
 
-4. Marker System
-- SVG overlay for icons
-- Speaker icons for YouTube timestamps
-- Warning icons for text annotations
-- Click handling varies by mode:
-  - Performance: Icons hidden
-  - Individual Rehearsal: Click to play
-  - Editing: Click to modify
-  - Marking: Click to add new
+## Performance Optimizations
+- Implement PDF page caching
+- Lazy load components and features
+- Optimize SVG overlay rendering
+- Use requestAnimationFrame for animations
 
-The implementation maintains clear separation of concerns while providing consistent user experience across all modes.
+## Testing & Maintainability
+- Add unit tests for core functionality
+- Implement end-to-end testing
+- Add TypeScript support
+- Document key methods and components
+
+## Accessibility
+- Add ARIA labels and roles
+- Implement keyboard navigation
+- Improve color contrast
+- Add screen reader support
+
+## Modern Web Features
+- Use Web Components for encapsulation
+- Implement service workers for offline support
+- Add PWA capabilities
+- Use CSS Grid/Flexbox for layouts

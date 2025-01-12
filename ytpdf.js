@@ -25,6 +25,16 @@ class YTPDFViewer {
 		};
 		this.currentMarkType = this.markTypes.MARKER;
 
+		// Add drag handling properties
+		this.dragState = {
+			isDragging: false,
+			element: null,
+			startX: 0,
+			startY: 0,
+			longPressTimer: null
+		};
+		this.LONG_PRESS_DURATION = 500; // ms before drag starts
+
 		// Add mode toolbar
 		this.addModeControls();
 
@@ -218,6 +228,7 @@ class YTPDFViewer {
 		// Enable audio playback
 		this.audioEnabled = true;
 	}
+	/*
 	enableEditing() {
 		// Set editing state flag
 		this.editingEnabled = true;
@@ -240,6 +251,37 @@ class YTPDFViewer {
 			icon.style.pointerEvents = 'none';
 			icon.style.cursor = 'default';
 		});
+	}
+		*/
+	enableEditing() {
+		this.editingEnabled = true;
+		// bail out if this.svg is not defined
+		if (!this.svg) return;
+
+		// Add drag event listeners to SVG container
+		this.svg.addEventListener('mousedown', this.handleDragStart.bind(this));
+		this.svg.addEventListener('mousemove', this.handleDragMove.bind(this));
+		this.svg.addEventListener('mouseup', this.handleDragEnd.bind(this));
+
+		// Touch events
+		this.svg.addEventListener('touchstart', this.handleDragStart.bind(this));
+		this.svg.addEventListener('touchmove', this.handleDragMove.bind(this));
+		this.svg.addEventListener('touchend', this.handleDragEnd.bind(this));
+	}
+
+	disableEditing() {
+		this.editingEnabled = false;
+		// bail out if this.svg is not defined
+		if (!this.svg) return;
+
+		// Remove drag event listeners
+		this.svg.removeEventListener('mousedown', this.handleDragStart.bind(this));
+		this.svg.removeEventListener('mousemove', this.handleDragMove.bind(this));
+		this.svg.removeEventListener('mouseup', this.handleDragEnd.bind(this));
+
+		this.svg.removeEventListener('touchstart', this.handleDragStart.bind(this));
+		this.svg.removeEventListener('touchmove', this.handleDragMove.bind(this));
+		this.svg.removeEventListener('touchend', this.handleDragEnd.bind(this));
 	}
 	setCursor(cursorStyle) {
 		// Use text cursor for editing mode instead of custom pencil
@@ -271,6 +313,11 @@ class YTPDFViewer {
 	}
 
 	startTimeUpdates() {
+		// Wait until this.player.getPlayerState() is defined
+		if (!this.player || !this.player.getPlayerState) {
+			setTimeout(() => this.startTimeUpdates(), 100);
+			return;
+		}
 		// Update time display every 100ms when playing
 		setInterval(() => {
 			if (this.player && this.player.getPlayerState() === YT.PlayerState.PLAYING) {
@@ -590,7 +637,7 @@ class YTPDFViewer {
 		const markers = this.markers.get(this.pageNum) || [];
 		const marker = markers.find(m =>
 			Math.abs(m.x - x) < 10 && Math.abs(m.y - y) < 10
-		); r
+		);
 
 		if (marker) {
 			this.showMarkerDialog(marker.x, marker.y, marker);
@@ -835,6 +882,91 @@ class YTPDFViewer {
 		}
 	}
 
+	handleDragStart(e) {
+		if (!this.editingEnabled || this.currentMode !== this.modes.EDITING) return;
+
+		const target = e.target;
+		if (!target.classList.contains('speaker-icon') && !target.classList.contains('note-icon')) return;
+
+		// Prevent immediate drag, wait for long press
+		this.dragState.longPressTimer = setTimeout(() => {
+			const point = e.touches ? e.touches[0] : e;
+			this.dragState.isDragging = true;
+			this.dragState.element = target;
+			this.dragState.startX = point.clientX - target.getAttribute('x');
+			this.dragState.startY = point.clientY - target.getAttribute('y');
+
+			// Visual feedback
+			target.style.opacity = '0.5';
+		}, this.LONG_PRESS_DURATION);
+	}
+
+	handleDragMove(e) {
+		if (!this.dragState.isDragging) return;
+		e.preventDefault();
+
+		const point = e.touches ? e.touches[0] : e;
+		const newX = point.clientX - this.dragState.startX;
+		const newY = point.clientY - this.dragState.startY;
+
+		// Update element position
+		this.dragState.element.setAttribute('x', newX);
+		this.dragState.element.setAttribute('y', newY);
+	}
+
+	handleDragEnd(e) {
+		if (this.dragState.longPressTimer) {
+			clearTimeout(this.dragState.longPressTimer);
+		}
+
+		if (!this.dragState.isDragging) return;
+
+		const element = this.dragState.element;
+		element.style.opacity = '1.0';
+
+		// Update marker or note position in data structure
+		const newX = parseFloat(element.getAttribute('x'));
+		const newY = parseFloat(element.getAttribute('y'));
+
+		if (element.classList.contains('speaker-icon')) {
+			this.updateMarkerPosition(newX, newY);
+		} else if (element.classList.contains('note-icon')) {
+			this.updateNotePosition(newX, newY);
+		}
+
+		// Reset drag state
+		this.dragState = {
+			isDragging: false,
+			element: null,
+			startX: 0,
+			startY: 0,
+			longPressTimer: null
+		};
+	}
+
+	updateMarkerPosition(newX, newY) {
+		const markers = this.markers.get(this.pageNum);
+		const marker = markers.find(m =>
+			m.x === parseFloat(this.dragState.element.getAttribute('x')) &&
+			m.y === parseFloat(this.dragState.element.getAttribute('y'))
+		);
+		if (marker) {
+			marker.x = newX;
+			marker.y = newY;
+		}
+	}
+
+	updateNotePosition(newX, newY) {
+		const notes = this.notes.get(this.pageNum);
+		const note = notes.find(n =>
+			n.x === parseFloat(this.dragState.element.getAttribute('x')) &&
+			n.y === parseFloat(this.dragState.element.getAttribute('y'))
+		);
+		if (note) {
+			note.x = newX;
+			note.y = newY;
+		}
+	}
 	loadAnnotations(file) {
 		const reader = new FileReader();
 		reader.onload = (e) => {
