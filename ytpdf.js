@@ -327,26 +327,8 @@ class YTPDFViewer {
       <button id="cancel">Cancel</button>
     </div>
   `;
-
-		// Style the modal overlay
-		dialog.style.position = 'fixed';
-		dialog.style.top = '0';
-		dialog.style.left = '0';
-		dialog.style.width = '100%';
-		dialog.style.height = '100%';
-		dialog.style.backgroundColor = 'rgba(0,0,0,0.5)';
-		dialog.style.display = 'flex';
-		dialog.style.alignItems = 'center';
-		dialog.style.justifyContent = 'center';
-
-		// Style the dialog box
-		const dialogBox = dialog.querySelector('.dialog');
-		dialogBox.style.backgroundColor = 'white';
-		dialogBox.style.padding = '20px';
-		dialogBox.style.borderRadius = '5px';
-		dialogBox.style.display = 'flex';
-		dialogBox.style.flexDirection = 'column';
-		dialogBox.style.gap = '10px';
+		//Apply styles to the dialog
+		this.styleDialog(dialog);
 
 		const cleanup = () => {
 			if (dialog.parentNode) {
@@ -392,22 +374,8 @@ class YTPDFViewer {
         </div>
     `;
 
-		// Style the modal overlay
-		dialog.style.position = 'fixed';
-		dialog.style.top = '0';
-		dialog.style.left = '0';
-		dialog.style.width = '100%';
-		dialog.style.height = '100%';
-		dialog.style.backgroundColor = 'rgba(0,0,0,0.5)';
-		dialog.style.display = 'flex';
-		dialog.style.alignItems = 'center';
-		dialog.style.justifyContent = 'center';
-
-		// Style the dialog box
-		const dialogBox = dialog.querySelector('.dialog');
-		dialogBox.style.backgroundColor = 'white';
-		dialogBox.style.padding = '20px';
-		dialogBox.style.borderRadius = '5px';
+		//Apply styles to the dialog
+		this.styleDialog(dialog);
 
 		const cleanup = () => {
 			if (dialog.parentNode) {
@@ -621,25 +589,53 @@ class YTPDFViewer {
 		const x = event.clientX - rect.left;
 		const y = event.clientY - rect.top;
 
-		// Prompt for timestamp and rate
-		const time = prompt('Enter start time in seconds:', '0');
-		if (!time) return;
+		// Create dialog for timestamp and rate input
+		const dialog = document.createElement('div');
+		dialog.className = 'modal-dialog';
+		dialog.innerHTML = `
+			<div class="dialog">
+				<h3>Add YouTube Timestamp</h3>
+				<label>Start Time (seconds):<br>
+					<input type="number" id="time-input" value="0" step="0.1">
+				</label><br>
+				<label>Playback Rate (0.25-2):<br>
+					<input type="number" id="rate-input" value="1.0" min="0.25" max="2" step="0.25">
+				</label><br>
+				<div class="button-row">
+					<button id="save">Save</button>
+					<button id="cancel">Cancel</button>
+				</div>
+			</div>
+		`;
 
-		const rate = prompt('Enter playback rate (0.25-2):', '1.0');
-		if (!rate) return;
+		this.styleDialog(dialog);
 
-		// Store marker
-		if (!this.markers.has(this.pageNum)) {
-			this.markers.set(this.pageNum, []);
-		}
-		this.markers.get(this.pageNum).push({
-			x, y,
-			time: parseFloat(time),
-			rate: parseFloat(rate)
-		});
+		const cleanup = () => {
+			if (dialog.parentNode) {
+				document.body.removeChild(dialog);
+			}
+		};
 
-		// Draw marker
-		this.drawMarker(x, y);
+		// Handle dialog actions
+		dialog.querySelector('#save').onclick = () => {
+			const time = parseFloat(dialog.querySelector('#time-input').value);
+			const rate = parseFloat(dialog.querySelector('#rate-input').value);
+
+			// Store marker
+			if (!this.markers.has(this.pageNum)) {
+				this.markers.set(this.pageNum, []);
+			}
+			this.markers.get(this.pageNum).push({ x, y, time, rate });
+
+			// Draw marker
+			this.drawMarker(x, y);
+			cleanup();
+		};
+
+		dialog.querySelector('#cancel').onclick = cleanup;
+
+		// Add dialog to DOM
+		document.body.appendChild(dialog);
 	}
 
 	drawMarker(x, y) {
@@ -711,23 +707,8 @@ class YTPDFViewer {
       </div>
     </div>
   `;
-
-		// Style the modal overlay
-		dialog.style.position = 'fixed';
-		dialog.style.top = '0';
-		dialog.style.left = '0';
-		dialog.style.width = '100%';
-		dialog.style.height = '100%';
-		dialog.style.backgroundColor = 'rgba(0,0,0,0.5)';
-		dialog.style.display = 'flex';
-		dialog.style.alignItems = 'center';
-		dialog.style.justifyContent = 'center';
-
-		// Style the dialog box
-		const dialogBox = dialog.querySelector('.dialog');
-		dialogBox.style.backgroundColor = 'white';
-		dialogBox.style.padding = '20px';
-		dialogBox.style.borderRadius = '5px';
+		// Apply our styling to the dialog
+		this.styleDialog(dialog);
 
 		const cleanup = () => {
 			if (dialog.parentNode) {
@@ -839,6 +820,26 @@ class YTPDFViewer {
 		} else {
 			tocDiv.style.display = 'none';
 		}
+	}
+	styleDialog(dialog) {
+		// Style the modal overlay
+		dialog.style.position = 'fixed';
+		dialog.style.top = '0';
+		dialog.style.left = '0';
+		dialog.style.width = '100%';
+		dialog.style.height = '100%';
+		dialog.style.backgroundColor = 'rgba(0,0,0,0.5)';
+		dialog.style.display = 'flex';
+		dialog.style.alignItems = 'center';
+		dialog.style.justifyContent = 'center';
+
+		// Style the dialog box
+		const dialogBox = dialog.querySelector('.dialog');
+		dialogBox.style.backgroundColor = 'white';
+		dialogBox.style.padding = '20px';
+		dialogBox.style.borderRadius = '5px';
+
+		return dialogBox;
 	}
 }
 
