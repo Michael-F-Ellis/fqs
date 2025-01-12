@@ -554,6 +554,8 @@ class YTPDFViewer {
 			console.error("Playback error:", e);
 		}
 	}
+
+	// Dispatch click events to appropriate handlers
 	handleCanvasClick(event) {
 		// Check mode before handling click
 		switch (this.currentMode) {
@@ -577,6 +579,38 @@ class YTPDFViewer {
 				break;
 		}
 	}
+
+	handleEdit(event) {
+		// Get click coordinates relative to canvas
+		const rect = this.canvas.getBoundingClientRect();
+		const x = event.clientX - rect.left;
+		const y = event.clientY - rect.top;
+
+		// Check for clicked YouTube marker
+		const markers = this.markers.get(this.pageNum) || [];
+		const marker = markers.find(m =>
+			Math.abs(m.x - x) < 10 && Math.abs(m.y - y) < 10
+		); r
+
+		if (marker) {
+			this.showMarkerDialog(marker.x, marker.y, marker);
+			return;
+		}
+
+		// Check for clicked note
+		const notes = this.notes.get(this.pageNum) || [];
+		const note = notes.find(n =>
+			Math.abs(n.x - x) < 10 && Math.abs(n.y - y) < 10
+		);
+
+		if (note) {
+			this.showNoteDialog(note);
+			return;
+		}
+
+		// No marker found near click
+		alert('Please click an existing marker or note to edit it');
+	}
 	handleNewMarker(event) {
 		const videoId = this.videoIds.get(this.pageNum);
 		if (!videoId) {
@@ -589,24 +623,29 @@ class YTPDFViewer {
 		const x = event.clientX - rect.left;
 		const y = event.clientY - rect.top;
 
-		// Create dialog for timestamp and rate input
+		// Show dialog for timestamp and rate input
+		this.showMarkerDialog(x, y);
+	}
+
+	showMarkerDialog(x, y, existingMarker = null) {
 		const dialog = document.createElement('div');
 		dialog.className = 'modal-dialog';
 		dialog.innerHTML = `
-			<div class="dialog">
-				<h3>Add YouTube Timestamp</h3>
-				<label>Start Time (seconds):<br>
-					<input type="number" id="time-input" value="0" step="0.1">
-				</label><br>
-				<label>Playback Rate (0.25-2):<br>
-					<input type="number" id="rate-input" value="1.0" min="0.25" max="2" step="0.25">
-				</label><br>
-				<div class="button-row">
-					<button id="save">Save</button>
-					<button id="cancel">Cancel</button>
-				</div>
-			</div>
-		`;
+    <div class="dialog">
+      <h3>${existingMarker ? 'Edit' : 'Add'} YouTube Timestamp</h3>
+      <label>Start Time (seconds):<br>
+        <input type="number" id="time-input" value="${existingMarker?.time || 0}" step="0.1">
+      </label><br>
+      <label>Playback Rate (0.25-2):<br>
+        <input type="number" id="rate-input" value="${existingMarker?.rate || 1.0}" min="0.25" max="2" step="0.25">
+      </label><br>
+      <div class="button-row">
+        <button id="save">Save</button>
+        ${existingMarker ? '<button id="delete">Delete</button>' : ''}
+        <button id="cancel">Cancel</button>
+      </div>
+    </div>
+  `;
 
 		this.styleDialog(dialog);
 
@@ -621,16 +660,33 @@ class YTPDFViewer {
 			const time = parseFloat(dialog.querySelector('#time-input').value);
 			const rate = parseFloat(dialog.querySelector('#rate-input').value);
 
-			// Store marker
-			if (!this.markers.has(this.pageNum)) {
-				this.markers.set(this.pageNum, []);
+			if (existingMarker) {
+				// Update existing marker
+				existingMarker.time = time;
+				existingMarker.rate = rate;
+			} else {
+				// Store new marker
+				if (!this.markers.has(this.pageNum)) {
+					this.markers.set(this.pageNum, []);
+				}
+				this.markers.get(this.pageNum).push({ x, y, time, rate });
+				// Draw new marker
+				this.drawMarker(x, y);
 			}
-			this.markers.get(this.pageNum).push({ x, y, time, rate });
-
-			// Draw marker
-			this.drawMarker(x, y);
 			cleanup();
 		};
+
+		if (existingMarker) {
+			dialog.querySelector('#delete').onclick = () => {
+				const markers = this.markers.get(this.pageNum);
+				const index = markers.indexOf(existingMarker);
+				if (index > -1) {
+					markers.splice(index, 1);
+					this.renderPage(this.pageNum); // Refresh display
+				}
+				cleanup();
+			};
+		}
 
 		dialog.querySelector('#cancel').onclick = cleanup;
 
@@ -652,16 +708,16 @@ class YTPDFViewer {
 		speaker.style.pointerEvents = 'auto';
 
 		speaker.onclick = () => {
-			const marker = this.markers.get(this.pageNum).find(m => m.x === x && m.y === y);
-			this.playYouTubeAt(this.videoIds.get(this.pageNum), marker.time, marker.rate);
+			if (this.currentMode === this.modes.EDITING) {
+				const marker = this.markers.get(this.pageNum).find(m => m.x === x && m.y === y);
+				this.showMarkerDialog(x, y, marker);
+			} else {
+				const marker = this.markers.get(this.pageNum).find(m => m.x === x && m.y === y);
+				this.playYouTubeAt(this.videoIds.get(this.pageNum), marker.time, marker.rate);
+			}
 		};
 
 		this.svg.appendChild(speaker);
-		// Hide it if we're in a forbidden mode
-		if (this.currentMode === this.modes.GROUP_REHEARSAL ||
-			this.currentMode === this.modes.PERFORMANCE) {
-			speaker.style.display = 'none';
-		}
 	}
 
 	handleNewNote(event) {

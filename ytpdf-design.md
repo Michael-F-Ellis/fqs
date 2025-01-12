@@ -39,3 +39,42 @@ Normal pointer cursor in Performance Mode, Group Rehearsal Mode, Individual Rehe
 
 For Editing Mode, use a pencil cursor.
 For Marking Mode, use a plus cursor.
+
+## Implementation Notes - Mode System
+
+The mode system has been implemented with these key components:
+
+1. Mode Management
+- Modes defined as class properties
+- Default mode is PERFORMANCE
+- Mode toolbar with emoji icons
+- Visual feedback through dimmed/bright icons
+- Cursor changes by mode
+
+2. Mode-specific Behaviors
+- YouTube icon visibility control
+- Audio enable/disable
+- Editing permission control
+- Cursor style changes
+
+3. Dialog System
+- Standard dialog styling extracted to reusable method
+- Consistent layout and behavior
+- Support for both creation and editing
+- Separate dialogs for:
+  - YouTube timestamps (🔊)
+  - Text annotations (⚠️)
+  - Video ID assignment
+  - Mark type selection
+
+4. Marker System
+- SVG overlay for icons
+- Speaker icons for YouTube timestamps
+- Warning icons for text annotations
+- Click handling varies by mode:
+  - Performance: Icons hidden
+  - Individual Rehearsal: Click to play
+  - Editing: Click to modify
+  - Marking: Click to add new
+
+The implementation maintains clear separation of concerns while providing consistent user experience across all modes.
