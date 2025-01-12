@@ -44,8 +44,13 @@ class YTPDFViewer {
 		this.addTimeDisplay();
 		this.startTimeUpdates();
 
-		// Add to existing constructor
+		// Add marker storage.  Markers refers to the speaker icons. 
 		this.markers = new Map(); // pageNum -> array of {x, y, time, rate}
+
+		// Add note storage.  Notes refer to the text boxes added by the user.
+		this.notes = new Map(); // pageNum -> array of {x, y, text}
+
+		// Master dispatcher for all canvas click events
 		this.canvas.addEventListener('click', this.handleCanvasClick.bind(this));
 
 		// Add property to store original file handle
@@ -271,8 +276,8 @@ class YTPDFViewer {
 		const data = {
 			videoIds: Array.from(this.videoIds.entries()),
 			markers: Array.from(this.markers.entries()),
-			pages: Array.from(this.pageLabels.entries())
-
+			pages: Array.from(this.pageLabels.entries()),
+			notes: Array.from(this.notes.entries())
 		};
 
 		// Construct default filename from PDF name
@@ -421,11 +426,16 @@ class YTPDFViewer {
 		// Update page number display
 		document.getElementById('page-num').textContent = num;
 
-
 		// Redraw markers for current page
 		const pageMarkers = this.markers.get(this.pageNum) || [];
 		pageMarkers.forEach(marker => {
 			this.drawMarker(marker.x, marker.y);
+		});
+
+		// Redraw the notes for the current page
+		const pageNotes = this.notes.get(this.pageNum) || [];
+		pageNotes.forEach(note => {
+			this.drawNote(note.x, note.y, note.text);
 		});
 	}
 
@@ -513,8 +523,26 @@ class YTPDFViewer {
 			console.error("Playback error:", e);
 		}
 	}
-
 	handleCanvasClick(event) {
+		// Check mode before handling click
+		switch (this.currentMode) {
+			case this.modes.PERFORMANCE:
+			case this.modes.GROUP_REHEARSAL:
+				return; // No action in these modes
+
+			case this.modes.INDIVIDUAL_REHEARSAL:
+				return; // playback is already bound to speaker-icon
+
+			case this.modes.EDITING:
+				this.handleEdit(event);
+				break;
+
+			case this.modes.MARKING:
+				this.handleNewMarker(event);
+				break;
+		}
+	}
+	handleNewMarker(event) {
 		const videoId = this.videoIds.get(this.pageNum);
 		if (!videoId) {
 			alert('Please set a YouTube video ID for this page first');
@@ -549,6 +577,55 @@ class YTPDFViewer {
 
 	drawMarker(x, y) {
 		// Create SVG overlay if it doesn't exist
+		this.ensureSVG();
+
+		const speaker = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+		speaker.setAttribute('x', x);
+		speaker.setAttribute('y', y);
+		speaker.setAttribute('class', 'speaker-icon');
+		speaker.textContent = '🔊';
+		speaker.style.cursor = 'pointer';
+		// Enable pointer events just for the speaker icon
+		speaker.style.pointer = 'auto';
+		// Hide it if we're in a forbidden mode
+		if (this.currentMode === this.modes.GROUP_REHEARSAL ||
+			this.currentMode === this.modes.PERFORMANCE) {
+			speaker.style.display = 'none';
+		}
+
+		speaker.onclick = () => {
+			const marker = this.markers.get(this.pageNum).find(m => m.x === x && m.y === y);
+			this.playYouTubeAt(this.videoIds.get(this.pageNum), marker.time, marker.rate);
+		};
+
+		this.svg.appendChild(speaker);
+	}
+
+	drawNote(x, y) {
+		// Create SVG overlay if it doesn't exist
+		this.ensureSVG();
+
+		const note = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+		note.setAttribute('x', x);
+		note.setAttribute('y', y);
+		note.setAttribute('class', 'note-icon');
+		note.textContent = '⚠️';  // Unicode caution/warning symbol
+		note.style.cursor = 'pointer';
+		// Enable pointer events just for the note icon
+		note.style.pointerEvents = 'auto';
+
+		note.onclick = () => {
+			const notes = this.notes.get(this.pageNum) || [];
+			const note = notes.find(n => n.x === x && n.y === y);
+			if (note) {
+				this.showNoteDialog(note);
+			}
+		};
+
+		this.svg.appendChild(note);
+	}
+	ensureSVG() {
+		// Create SVG overlay if it doesn't exist
 		if (!this.svg) {
 			this.svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
 			this.svg.style.position = 'absolute';
@@ -560,22 +637,6 @@ class YTPDFViewer {
 			this.svg.style.pointerEvents = 'none';
 			this.canvas.parentNode.appendChild(this.svg);
 		}
-
-		const speaker = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-		speaker.setAttribute('x', x);
-		speaker.setAttribute('y', y);
-		speaker.setAttribute('class', 'speaker-icon');
-		speaker.textContent = '🔊';
-		speaker.style.cursor = 'pointer';
-		// Enable pointer events just for the speaker icon
-		speaker.style.pointerEvents = 'auto';
-
-		speaker.onclick = () => {
-			const marker = this.markers.get(this.pageNum).find(m => m.x === x && m.y === y);
-			this.playYouTubeAt(this.videoIds.get(this.pageNum), marker.time, marker.rate);
-		};
-
-		this.svg.appendChild(speaker);
 	}
 
 	loadAnnotations(file) {
@@ -587,6 +648,8 @@ class YTPDFViewer {
 			this.pageLabels = new Map(data.pages || []);
 			// Refresh current page display
 			this.renderPage(this.pageNum);
+			// enforce the current mode
+			this.setMode(this.currentMode);
 		};
 		reader.readAsText(file);
 	}
