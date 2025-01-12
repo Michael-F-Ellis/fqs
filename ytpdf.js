@@ -19,6 +19,11 @@ class YTPDFViewer {
 			MARKING: 'marking'
 		};
 		this.currentMode = this.modes.PERFORMANCE; // Default mode
+		this.markTypes = {
+			MARKER: 'marker', // Speaker icon
+			NOTE: 'note'	  // Warning icon
+		};
+		this.currentMarkType = this.markTypes.MARKER;
 
 		// Add mode toolbar
 		this.addModeControls();
@@ -180,6 +185,7 @@ class YTPDFViewer {
 				this.enableAudio();
 				this.disableEditing();
 				this.setCursor('crosshair');
+				this.promptForMarkType();
 				break;
 		}
 	}
@@ -187,6 +193,7 @@ class YTPDFViewer {
 		const speakerIcons = document.querySelectorAll('text.speaker-icon');
 		speakerIcons.forEach(icon => {
 			icon.style.display = 'none';
+			icon.style.pointerEvents = 'none';  // Disable interaction when hidden
 		});
 	}
 
@@ -194,6 +201,8 @@ class YTPDFViewer {
 		const speakerIcons = document.querySelectorAll('text.speaker-icon');
 		speakerIcons.forEach(icon => {
 			icon.style.display = ''; // Restore default display value
+			icon.style.pointerEvents = 'auto';  // Enable interaction
+			icon.style.cursor = 'pointer';      // Restore pointer cursor
 		});
 	}
 	disableAudio() {
@@ -306,7 +315,61 @@ class YTPDFViewer {
 			}
 		}
 	}
+	promptForMarkType() {
+		// Create custom dialog
+		const dialog = document.createElement('div');
+		dialog.className = 'modal-dialog';
+		dialog.innerHTML = `
+    <div class="dialog">
+      <h3>Add Mark Type</h3>
+      <button id="add-youtube">🔊 YouTube Timestamp</button>
+      <button id="add-note">⚠️ Text Annotation</button>
+      <button id="cancel">Cancel</button>
+    </div>
+  `;
 
+		// Style the modal overlay
+		dialog.style.position = 'fixed';
+		dialog.style.top = '0';
+		dialog.style.left = '0';
+		dialog.style.width = '100%';
+		dialog.style.height = '100%';
+		dialog.style.backgroundColor = 'rgba(0,0,0,0.5)';
+		dialog.style.display = 'flex';
+		dialog.style.alignItems = 'center';
+		dialog.style.justifyContent = 'center';
+
+		// Style the dialog box
+		const dialogBox = dialog.querySelector('.dialog');
+		dialogBox.style.backgroundColor = 'white';
+		dialogBox.style.padding = '20px';
+		dialogBox.style.borderRadius = '5px';
+		dialogBox.style.display = 'flex';
+		dialogBox.style.flexDirection = 'column';
+		dialogBox.style.gap = '10px';
+
+		const cleanup = () => {
+			if (dialog.parentNode) {
+				document.body.removeChild(dialog);
+			}
+		};
+
+		// Handle dialog actions
+		dialog.querySelector('#add-youtube').onclick = () => {
+			cleanup();
+			this.currentMarkType = this.markTypes.MARKER
+		};
+
+		dialog.querySelector('#add-note').onclick = () => {
+			cleanup();
+			this.currentMarkType = this.markTypes.NOTE
+		};
+
+		dialog.querySelector('#cancel').onclick = cleanup;
+
+		// Add dialog to DOM
+		document.body.appendChild(dialog);
+	}
 	promptForVideoId() {
 		const defaultLabel = `Page ${this.pageNum}`;
 		const currentLabel = this.pageLabels.get(this.pageNum) || defaultLabel;
@@ -538,7 +601,11 @@ class YTPDFViewer {
 				break;
 
 			case this.modes.MARKING:
-				this.handleNewMarker(event);
+				if (this.currentMarkType === this.markTypes.MARKER) {
+					this.handleNewMarker(event);
+				} else if (this.currentMarkType === this.markTypes.NOTE) {
+					this.handleNewNote(event);
+				}
 				break;
 		}
 	}
@@ -586,12 +653,7 @@ class YTPDFViewer {
 		speaker.textContent = '🔊';
 		speaker.style.cursor = 'pointer';
 		// Enable pointer events just for the speaker icon
-		speaker.style.pointer = 'auto';
-		// Hide it if we're in a forbidden mode
-		if (this.currentMode === this.modes.GROUP_REHEARSAL ||
-			this.currentMode === this.modes.PERFORMANCE) {
-			speaker.style.display = 'none';
-		}
+		speaker.style.pointerEvents = 'auto';
 
 		speaker.onclick = () => {
 			const marker = this.markers.get(this.pageNum).find(m => m.x === x && m.y === y);
@@ -599,8 +661,105 @@ class YTPDFViewer {
 		};
 
 		this.svg.appendChild(speaker);
+		// Hide it if we're in a forbidden mode
+		if (this.currentMode === this.modes.GROUP_REHEARSAL ||
+			this.currentMode === this.modes.PERFORMANCE) {
+			speaker.style.display = 'none';
+		}
 	}
 
+	handleNewNote(event) {
+		// Get click coordinates relative to canvas
+		const rect = this.canvas.getBoundingClientRect();
+		const x = event.clientX - rect.left;
+		const y = event.clientY - rect.top;
+
+		// Initialize notes map for this page if needed
+		if (!this.notes.has(this.pageNum)) {
+			this.notes.set(this.pageNum, []);
+		}
+
+		// Create note object
+		const note = {
+			x,
+			y,
+			text: '',
+		};
+
+		// Add to notes collection
+		this.notes.get(this.pageNum).push(note);
+
+		// Draw the note icon
+		this.drawNote(x, y);
+
+		// Show dialog to edit note text
+		this.showNoteDialog(note);
+	}
+
+	showNoteDialog(note) {
+		// Create custom dialog
+		const dialog = document.createElement('div');
+		dialog.className = 'modal-dialog';
+		dialog.innerHTML = `
+    <div class="dialog">
+      <h3>Edit Note</h3>
+      <textarea id="note-text" rows="4" cols="40">${note.text || ''}</textarea>
+      <div class="button-row">
+        <button id="save">Save</button>
+        <button id="delete">Delete</button>
+        <button id="cancel">Cancel</button>
+      </div>
+    </div>
+  `;
+
+		// Style the modal overlay
+		dialog.style.position = 'fixed';
+		dialog.style.top = '0';
+		dialog.style.left = '0';
+		dialog.style.width = '100%';
+		dialog.style.height = '100%';
+		dialog.style.backgroundColor = 'rgba(0,0,0,0.5)';
+		dialog.style.display = 'flex';
+		dialog.style.alignItems = 'center';
+		dialog.style.justifyContent = 'center';
+
+		// Style the dialog box
+		const dialogBox = dialog.querySelector('.dialog');
+		dialogBox.style.backgroundColor = 'white';
+		dialogBox.style.padding = '20px';
+		dialogBox.style.borderRadius = '5px';
+
+		const cleanup = () => {
+			if (dialog.parentNode) {
+				document.body.removeChild(dialog);
+			}
+		};
+
+		// Handle dialog actions
+		dialog.querySelector('#save').onclick = () => {
+			note.text = dialog.querySelector('#note-text').value;
+			cleanup();
+			this.renderPage(this.pageNum); // Refresh display
+		};
+
+		dialog.querySelector('#delete').onclick = () => {
+			const notes = this.notes.get(this.pageNum);
+			const index = notes.findIndex(n => n === note);
+			if (index > -1) {
+				notes.splice(index, 1);
+			}
+			cleanup();
+			this.renderPage(this.pageNum); // Refresh display
+		};
+
+		dialog.querySelector('#cancel').onclick = cleanup;
+
+		// Add dialog to DOM
+		document.body.appendChild(dialog);
+
+		// Focus the textarea
+		dialog.querySelector('#note-text').focus();
+	}
 	drawNote(x, y) {
 		// Create SVG overlay if it doesn't exist
 		this.ensureSVG();
@@ -645,11 +804,10 @@ class YTPDFViewer {
 			const data = JSON.parse(e.target.result);
 			this.videoIds = new Map(data.videoIds);
 			this.markers = new Map(data.markers);
+			this.notes = new Map(data.notes);
 			this.pageLabels = new Map(data.pages || []);
 			// Refresh current page display
 			this.renderPage(this.pageNum);
-			// enforce the current mode
-			this.setMode(this.currentMode);
 		};
 		reader.readAsText(file);
 	}
