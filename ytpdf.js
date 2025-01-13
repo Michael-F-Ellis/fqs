@@ -36,6 +36,10 @@ class YTPDFViewer {
 		// Add page navigation controls
 		this.addNavigationControls();
 
+		// Support keyboard and swipe navigation
+		document.addEventListener('keydown', this.handleKeyPress.bind(this));
+
+
 		// Set up file input handler
 		document.getElementById('file-input')
 			.addEventListener('change', this.handleFileSelect.bind(this));
@@ -638,6 +642,24 @@ class YTPDFViewer {
 		}
 	}
 
+	handleKeyPress(event) {
+		switch (event.key) {
+			case 'ArrowRight':
+			case 'PageDown':
+				this.nextPage();
+				break;
+			case 'ArrowLeft':
+			case 'PageUp':
+				this.prevPage();
+				break;
+			case 'Home':
+				this.renderPage(1);
+				break;
+			case 'End':
+				this.renderPage(this.pdfDoc.numPages);
+				break;
+		}
+	}
 	// Dispatch click events to appropriate handlers
 	handleCanvasClick(event) {
 		// Check mode before handling click
