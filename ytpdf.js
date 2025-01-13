@@ -38,6 +38,12 @@ class YTPDFViewer {
 
 		// Support keyboard and swipe navigation
 		document.addEventListener('keydown', this.handleKeyPress.bind(this));
+		// Add mode-aware touch handling
+		this.touchStartX = null;
+		this.touchStartY = null;
+		this.touchStartTime = null;
+		this.canvas.addEventListener('touchstart', this.handleTouchStart.bind(this));
+		this.canvas.addEventListener('touchend', this.handleTouchEnd.bind(this));
 
 
 		// Set up file input handler
@@ -659,6 +665,49 @@ class YTPDFViewer {
 				this.renderPage(this.pdfDoc.numPages);
 				break;
 		}
+	}
+	// Touch handlers for navigation on  mobile devices
+	handleTouchStart(event) {
+		// Skip touch handling if in editing mode
+		if (this.currentMode === this.modes.EDITING) {
+			return;
+		}
+
+		this.touchStartX = event.touches[0].clientX;
+		this.touchStartY = event.touches[0].clientY;
+		this.touchStartTime = Date.now();
+	}
+	handleTouchEnd(event) {
+		// Skip touch handling if in editing mode
+		if (this.currentMode === this.modes.EDITING || !this.touchStartX) {
+			return;
+		}
+
+		const touchEndX = event.changedTouches[0].clientX;
+		const touchEndY = event.changedTouches[0].clientY;
+		const touchEndTime = Date.now();
+
+		// Calculate swipe metrics
+		const swipeDistance = touchEndX - this.touchStartX;
+		const verticalDistance = Math.abs(touchEndY - this.touchStartY);
+		const swipeTime = touchEndTime - this.touchStartTime;
+
+		// Validate swipe:
+		// 1. Must be primarily horizontal (vertical movement < 50px)
+		// 2. Must be longer than 50px horizontally
+		// 3. Must complete within 300ms
+		if (verticalDistance < 50 && Math.abs(swipeDistance) > 50 && swipeTime < 300) {
+			if (swipeDistance > 0) {
+				this.prevPage();
+			} else {
+				this.nextPage();
+			}
+		}
+
+		// Reset touch tracking
+		this.touchStartX = null;
+		this.touchStartY = null;
+		this.touchStartTime = null;
 	}
 	// Dispatch click events to appropriate handlers
 	handleCanvasClick(event) {
