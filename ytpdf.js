@@ -292,10 +292,12 @@ class YTPDFViewer {
 					const newY = matrix.f;
 
 					if (selectedElement.classList.contains('speaker-icon')) {
-						const id = selectedElement.getAttribute('data-marker-id');
-						this.updateMarkerPosition(newX, newY);
+						const id = parseInt(selectedElement.getAttribute('data-marker-id'), 10);
+						getAttribute('data-marker-id');
+						this.updateMarkerPosition(id, newX, newY);
 					} else if (selectedElement.classList.contains('note-icon')) {
-						this.updateNotePosition(newX, newY);
+						const id = parseInt(selectedElement.getAttribute('data-note-id'), 10);
+						this.updateNotePosition(id, newX, newY);
 					}
 					selectedElement = null;
 				}
@@ -633,8 +635,8 @@ class YTPDFViewer {
 			pageMarkers.forEach(marker => {
 				this.drawMarker({
 					...marker,
-					x: marker.x * widthScale,
-					y: marker.y * widthScale
+					x: marker.x,
+					y: marker.y
 				});
 			});
 
@@ -642,8 +644,8 @@ class YTPDFViewer {
 			pageNotes.forEach(note => {
 				this.drawNote({
 					...note,
-					x: note.x * widthScale,
-					y: note.y * widthScale
+					x: note.x,
+					y: note.y
 				});
 			});
 		} catch (error) {
@@ -1092,7 +1094,7 @@ class YTPDFViewer {
 	}
 
 
-	updateMarkerPosition(id, newX, newY) {
+	updateMarkerPosition(id, dX, dY) {
 		const markers = this.markers.get(this.pageNum);
 
 		const markerIndex = markers.findIndex(m => m.id === id);
@@ -1100,22 +1102,21 @@ class YTPDFViewer {
 		if (markerIndex !== -1) {
 			// Update marker position while preserving other properties
 			const marker = markers[markerIndex];
-			markers[markerIndex] = {
-				...marker,
-				x: newX,
-				y: newY
-			};
+			markers[markerIndex].x += dX;
+			markers[markerIndex].y += dY;
 		}
 	}
-	updateNotePosition(id, newX, newY) {
+	updateNotePosition(id, dX, dY) {
 		const notes = this.notes.get(this.pageNum);
 		// Find the note using the id
 		const noteIndex = notes.findIndex(n => n.id === id);
-
+		console.log(notes, id, noteIndex);
 		if (noteIndex !== -1) {
+			console.log(`before: ${notes[noteIndex].x}, ${notes[noteIndex].y}`);
 			// Update the note's stored coordinates
-			notes[noteIndex].x = newX;
-			notes[noteIndex].y = newY;
+			notes[noteIndex].x += dX;
+			notes[noteIndex].y += dY;
+			console.log(`after: ${notes[noteIndex].x}, ${notes[noteIndex].y}`);
 		}
 	}
 	loadAnnotations(file) {
