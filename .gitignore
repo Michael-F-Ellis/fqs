@@ -20,3 +20,6 @@ fqs.html
 lyrictest.html
 lyrictest.js
 quick.fqs
+
+# Node modules
+node_modules/
