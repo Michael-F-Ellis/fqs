@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+	<title>Interval Calculator Tests</title>
+	<link rel="stylesheet" href="../fqs.css">
+	<style>
+		.test-pass {
+			color: green;
+		}
+
+		.test-fail {
+			color: red;
+		}
+
+		.test-details {
+			margin-left: 20px;
+			font-family: monospace;
+		}
+	</style>
+</head>
+
+<body>
+	<h1>Interval Calculator Tests</h1>
+	<div id="test-results"></div>
+	<script type="module">
+		import { IntervalTest } from './interval_tests.js';
+		window.onload = () => IntervalTest.runTests();
+	</script>
+</body>
+
+</html>

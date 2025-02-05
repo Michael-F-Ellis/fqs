@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+	<title>GitHub Storage Test</title>
+</head>
+
+<body>
+	<div id="repo-container"></div>
+	<pre id="output"></pre>
+	<script type="module">
+		import { GitHubStorage } from './src/github.js';
+		import { RepoNavigator } from './src/repo_navigator.js';
+		import { GitHubCredentials, createGitHubDialog } from './src/credential_store.js';
+
+		// Add dialog to page
+		document.body.appendChild(createGitHubDialog());
+
+		// Initialize storage and navigator when credentials are provided
+		let storage = null;
+		let navigator = null;
+
+		// Log results
+		function log(msg) {
+			document.getElementById('output').textContent += msg + '\n';
+		}
+
+		async function testNavigation() {
+			try {
+				const path = prompt("Enter the path to the test dir: (username/repo/dir)");
+				console.log(path);
+
+				// Test directory listing and navigation
+				await navigator.navigate(path);
+				log('Navigation successful');
+
+				// Add listener for file selections
+				document.getElementById('repo-container').addEventListener('fileSelect', async (e) => {
+					const { path, item } = e.detail;
+					log(`Selected file: ${path}`);
+					// Try to load the file content
+					try {
+						const { content } = await storage.getFile(path);
+						log(`File content: ${content.substring(0, 100)}...`);
+					} catch (err) {
+						log(`Error loading file: ${err.message}`);
+					}
+				});
+
+			} catch (e) {
+				log('Navigation Error: ' + e.message);
+			}
+		}
+		// Add before showing dialog
+		const book = {
+			initGitHubStorage(pat) {
+				storage = new GitHubStorage(pat);
+				navigator = new RepoNavigator(storage, 'repo-container');
+				log('GitHub storage initialized');
+
+				// Add file selection handler
+				document.getElementById('repo-container').addEventListener('fileSelect', async (e) => {
+					const { path, item } = e.detail;
+					log(`Selected file: ${path}`);
+
+					try {
+						const { content } = await storage.getFile(path);
+						log(`File content: ${content.substring(0, 100)}...`);
+					} catch (err) {
+						log(`Error loading file: ${err.message}`);
+					}
+				});
+			},
+			repoNavigator: {
+				navigate(path) {
+					navigator.navigate(path);
+					log('Navigating to ' + path);
+				}
+			}
+		};
+
+		// Make book global for dialog access
+		window.book = book;
+
+		// Show dialog on page load
+		document.querySelector('dialog').showModal();
+
+		// Global function needed for dialog buttons
+		window.connectToRepo = async (repoPath) => {
+			const pat = GitHubCredentials.getCredentials(repoPath);
+			if (pat) {
+				book.initGitHubStorage(pat);
+				await book.repoNavigator.navigate(repoPath);
+				log('Connected to ' + repoPath);
+				document.querySelector('dialog').close();
+			}
+		};
+	</script>
+</body>
+
+</html>
