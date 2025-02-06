@@ -1,3 +1,4 @@
+import { defaultParameters, updateFontSizes } from './src/utils/parameters.js';
 /*
 *********************************************************************
    Module globals
@@ -31,21 +32,11 @@ const keyTable = {
   "&6": { "c": "♭", "d": "♭", "e": "♭", "f": "♮", "g": "♭", "a": "♭", "b": "♭" },
   "&7": { "c": "♭", "d": "♭", "e": "♭", "f": "♭", "g": "♭", "a": "♭", "b": "♭" },
 }
-// Default parameters
-const defaultParameters = {
-  // parameters control the behavior of the score editor and display.
-  leftX: 16, // Pixel position of the left edge of the score.
-  sideBySide: true, // if true, render scores side-by-side with edit area
-  barlineRgx: /:?\|:?/, // regular expression to match barlines
-  lyricRgx: /[\p{L}']/u, // regular expression to match lyric alpha characters and apostrophes
-  "lyricFontWidth": 7, // includes space between letters
-  // Various font size parameters are are added to this object at runtime by the
-  // updateFontSizes() function in this module. These are needed by the
-  // functions that render the scores. If you need to change the font sizes, you
-  // should do so in the style tag in this in fqs.css".
-};
-updateFontSizes();
 
+// Initialize on page load
+window.addEventListener('load', () => {
+  updateFontSizes();
+});
 /*
 ********************************************************************
    Classes 
@@ -2152,11 +2143,10 @@ class ImageLine {
     });
   }
 }
-/*
-**************************************************************
+
+/**************************************************************
   Helper functions
-**************************************************************
-*/
+***************************************************************/
 async function fetchWithTimeout(url, options = {}, timeout = 5000) {
   /*
   // Usage:
@@ -2179,96 +2169,6 @@ async function fetchWithTimeout(url, options = {}, timeout = 5000) {
     throw error; // Re-throw other errors
   }
 }
-
-// updateFontSizes() updates the font sizes of the various elements of scores
-// that will be rendered as SVG objects. The font default sizes are specified
-// in fqs.css, but we support overriding them via the parameters object. If
-// the font sizes are not specified in the parameters object, we use the
-// default font sizes and update corresponding vars in defaultParameters.
-function updateFontSizes() {
-  // Update the font sizes if user has specified them.
-  // First, get a reference to the stylesheet,
-  const stylesheet = Array.from(document.styleSheets)
-    .find(sheet => sheet.href && sheet.href.includes('fqs.css'));
-
-  // console.log("Stylesheets:", document.styleSheets);
-  // console.log("Found stylesheet:", stylesheet);
-
-  if (!stylesheet) {
-    console.log("fqs.css stylesheet not found");
-    return;
-  }
-
-  const rules = stylesheet.cssRules || stylesheet.rules;
-  // console.log("CSS rules:", rules);
-  // define a closure that will update the font size of a rule
-  // whose index is i if the font height, fh is specified in 
-  // or if not specified, assign a numeric value
-  // to the value in fh.
-  const update = (i, fh) => {
-    if (defaultParameters[fh]) {
-      const v = defaultParameters[fh];
-      rules[i].style.fontSize = v + 'px';
-    } else {
-      defaultParameters[fh] = +rules[i].style.fontSize.slice(0, -2);
-    }
-  }
-  // loop over the rules to update font sizes.
-  for (let i = 0; i < rules.length; i++) {
-    switch (rules[i].selectorText) {
-      case '.title':
-        update(i, "titleFontHeight")
-        break;
-      case '.text':
-        update(i, 'textFontHeight');
-        break;
-      case '.preface':
-        update(i, 'prefaceFontHeight');
-        break;
-      case '.postscript':
-        update(i, 'postscriptFontHeight');
-        break;
-      case '.chord':
-        update(i, 'chordFontHeight');
-        break;
-      case '.pernote':
-        update(i, 'pernoteFontHeight');
-        break;
-      case '.fingering':
-        update(i, 'fingerFontHeight');
-        break;
-      case '.lyric':
-        update(i, 'lyricFontHeight');
-        break;
-      case '.pitch':
-        update(i, 'pitchFontHeight');
-        break;
-      case '.cue':
-        update(i, 'cueFontHeight');
-        break;
-      case '.perbar':
-        update(i, 'perbarFontHeight');
-        break;
-      case '.perbeat':
-        update(i, 'perbeatFontHeight');
-        break;
-      case '.counter':
-        update(i, 'counterFontHeight');
-        break;
-      case '.rest':
-        update(i, 'restFontHeight');
-        break;
-      case '.perline':
-        update(i, 'perlineFontHeight');
-        break;
-      case '.lineproblem':
-        update(i, 'lineproblemFontHeight');
-        break;
-    }
-  }
-}
-
-
 
 // appendSVGTextChild(svg, x, y, textContent, classList) adds a text element
 // to the svg element with the given x, y coordinates and textContent. The
