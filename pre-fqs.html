@@ -133,9 +133,9 @@
 	<div id="book-container">
 		<script type="module">
 			import { Book, Score } from './fqs.js';
-			import { GitHubStorage } from './src/github.js';
-			import { RepoNavigator } from './src/repo_navigator.js';
-			import { GitHubCredentials, createGitHubDialog } from './src/credential_store.js';
+			import { GitHubStorage } from './src/classes/github.js';
+			import { RepoNavigator } from './src/classes/repo_navigator.js';
+			import { GitHubCredentials, createGitHubDialog } from './src/classes/credential_store.js';
 
 			// Make book available globally
 			const book = new Book("book-container");

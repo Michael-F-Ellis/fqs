@@ -3,40 +3,13 @@
    Module globals
 *********************************************************************   
 */
-const scoreMap = new Map();
-let isDirty = false; // global flag that is set when we edit a score and cleared when export the scores
-let player; //  module global player object
-// This WeakMap holds window-level listeners for image resize events.
-// It's purpose is to ensure that listeners are garbage collected when the image
-// popup is destroyed.
-const imageResizeListeners = new WeakMap();
-// VOffsets is a top-level object used by the Pitch class when rendering
-// pitches. The offses are fractions of the font height.
-// where h is the font height.  Note that svg coordinates increase from
-// the top of the viewport, hence the reverse ordering for the 12 pitch
-// classes. The letter 'f' is empiricaly lowered .6 units to make it
-// appear a little lower than 'g', i.e. to compensate for the visual
-// effect of 'g's descender.
-
 // declare a singleton LineProblem to be used by all rendering operations
 // This is initialized after the lineProblem class is defined.
 let lineProblems;
 
-const vOffsets = {
-  "𝄪a": 1, "♮b": 1, "♭c": 13,   // B enharmonics (special case for C♭)
-  "♯a": 2, "♭b": 2, "𝄫c": 14,   // B-flat enharmonics (special case for C𝄫)
-  "𝄪g": 3, "♮a": 3, "𝄫b": 3,    // A enharmonics
-  "♯g": 4, "♭a": 4,              // A-flat enharmonics
-  "𝄪f": 5.6, "♮g": 5, "𝄫a": 5,    // G enharmonics
-  "𝄪e": 6, "♯f": 6.6, "♭g": 6,    // G-flat enharmonics
-  "♯e": 7, "♮f": 7.6, "𝄫g": 7,     // F enharmonics
-  "𝄪d": 8, "♮e": 8, "♭f": 8.6,     // E enharmonics
-  "♯d": 9, "♭e": 9, "𝄫f": 9.6,    // E-flat enharmonics
-  "𝄪c": 10, "♮d": 10, "𝄫e": 10, // D enharmonics
-  "𝄪b": -1, "♯c": 11, "♭d": 11, // D-flat enharmonics
-  "♯b": 0, "♮c": 12, "𝄫d": 12, // C enharmonics
-}
-
+const scoreMap = new Map();
+let isDirty = false; // global flag that is set when we edit a score and cleared when export the scores
+let player; //  module global player object
 // keyTable maps a key signature to a table of accidentals for each pitch class.
 // Key signatures are specified as a string containing a number of sharps or flats,
 // e.g. "0" for C major, "#1" for G major, "#2" for D major, etc. For flats, the key sig
@@ -58,12 +31,6 @@ const keyTable = {
   "&6": { "c": "♭", "d": "♭", "e": "♭", "f": "♮", "g": "♭", "a": "♭", "b": "♭" },
   "&7": { "c": "♭", "d": "♭", "e": "♭", "f": "♭", "g": "♭", "a": "♭", "b": "♭" },
 }
-// When transposing, we need to be able to look up the letter for a given key signature.
-const keyLetters = {
-  "0": "c", "#1": "g", "#2": "d", "#3": "a", "#4": "e", "#5": "b", "#6": "f#", "#7": "c#",
-  "&1": "f", "&2": "b", "&3": "e", "&4": "a", "&5": "d", "&6": "g", "&7": "c",
-}
-
 // Default parameters
 const defaultParameters = {
   // parameters control the behavior of the score editor and display.
@@ -775,12 +742,21 @@ class StringRing {
 class Transposer {
   constructor(fromKeySym, toKeySym) {
     this.pitchRing = new StringRing("cdefgab");
-    this.fromKeyLetter = keyLetters[fromKeySym];
-    this.toKeyLetter = keyLetters[toKeySym];
+    this.fromKeyLetter = Transposer.keyLetters[fromKeySym];
+    this.toKeyLetter = Transposer.keyLetters[toKeySym];
     this.distance = this.pitchRing.distance(this.fromKeyLetter, this.toKeyLetter);
     this.fromKeyLUT = keyTable[fromKeySym];
     this.toKeyLUT = keyTable[toKeySym];
   }
+
+  // When transposing, we need to be able to look up the letter for a given key
+  // signature.
+  static keyLetters = {
+    "0": "c", "#1": "g", "#2": "d", "#3": "a", "#4": "e", "#5": "b", "#6": "f#",
+    "#7": "c#", "&1": "f", "&2": "b", "&3": "e", "&4": "a", "&5": "d", "&6":
+      "g", "&7": "c",
+  }
+
   components = (pitchToken) => {
     // A pitch token consists of octave marks + accidentals + pitch letter.
     // We need to extract each of these parts.
@@ -1003,6 +979,26 @@ class Pitch {
   addClass = (className) => {
     this.classes.push(className);
   }
+  // vOffsets is used when rendering pitches. The offsets are fractions of the
+  // font height.  Note that svg coordinates increase from the top of the
+  // viewport, hence the reverse ordering for the 12 pitch classes. The letter
+  // 'f' is empiricaly lowered .6 units to make it appear a little lower than
+  // 'g', i.e. to compensate for the visual effect of 'g's descender.
+  static vOffsets = {
+    "𝄪a": 1, "♮b": 1, "♭c": 13,   // B enharmonics (special case for C♭)
+    "♯a": 2, "♭b": 2, "𝄫c": 14,   // B-flat enharmonics (special case for C𝄫)
+    "𝄪g": 3, "♮a": 3, "𝄫b": 3,    // A enharmonics
+    "♯g": 4, "♭a": 4,              // A-flat enharmonics
+    "𝄪f": 5.6, "♮g": 5, "𝄫a": 5,    // G enharmonics
+    "𝄪e": 6, "♯f": 6.6, "♭g": 6,    // G-flat enharmonics
+    "♯e": 7, "♮f": 7.6, "𝄫g": 7,     // F enharmonics
+    "𝄪d": 8, "♮e": 8, "♭f": 8.6,     // E enharmonics
+    "♯d": 9, "♭e": 9, "𝄫f": 9.6,    // E-flat enharmonics
+    "𝄪c": 10, "♮d": 10, "𝄫e": 10, // D enharmonics
+    "𝄪b": -1, "♯c": 11, "♭d": 11, // D-flat enharmonics
+    "♯b": 0, "♮c": 12, "𝄫d": 12, // C enharmonics
+  }
+
   // render() is a closure that renders the pitch at the specified x, y coordinates.
   render = (function render(svg, x, y, fontheight) {
     if (this.isChordPitch) {
@@ -1012,7 +1008,7 @@ class Pitch {
     // Adjust the y coordinate by the octave and vertical offset for this pitch
     y -= this.octave * fontheight;
     const gOffset = 7 // causes the pitch to be rendered as though each staff line is on g natural.
-    y += (gOffset + vOffsets[this.accidentalClass + this.letter]) * (fontheight / 12);
+    y += (gOffset + Pitch.vOffsets[this.accidentalClass + this.letter]) * (fontheight / 12);
     appendSVGTextChild(svg, x, y, this.letter, this.classes);
     return y
   });
@@ -1300,9 +1296,21 @@ class PitchLine {
       prevPitch.letter = letter;
       prevPitch.octave = octave;
     }
+    this.intervals = [];
+    this.calculator = new IntervalCalculator();
+  }
+  calculateIntervals() {
+    for (let i = 0; i < this.pitches.length - 1; i++) {
+      this.intervals.push(
+        this.calculator.calculateInterval(
+          this.pitches[i],
+          this.pitches[i + 1]
+        )
+      );
+    }
   }
   // render draws the staff, the barlines, and the pitches.
-  render = (function (svg, x0, y0, bookParms, lyricLine) {
+  render = (function (svg, x0, y0, bookParms, lyricLine, showIntervals) {
     // x0 is the x coordinate of the left edge of the line
     // y0 corresponds to the baseline of the center octave (0)
     const fontheight = bookParms.lyricFontHeight;
@@ -1353,6 +1361,7 @@ class PitchLine {
     // be updating the rendered pitches while the user is editing.
     let i = 0;
     this.fingerPositions = [];
+    this.intervalPositions = [];
     for (let pitch of this.pitches) {
       let x = x0;
       let y = y0 - 2 * fontheight;
@@ -1361,6 +1370,8 @@ class PitchLine {
         const ypitch = pitch.render(svg, x, y, fontheight);
         // save x,y positions for finger numbers
         this.fingerPositions.push([x, ypitch - fontheight])
+        // save x,y positions for interval  numbers
+        this.intervalPositions.push([x + fontwidth / 2, ypitch])
       }
       i++;
     }
@@ -1378,7 +1389,26 @@ class PitchLine {
       let y = ycenter; // holds are rendered in the middle of the staff
       x = x0 + hold * fontwidth;
       appendSVGTextChild(svg, x, y, '-', ["hold", "grey"]);
+    }// Now render intervals between the pitches
+    if (showIntervals) {
+      this.calculateIntervals();
+      const yadjust = fontheight / 2;
+      const xadjust = fontwidth / 2;
+      for (let i = 0; i < this.intervals.length; i++) {
+        const interval = this.intervals[i];
+        const x = this.intervalPositions[i][0];
+        const y = this.intervalPositions[i][1];
+
+        // Format interval text: number plus direction arrow
+        const intervalText = `${interval.number}`
+
+        // Apply appropriate interval quality class for styling
+        const classes = ['interval', `${interval.quality}-interval`];
+
+        appendSVGTextChild(svg, x + xadjust, y + yadjust, intervalText, classes);
+      }
     }
+
   });
 }
 
@@ -2009,25 +2039,30 @@ class IntervalCalculator {
   mapDifferenceToQuality(number, difference) {
     if (this.perfectIntervals.has(number)) {
       switch (difference) {
-        case -2: return 'double diminished';
+        case -2: return 'double-diminished';
         case -1: return 'diminished';
         case 0: return 'perfect';
         case 1: return 'augmented';
-        case 2: return 'double augmented';
+        case 2: return 'double-augmented';
       }
     } else {
       switch (difference) {
-        case -2: return 'double diminished';
+        case -2: return 'double-diminished';
         case -1: return 'minor';
         case 0: return 'major';
         case 1: return 'augmented';
-        case 2: return 'double augmented';
+        case 2: return 'double-augmented';
       }
     }
   }
 }
 // The ImageLine  class supports the 'image:' keyword.
 class ImageLine {
+  // This WeakMap holds window-level listeners for image resize events.  It's
+  // purpose is to ensure that listeners are garbage collected when the image
+  // popup is destroyed.
+  static imageResizeListeners = new WeakMap();
+
   constructor(text) {
     this.text = text.trim();
     this.wellFormed = false;
@@ -2098,7 +2133,7 @@ class ImageLine {
 
     // Store the listener with the popup as key.  When popup is removed, its
     // entry in WeakMap is automatically cleared
-    imageResizeListeners.set(popup, rescaleImage);
+    ImageLine.imageResizeListeners.set(popup, rescaleImage);
 
     popup.appendChild(img);
     document.body.appendChild(popup);
@@ -2348,7 +2383,7 @@ function preprocessScore(text) {
   text = stripComments(text);
   const blocks = text.split(/\n\s*\n/);
   //console.log(blocks);
-  const data = { text: text, lines: [] };
+  const data = { text: text, lines: [], showIntervals: false };
 
   // We must deal with three kinds of block.
   // 
@@ -2395,8 +2430,8 @@ function preprocessScore(text) {
       blocks.splice(i, 1);
       continue;
     }
-    if (block.startsWith("zoom:")) {
-      data.zoom = block.slice(5).trim();
+    if (block.startsWith("intervals:")) {
+      data.showIntervals = true;
       blocks.splice(i, 1);
       continue;
     }
@@ -2708,7 +2743,9 @@ function renderScore(wrapper, data) {
     } else {
       data.staff = 4;
     }
-
+    if (data.intervals) {
+      titleText += `\n\nintervals: ${data.intervals}`;
+    }
     titleEditor.textContent = titleText;
   }
 
@@ -2797,7 +2834,8 @@ function renderScore(wrapper, data) {
       // console.log(`${y} y before pitch line render`)
       try {
         pitchLine = new PitchLine(line.pitch, data.staff);
-        pitchLine.render(svg, defaultParameters.leftX, y, defaultParameters, lyricline);
+        pitchLine.render(svg, defaultParameters.leftX, y,
+          defaultParameters, lyricline, data.showIntervals);
         // y += data.staff * defaultParameters.lyricFontHeight;
         // console.log(`${y} y after pitch line render`)
       } catch (e) {
