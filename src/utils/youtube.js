@@ -1,5 +1,24 @@
+// This module provides a simple interface to the YouTube IFrame API
+// for playing only the audio portion of a YouTube video. The order of
+// operations is as follows:
+// 1. In a load event listener, call initYouTubeAPI() to initialize the YouTube
+//    IFrame API.
+// 2. initYouTubeAPI() injects the YouTube IFrame API script
+// 3. When that script loads, it calls our global onYouTubeIframeAPIReady()
+// 4. onYouTubeIframeAPIReady() creates the player instance
+// 5. The player becomes available globally via window.player
+// 6. Your code can now call player.loadVideoById() to load a video and
+//    use player.playYouTubeAt() to play it at a specific time and rate.
+// -------------------------------------------------------------------
+
+// The following need to be available at global scope 
+// for the YouTube IFrame API to work.
+window.onYouTubeIframeAPIReady = onYouTubeIframeAPIReady;
+window.player = null;
+
 // YouTube IFrame API initialization. Call this export function once the page loads.
 export function initYouTubeAPI() {
+  console.log('Initializing YouTube API...');
   let tag = document.createElement('script');
   tag.src = "https://www.youtube.com/iframe_api";
   tag.onload = () => {
@@ -12,8 +31,8 @@ export function initYouTubeAPI() {
 // Minimal player initialization. This implementation avoids third-party cookie issues.
 // See https://stackoverflow.com/a/64444601/426853
 export function onYouTubeIframeAPIReady() {
-  console.log('YouTube IFrame API ready');
-  player = new YT.Player('player', {
+  console.log('Creating YouTube player...');
+  window.player = new YT.Player('player', {
     height: '0',
     width: '0',
     videoId: '',
@@ -26,8 +45,8 @@ export function onYouTubeIframeAPIReady() {
       'onStateChange': onPlayerStateChange
     }
   });
+  console.log('Player created');
 }
-
 // Handle player state changes
 export function onPlayerStateChange(event) {
   const speakerIcons = document.querySelectorAll('.speaker-icon');
@@ -77,3 +96,4 @@ export function playYouTubeAt(videoId, timeSeconds, rate = 1.0) {
   console.log("Playing " + videoId + " from " + timeSeconds + " seconds at " + rate + "x");
   player.playVideo()
 }
+
