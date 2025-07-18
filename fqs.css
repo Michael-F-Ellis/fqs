@@ -253,3 +253,9 @@
   .major-interval {
     fill: black;
   }
+
+  .counter-pie-segment {
+    fill: #ccc;
+    stroke: #666;
+    stroke-width: 0.5;
+  }

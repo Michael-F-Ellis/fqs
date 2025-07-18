@@ -34,3 +34,13 @@ export function appendSVGLineChild(svg, x0, y0, x1, y1, classList) {
   svg.appendChild(line);
   return line;
 }
+
+export function appendSVGPathChild(svg, d, classList) {
+  const path = document.createElementNS("http://www.w.org/2000/svg", "path");
+  path.setAttribute("d", d);
+  if (classList) {
+    path.classList.add(...classList);
+  }
+  svg.appendChild(path);
+  return path;
+}

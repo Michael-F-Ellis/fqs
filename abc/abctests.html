@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+	<title>ABC to FQS Converter Tests</title>
+	<style>
+		pre {
+			font-family: monospace;
+			background: #f0f0f0;
+			padding: 10px;
+			margin: 10px;
+		}
+	</style>
+</head>
+
+<body>
+	<h1>ABC to FQS Converter Tests</h1>
+	<div id="output"></div>
+
+	<script>
+		// Redirect console output to page
+		const output = document.getElementById('output');
+		const log = console.log;
+		console.log = (...args) => {
+			output.innerHTML += `<pre>${args.join(' ')}</pre>`;
+			log.apply(console, args);
+		};
+	</script>
+
+	<script src="abc2fqs.js"></script>
+	<script src="abc2fqs.test.js"></script>
+</body>
+
+</html>

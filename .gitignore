@@ -23,3 +23,11 @@ quick.fqs
 
 # Node modules
 node_modules/
+
+# Screen shots
+shots/
+
+# Temporary files used for testing
+pieclocktest.fqs
+wedge.html
+server.log
