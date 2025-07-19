@@ -81,11 +81,9 @@ Try playing it if you have your instrument handy. The red notes are sharped.
 
 music: K#4 bb | c b e | d - bb | c b ^f | e - bb |
 counter: 3
-nomarkers:
 
 music: K#4 ^b g e | d c ^aa | g e f | e - - |
 counter: 1
-nomarkers:
 
 text: Here's a more complex one: the first eight bars of the Sarabande from J. S. Bach's
 third Cello Suite. You can click the speaker icon on either line to hear an excerpt from
@@ -140,7 +138,6 @@ zoom: 130
 text: The FQS staff has 4 lines. Each line represents a vertical span of 1 octave.
 
 music: K0 g ^g ^g ^g | ////cdef gabc defg abcd  efga bcde |
-nomarkers:
 
 text: Compressed vertical spacing preserves melodic shape (like regular
 notation), but allows 3 octaves to be displayed in a single stave.
@@ -173,7 +170,6 @@ sutable for many instrumental or vocal compositions.
 
 cue: Two octave staff (suitable for many scores)
 music: K0 /efga bcde | fgab cdef |
-nomarkers:
 EndOfScore
 title: Huge staff
 
@@ -185,7 +181,6 @@ text: You may have as many octaves as needed. Here's an extreme example.
 
 cue: 7 octaves (full range of an 88 key piano)
 music: K0 abcd efg; | abcd efg; | abcd efg; | abcd efg; | abcd efg; | abcd efg; | abcd efg; | abc; ; |
-nomarkers:
 EndOfScore
 title: Editing
 
@@ -217,12 +212,10 @@ zoom: 130
 cue: chromatic scale
 music: K0 c#cd#def#fg#ga#abc | cb&ba&ag&gfe&ed&dc |
 perbar: sharps_(red) flats_(blue)
-nomarkers:
 
 cue: FQS supports double flats (green) and double sharps (orange)
 music: K0 &&f &f %f #f ##f |
 pernote: 𝄫 ♭ ♮ ♯ 𝄪
-nomarkers:
 
 
 EndOfScore
@@ -239,7 +232,6 @@ key.
 
 music: K0 cdefgabc | K&3 /cdefgabc | K#4 /cdefgabc |
 perbar: C_major C_minor C♯_minor
-nomarkers:
 EndOfScore
 title: Octaves
 
@@ -250,7 +242,6 @@ immediately before it. By default, the new pitch will land in the the nearest oc
 position.
 
 music: K0 c g c f |
-nomarkers:
 
 text: In the example above, the input is "c g c f". The g below the c is closer than the
 one above (musical 4th vs musical 5th) and the f above the c is closer than the one below.
@@ -262,70 +253,50 @@ Note that octave shifts must appear BEFORE any sharps or flats and that sharps a
 not taken into consideration when calculating which octave is closest.
 
 music: K0 c ^g /c /f | ^c ^&g /c /#f |
-nomarkers:
 EndOfScore
 title: Rhythm
 
 zoom: 130
 
-text: FQS is beat oriented. You don't specify note durations. Instead, you tell
-it how each beat is divided.
+text: FQS is beat oriented. You don't specify note durations like "quarter note" 
+or "eighth note". Instead, you simply show how each beat is divided.
 .
   Horizontal space separates beats.
-  Pitches without space between them subdivide the beat equally.
-  A dash ( - ) extends the previous pitch.
-  A semicolon ( ; ) indicates a rest.
+  Pitches written without space between them subdivide the beat.
+  A dash ( - ) extends the previous pitch for another beat.
+  A semicolon ( ; ) indicates a full beat of rest.
 .
-  Rhythm markers above the staff and beat counter annotations below the staff
-  clarify the rhythm. Both are optional. 
-.
-  Rhythm markers appear by default, to suppress them, specify "nomarkers:" on 
-  a separate line.
-.
-  Beat counter annotations are omitted by default. To display them, specify
-  "counter: N" where N is the first beat number. Use 1 for N unless the line
-  starts with a partial measure.
+To make the rhythm easy to see, FQS uses a special counter glyph for every 
+beat when you enable the `counter` keyword. This glyph is a numbered 
+ring that shows both the beat number and its subdivisions.
 
 cue: durations (assuming 4/4 meter)
 music: K0 c - - - | d - d - | e e e e | f ; g ; |
 perbar: whole_note half_notes quarters with_rests
 counter: 1
 
-text: Note the hold (-) symbols above. They indicate when a note is sustained across
-the next beat.
-.
-Note also that rhythm markers for holds and rests are rendered in shades that match
-their symbols on the staff.
+text: The number in the center of the ring is the beat number within the measure.
+The spokes on the ring show how the beat is divided. A beat with a single note 
+has one segment, a beat with two notes has two, and so on.
 
 cue: Evenly divided beats
 music: K0 ff ff ff ff | ggg ggg ggg ggg | aaaa aaaa aaaa aaaa |
 perbar: eighths triplets sixteenths
 counter: 1
 
-text: Q. What about unevenly divided beats, like dotted eighth + sixteenth?
-A. That deserves a section of it's own. See below.
-EndOfScore
-title: Uneven rhythms
+text: For unevenly divided beats, like a dotted rhythm, the segments of the ring are sized
+proportionally to show the relative duration of each note.
 
-zoom: 130
-
-text: When a beat is unevenly divided, the vertical length of each rhythm marker
-segment is proportional the fraction of the beat alloted to the pitch 
-(or rest or sustain) below it.
-
-cue: Uneven beat divisions 3:1, 1:3, 7:1
-music: ^g--g gg-- g------g |
+cue: Uneven beat divisions (3:1, 1:3, and 7:1)
+music: K0 c---c c-c c-------c |
 counter: 1
-
-
-
-
 EndOfScore
 title: Ties
 
 zoom: 150
 
-text: Notes that persist across beats are indicated by a '-' at the start of the following beat.
+text: Notes that persist across beats are indicated by a '-' at the start
+of the following beat.
 
 cue: Ties
 music: | ab  -b - -c |
@@ -345,8 +316,7 @@ In the example below:
   def is a triplet that divides beat 2 into three notes
   gab is a triplet that spans 2 beats.
 .
-Notice that the spanning tuplet has a red 2 in front of its rhythm marker and
-the markers are twice as long as the markers for beat 2.
+Notice that the spanning tuplet has a red 2 beneath its counter glyph.
 
 music: K0 c def 2gab |
 counter: 1
@@ -397,26 +367,24 @@ a beat or beat tuplet.
 text: Underscores reduce the beat duration. This is useful for:
 . 
   • Pickup measures at the start of a piece
-  • Turnarounds where a measure is split between the end and beginning of a repeated section
+  • Turnarounds where a measure is split between the end and beginning of a 
+   repeated section
   • Uneven beat groupings in compound meters
 
 cue: Pickup measure and turnaround example
 music: K0 ^f_ ed | cb ag fe fg | ab cd e_ |
 counter: 3
 
-text: Note how the rhythm markers adjust their heights to show the relative durations.
+text: Note that the counter glyphs have a fraction beneath to indicate that
+that the note is less than a full beat (1/2 in this case.)
 Without the underscores, the pickup and turnaround durations would have been
-incorrect, as in the following example.
-
-cue: Pickup measure and turnaround example without underscores
-music: K0 ^f ed | cb ag fe fg | ab cd e |
-counter: 3
+incorrect
 
 text: Underscores also work in lyrics.
 
 cue: Pickup and turnaround with lyrics
 pitch: K0 ^f ed | cb ag fe fg | ab cd e |
-lyric: then_ it.goes | down* ** *.and turns.a  | round* ** *_ |
+lyric: then_ it.goes | down* ** *.and turns.a | round* ** *_ |
 counter: 3
 
 text: Uneven compound meters often use partial beats. Below, the underscore
@@ -514,12 +482,10 @@ text: FQS also supports lyrics. Here's Happy Birthday again - this time in E♭ 
 pitch: K&3 bb | c b e | d bb | c b ^f | e bb |
 lyric: Hap.py | birth day to | you -; Hap.py | birth day to | you -; Hap.py |
 counter: 3
-nomarkers:
 
 pitch: K&3 ^b g e | d c ^aa | g e f | e |
 lyric: birth day dear | NAME * Hap.py | birth day to | you - - |
 counter: 1
-nomarkers:
 
 text: The second line above was created from the following 3 lines of text:
 .
@@ -561,14 +527,12 @@ text: FQS supports chord abbreviations. Chords can be placed on any beat.
 chord: Em7 _ _ _ A7 _ _ _ Dmaj7
 music: K#2 ^^g f e d | c b a g | f - - - |
 counter: 1
-nomarkers:
 
 text: Chords can also be aligned with lyrics alone. (Very handy for songwriting.)
 
 chord: Am7 _ _ _ Dm7 _ _ _ G7 _ _ _ Cmaj7
-lyric: Fly -me to.the -moon | - ; let me | play -a mong.the -stars | - - ; ; |
+lyric: Fly -me to.the -moon | - ; Let me | play -a mong.the -stars | - - ; ; |
 counter: 1
-nomarkers:
 EndOfScore
 title: Annotations
 
@@ -586,7 +550,6 @@ cue: Cues, such as this one, may stand apart from the notation.
 
 cue: You may also attach a cue to any line of notation.
 music: K0 c d e f | g a b c |
-nomarkers:
 
 text: PER BAR - bar annotations attach to individual measures. They're useful
 for indicating changes in meter, measure numbers, etc., but you can use them for
@@ -602,7 +565,6 @@ perbeat: mm=120 _ rall. _ 𝄐 _a_tempo _ _ molto_rall.
 pitch: K&3 ^b g e | d c ^aa | g e f | e |
 lyric: birth day dear | NAME * Hap.py | birth day to | you - - |
 counter: 1
-nomarkers:
 
 text: PER NOTE - note annotations attach to individual notes. Use them
 as you wish. I tend to use them for dynamic markings.
@@ -610,13 +572,11 @@ as you wish. I tend to use them for dynamic markings.
 pitch: K&3 ^b g e | d c ^aa | g e f | e |
 lyric: birth day dear | NAME * Hap.py | birth day to | you - - |
 pernote: mf cresc. _ _ _ ff
-nomarkers:
 
 text: FINGERING - finger annotations attach to individual notes above the staff.
 
 finger: 0 4 1 -1 2 4
 music: K0 ^g | c d e f | g - - - |
-nomarkers:
 
 text: EVERYTHING - Here's the last line of Happy Birthday once again, this time
 with all possible annotation types.
@@ -642,7 +602,6 @@ and display the musical interval number between pitches.
 
 
 music: K#4 ^b g e | d c ^aa | g e f | e - ; |
-nomarkers:
 
 text: The interval numbers are colored using the same scheme as for pitch names.
 - Perfect (1,4,5) and major imperfect (3,6,7) interval numbers are black.
@@ -650,20 +609,17 @@ text: The interval numbers are colored using the same scheme as for pitch names.
 - Augmented intervals (perfect and imperfect) are red
 
 music: K0 c ^g /b ^f #g /c |
-nomarkers:
 
 text: Double augmented and double diminished are colored orange and green
 respectively.
 
 music: K0 &c ^#g &c |
-nomarkers:
  24
 
 text: Compound intervals are support up to a 24th
 
 
 music: K0 c ^d /c ^^a  //c ^^^g |
-nomarkers:
 EndOfScore
 title: Notation Language Overview
 
@@ -681,7 +637,6 @@ defined keywords are:
   music:
   pitch:
   lyric:
-  nomarkers:
   perbar:
   perbeat:
   pernote:
@@ -701,7 +656,6 @@ without empty lines between, e.g.
   music:
   cue:
   chord:
-  nomarkers:
   perbeat:
   perbar:
   pernote:
@@ -714,7 +668,6 @@ or
   pitch:
   cue:
   chord:
-  nomarkers:
   perbeat:
   perbar:
   pernote:
@@ -739,7 +692,7 @@ and 'lyric:' keywords:
    • Rest: ( ; ) semicolon indicates a rest.
    • Underscore: ( _ ) creates a partial beat
 For the 'lyric:' keyword only:
-   • Syllable: A group of contiguous letter indicates an attack.
+   • Syllable: A group of contiguous letters indicates an attack.
    • Period: A period ( . ) separates syllables that fall in the same beat.
 
 text: Pitch lines contain pitches, key signatures and barlines.
@@ -777,7 +730,7 @@ Barlines are needed so altered pitches cancel at end of measure.
 
 text: ANNOTATIONS (all optional):
     chord: chord symbols aligned to beats
-    counter: displays small beat numbers below the start of each beat. takes
+    counter: displays small beat numbers below the start of each beat. It takes
       an integer argument to specify the beat number to start at (for 
       partial measures.)
     cue: A line of text you want to appear as a cue.  Cues may be attached to
@@ -801,5 +754,4 @@ text: ANNOTATIONS (all optional):
 
 music: K0 ^^g f e d | c b a g | f e d b | c - - - |
 pernote: a_tempo | _ cresc. | molto_rall.
-nomarkers:
 EndOfScore

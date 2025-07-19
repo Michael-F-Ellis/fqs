@@ -1,4 +1,4 @@
-import { appendSVGTextChild, appendSVGPathChild, appendSVGLineChild } from "../utils/svg.js";
+import { appendSVGTextChild, appendSVGLineChild } from "../utils/svg.js";
 // The Counter class is similar to the PerBeat class. It provides
 // an automated method for rendering beat numbers above the beats.
 // The constructor takes 2 arguments:
@@ -19,94 +19,128 @@ export class Counter {
 
     // We need to generate a list of beat numbers that resets to 1
     // each time the beat position exceeds the next bar position.
-    // The counting will begin with n unless n is <= 0, in which
-    // case we will start with 1 for the first beat after the first bar.
+    // This logic must account for multi-beat tuplets.
     let count = (n > 0) ? n : 1;
     this.counts = [];
-    let i = 0; // index into bars
-    for (let beat of this.beats) {
-      if (i < this.bars.length) {
-        if (beat >= this.bars[i]) { // we've crossed the next bar
-          count = 1;
-          i++;
+    let barIndex = 0;
+    
+    for (let i = 0; i < this.tuplets.length; i++) {
+        const tupletSize = this.tuplets[i].tupletSize;
+        const beatPosition = this.beats[i];
+
+        for (let j = 0; j < tupletSize; j++) {
+            if (barIndex < this.bars.length && beatPosition >= this.bars[barIndex]) {
+                count = 1;
+                // Only advance barIndex for the first beat of a tuplet to avoid resetting mid-tuplet
+                if (j === 0) { 
+                    barIndex++;
+                }
+            }
+            this.counts.push(count);
+            count++;
         }
-      }
-      this.counts.push(count);
-      count++;
     }
   }
 
-  createPie(svg, cx, cy, radius, startFractions) {
+  createAnnulus(svg, cx, cy, radius, startFractions, beatNumber) {
     const round = (val) => Math.round(val * 1000) / 1000;
+    const innerRadius = radius * 0.6; // Make the hole larger
 
-    // Draw the clock face
-    const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
-    circle.setAttribute("cx", cx);
-    circle.setAttribute("cy", cy);
-    circle.setAttribute("r", radius);
-    circle.setAttribute("fill", "none");
-    circle.classList.add("counter-pie-segment");
-    svg.appendChild(circle);
+    // Draw the outer circle (the annulus boundary)
+    const outerCircle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+    outerCircle.setAttribute("cx", cx);
+    outerCircle.setAttribute("cy", cy);
+    outerCircle.setAttribute("r", radius);
+    outerCircle.setAttribute("fill", "none");
+    outerCircle.classList.add("counter-annulus-outer");
+    svg.appendChild(outerCircle);
 
-    for (const startFraction of startFractions) {
-        const startAngle = startFraction * 2 * Math.PI - (Math.PI / 2);
-        // Calculate the end point of the "hand"
-        const x1 = round(cx + radius * Math.cos(startAngle));
-        const y1 = round(cy + radius * Math.sin(startAngle));
+    // Draw the inner circle to create the hole in the annulus
+    const innerCircle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+    innerCircle.setAttribute("cx", cx);
+    innerCircle.setAttribute("cy", cy);
+    innerCircle.setAttribute("r", innerRadius);
+    innerCircle.setAttribute("fill", "white"); // Use background color
+    innerCircle.classList.add("counter-annulus-inner");
+    svg.appendChild(innerCircle);
 
-        // Draw the hand
-        appendSVGLineChild(svg, cx, cy, x1, y1, ["counter-pie-segment"]);
+
+    // Draw the radial lines (spokes)
+    if (startFractions && startFractions.length > 0) {
+        for (const startFraction of startFractions) {
+            const angle = startFraction * 2 * Math.PI - (Math.PI / 2);
+            const startX = round(cx + innerRadius * Math.cos(angle));
+            const startY = round(cy + innerRadius * Math.sin(angle));
+            const endX = round(cx + radius * Math.cos(angle));
+            const endY = round(cy + radius * Math.sin(angle));
+
+            appendSVGLineChild(svg, startX, startY, endX, endY, ["counter-annulus-spoke"]);
+        }
     }
+
+    // Draw the beat number in the center
+    appendSVGTextChild(svg, cx, cy, beatNumber, ["counter"]);
   }
 
 
   render(svg, x0, y0, fontwidth) {
-    let i = 0;
-    for (let count of this.counts) {
-      let beatX = x0 + this.beats[i] * fontwidth;
-      appendSVGTextChild(svg, beatX, y0, count + '', ["counter"]);
-
+    let countIndex = 0;
+    for (let i = 0; i < this.tuplets.length; i++) {
+      const tupletSize = this.tuplets[i].tupletSize;
       const fractions = this.markers.beatFractions[i];
-      if (fractions && fractions.length > 1) {
-        // Check if all fractions are equal
-        const firstVal = fractions[0].val;
-        const allEqual = fractions.every(f => Math.abs(f.val - firstVal) < 1e-9);
+      const beatX = x0 + this.beats[i] * fontwidth;
+      const baseFraction = this.markers.baseFractions[i];
 
-        if (!allEqual) {
-          const startFractions = [];
-          let cumulativeFraction = 0;
-          
-          const attacks = []; // Store info about attacks: { offset: number, span: number }
-          let offsetChars = 0;
+      // Render the main glyph for the first beat of the tuplet
+      const startFractions = [];
+      let cumulativeFraction = 0;
+      for (let j = 0; j < fractions.length; j++) {
+          startFractions.push(cumulativeFraction);
+          cumulativeFraction += fractions[j].val;
+      }
+      if (cumulativeFraction > 0 && cumulativeFraction < 1.01) {
+          startFractions.push(cumulativeFraction);
+      }
+      
+      const firstItemSpan = fractions.length > 0 ? fractions[0].span : 1;
+      const radius = fontwidth * 0.7;
+      const cx = beatX + (firstItemSpan * fontwidth / 2);
+      const cy = y0 - fontwidth / 4;
+      this.createAnnulus(svg, cx, cy, radius, startFractions, this.counts[countIndex] + '');
 
-          for (let j = 0; j < fractions.length; j++) {
-            const frac = fractions[j];
-            // Collect start fractions for ALL components
-            startFractions.push(cumulativeFraction);
+      let indicatorY = cy + radius + 3;
 
-            if (frac.kind === '*') {
-              attacks.push({ offset: offsetChars, span: frac.span });
+      if (tupletSize > 1) {
+        // Add the tuplet indicator number
+        appendSVGTextChild(svg, cx, indicatorY, tupletSize, ["tuplet-indicator"]);
+        indicatorY += 4; // Move next indicator down
+
+        // Render bare numbers for the subsequent beats spanned by the tuplet
+        let targetBeat = 2;
+        let durationTracker = 0;
+        let charOffset = 0;
+
+        for (let k = 0; k < fractions.length; k++) {
+            const frac = fractions[k];
+            const beatThreshold = (targetBeat - 1) / tupletSize;
+            
+            if (durationTracker + frac.val / 2 >= beatThreshold) {
+                const subBeatCx = beatX + (charOffset * fontwidth) + (frac.span * fontwidth / 2);
+                appendSVGTextChild(svg, subBeatCx, cy, this.counts[countIndex + targetBeat - 1] + '', ["counter"]);
+                targetBeat++;
+                if (targetBeat > tupletSize) break;
             }
-            offsetChars += frac.span;
-            cumulativeFraction += frac.val;
-          }
-
-          if (attacks.length > 0) { // We need at least one attack to center on
-              let targetAttack;
-              if (attacks.length >= 2) {
-                  targetAttack = attacks[1]; // Center on the second attack
-              } else {
-                  targetAttack = attacks[0]; // Center on the first (and only) attack
-              }
-
-              const radius = fontwidth / 2;
-              const cx = beatX + (targetAttack.offset * fontwidth) + (targetAttack.span * fontwidth / 2);
-              const cy = y0 - fontwidth / 4;
-              this.createPie(svg, cx, cy, radius, startFractions);
-          }
+            durationTracker += frac.val;
+            charOffset += frac.span;
         }
       }
-      i++;
+
+      if (baseFraction.num !== baseFraction.den) {
+        const fractionString = `${baseFraction.num}/${baseFraction.den}`;
+        appendSVGTextChild(svg, cx, indicatorY, fractionString, ["partial-beat-indicator"]);
+      }
+      
+      countIndex += tupletSize;
     }
   }
 }

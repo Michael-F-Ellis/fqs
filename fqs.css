@@ -1,261 +1,299 @@
-  img {
-    margin-left: 5%;
-  }
+img {
+  margin-left: 5%;
+}
 
-  div.edit {
-    width: 100%;
-    margin-left: 0;
-    margin-right: 0;
-    margin-top: 2em;
-    margin-bottom: 2em;
-    padding-left: 5%;
-  }
+div.edit {
+  width: 100%;
+  margin-left: 0;
+  margin-right: 0;
+  margin-top: 2em;
+  margin-bottom: 2em;
+  padding-left: 5%;
+}
 
 
-  div.score,
-  div.score-toc {
-    width: 100%;
-    margin-left: 0;
-    margin-right: 0;
-    margin-top: 2em;
-    margin-bottom: 2em;
-    padding: 0;
-  }
+div.score,
+div.score-toc {
+  width: 100%;
+  margin-left: 0;
+  margin-right: 0;
+  margin-top: 2em;
+  margin-bottom: 2em;
+  padding: 0;
+}
 
-  .pencil-icon {
-    font-size: 16px;
-    fill: green;
-  }
+.pencil-icon {
+  font-size: 16px;
+  fill: green;
+}
 
-  .speaker-icon {
-    font-size: 12px;
-    opacity: 0.5;
-  }
+.speaker-icon {
+  font-size: 12px;
+  opacity: 0.5;
+}
 
-  .speaker-icon-active {
-    opacity: 1
-  }
+.speaker-icon-active {
+  opacity: 1
+}
 
-  .score-icon {
-    font-size: 12px;
-  }
+.score-icon {
+  font-size: 12px;
+}
 
-  /* Font sizes (adjusted dynamically at render time) */
-  .lineproblem {
-    font: 8px monospace;
-    fill: red;
-  }
+/* Font sizes (adjusted dynamically at render time) */
+.lineproblem {
+  font: 8px monospace;
+  fill: red;
+}
 
-  .title {
-    font: 18px sans-serif;
-  }
+.title {
+  font: 18px sans-serif;
+}
 
-  .preface {
-    font: 10px sans-serif;
-  }
+.preface {
+  font: 10px sans-serif;
+}
 
-  .postscript {
-    font: 10px sans-serif;
-  }
+.postscript {
+  font: 10px sans-serif;
+}
 
-  .text {
-    font: 10px sans-serif;
-  }
+.text {
+  font: 10px sans-serif;
+}
 
-  /* chord name, e.g. 'C' */
-  .chord {
-    font-family: monospace;
-    font-size: 13px;
-    font-style: bold;
-  }
+/* chord name, e.g. 'C' */
+.chord {
+  font-family: monospace;
+  font-size: 13px;
+  font-style: bold;
+}
 
-  /* chord text, e.g. 'maj7' */
-  .chord-text {
-    font-family: Arial, sans-serif;
-    font-size: 8px;
-    font-style: bold;
-  }
+/* chord text, e.g. 'maj7' */
+.chord-text {
+  font-family: Arial, sans-serif;
+  font-size: 8px;
+  font-style: bold;
+}
 
-  /* next 4 classes are used by RhythmMarkers.render()*/
-  .pitch-marker {
-    stroke-width: 2;
-    stroke: black;
-  }
+/* next 4 classes are used by RhythmMarkers.render()*/
+.pitch-marker {
+  stroke-width: 2;
+  stroke: black;
+}
 
-  .rest-marker {
-    stroke-width: 2;
-    stroke: rgb(216, 223, 12);
-    /* yellowish */
-  }
+.rest-marker {
+  stroke-width: 2;
+  stroke: rgb(216, 223, 12);
+  /* yellowish */
+}
 
-  .hold-marker {
-    stroke-width: 2;
-    stroke: rgb(160, 160, 160);
-    /* grey */
-  }
+.hold-marker {
+  stroke-width: 2;
+  stroke: rgb(160, 160, 160);
+  /* grey */
+}
 
-  .rhythm-connector {
-    stroke-width: 0.5;
-    stroke: black;
-  }
+.rhythm-connector {
+  stroke-width: 0.5;
+  stroke: black;
+}
 
-  .grey {
-    fill: rgb(160, 160, 160);
-  }
+.grey {
+  fill: rgb(160, 160, 160);
+}
 
-  .yellowish {
-    fill: rgb(216, 223, 12);
-  }
+.yellowish {
+  fill: rgb(216, 223, 12);
+}
 
-  .red {
-    fill: rgb(209, 34, 34);
-  }
+.red {
+  fill: rgb(209, 34, 34);
+}
 
-  .lyric {
-    font: 12px monospace;
-  }
+.lyric {
+  font: 12px monospace;
+}
 
-  .rest,
-  .pitch {
-    font: 12px monospace;
-  }
+.rest,
+.pitch {
+  font: 12px monospace;
+}
 
-  .chord-pitch {
-    font: 10px monospace;
-  }
+.chord-pitch {
+  font: 10px monospace;
+}
 
-  .pernote {
-    font: 8px monospace;
-    font-style: italic;
-  }
+.pernote {
+  font: 8px monospace;
+  font-style: italic;
+}
 
-  .fingering {
-    font: 6px monospace;
-    fill: rgb(2, 94, 2);
-  }
+.fingering {
+  font: 6px monospace;
+  fill: rgb(2, 94, 2);
+}
 
-  .perbar {
-    font: 8px monospace;
-    font-style: italic;
-  }
+.perbar {
+  font: 8px monospace;
+  font-style: italic;
+}
 
-  .counter {
-    font: 6px monospace;
-    font-style: italic;
-  }
+.counter {
+  font: 5px monospace;
+  font-style: italic;
+  text-anchor: middle;
+  dominant-baseline: middle;
+}
 
-  .perbeat {
-    font: 6px monospace;
-    font-style: italic;
-  }
+.perbeat {
+  font: 6px monospace;
+  font-style: italic;
+}
 
-  .cue {
-    /* cue text */
-    fill: rgb(84, 84, 84);
-    font: 8px monospace;
-  }
+.cue {
+  /* cue text */
+  fill: rgb(84, 84, 84);
+  font: 8px monospace;
+}
 
-  /* Note that the color of the text is set with the    *
+/* Note that the color of the text is set with the    *
        * fill property, the color property is for HTML only */
-  .♭ {
-    /* flat */
-    fill: rgb(152, 140, 254);
-    /* font-style: italic; */
+.♭ {
+  /* flat */
+  fill: rgb(152, 140, 254);
+  /* font-style: italic; */
 
-  }
+}
 
-  .𝄫 {
-    /* double flat */
-    fill: rgb(4, 182, 4);
-    font-style: italic;
-  }
+.𝄫 {
+  /* double flat */
+  fill: rgb(4, 182, 4);
+  font-style: italic;
+}
 
-  .♯ {
-    /* sharp */
-    fill: red;
-    /* font-style: italic; */
-  }
+.♯ {
+  /* sharp */
+  fill: red;
+  /* font-style: italic; */
+}
 
-  .𝄪 {
-    /* double sharp */
-    fill: orange;
-    font-style: italic;
-  }
+.𝄪 {
+  /* double sharp */
+  fill: orange;
+  font-style: italic;
+}
 
-  /* styles for side by side layout */
-  div.score-wrapper {
-    display: flex;
-    flex-direction: row;
-    width: 100%;
-  }
+/* styles for side by side layout */
+div.score-wrapper {
+  display: flex;
+  flex-direction: row;
+  width: 100%;
+}
 
-  div.inner-wrapper {
-    position: sticky;
-    top: 0;
-    padding-left: 1%;
-    overflow-y: auto;
-  }
+div.inner-wrapper {
+  position: sticky;
+  top: 0;
+  padding-left: 1%;
+  overflow-y: auto;
+}
 
-  pre.source {
-    position: sticky;
-    top: 0;
-    padding-left: 5%;
-    overflow-y: auto;
-  }
+pre.source {
+  position: sticky;
+  top: 0;
+  padding-left: 5%;
+  overflow-y: auto;
+}
 
-  .section-editor {
-    width: 90%;
-    min-height: 100px;
-    height: fit-content;
-    margin: 10px 5% 5% 10px;
-    padding: 1em;
-    border: 1px solid #ccc;
-    background: #f5f5f5;
-  }
+.section-editor {
+  width: 90%;
+  min-height: 100px;
+  height: fit-content;
+  margin: 10px 5% 5% 10px;
+  padding: 1em;
+  border: 1px solid #ccc;
+  background: #f5f5f5;
+}
 
-  /* Center SVG elements with 5% padding left, right and bottom*/
-  svg {
-    padding-left: 5%;
-    display: block !important;
-    width: 100% !important;
-  }
+/* Center SVG elements with 5% padding left, right and bottom*/
+svg {
+  padding-left: 5%;
+  display: block !important;
+  width: 100% !important;
+}
 
-  .interval {
-    font: 6px monospace;
-  }
+.interval {
+  font: 6px monospace;
+}
 
-  /* Using existing colors from pitch alterations */
-  .minor-interval,
-  .diminished-interval {
-    /* matches ♭ class */
-    fill: rgb(152, 140, 254);
-  }
+/* Using existing colors from pitch alterations */
+.minor-interval,
+.diminished-interval {
+  /* matches ♭ class */
+  fill: rgb(152, 140, 254);
+}
 
-  .double-diminished-interval {
-    /* matches 𝄫 class */
-    fill: rgb(4, 182, 4);
-    font-style: italic;
-  }
+.double-diminished-interval {
+  /* matches 𝄫 class */
+  fill: rgb(4, 182, 4);
+  font-style: italic;
+}
 
-  .augmented-interval {
-    /* matches ♯ class */
-    fill: red;
-  }
+.augmented-interval {
+  /* matches ♯ class */
+  fill: red;
+}
 
-  .double-augmented-interval {
-    /* matches 𝄪 class */
-    fill: orange;
-    font-style: italic;
-  }
+.double-augmented-interval {
+  /* matches 𝄪 class */
+  fill: orange;
+  font-style: italic;
+}
 
-  /* Perfect and major intervals use default black */
-  .perfect-interval,
-  .major-interval {
-    fill: black;
-  }
+/* Perfect and major intervals use default black */
+.perfect-interval,
+.major-interval {
+  fill: black;
+}
 
-  .counter-pie-segment {
-    fill: #ccc;
-    stroke: #666;
-    stroke-width: 0.5;
-  }
+.counter-pie-segment {
+  fill: #ccc;
+  stroke: #666;
+  stroke-width: 0.5;
+}
+
+.counter-annulus-outer {
+  stroke: #c8c6c6;
+  stroke-width: 0.5;
+}
+
+.counter-annulus-inner,
+{
+stroke: #666;
+stroke-width: 0.5;
+}
+
+.counter-annulus-spoke {
+  stroke: #666;
+  stroke-width: 1.0;
+}
+
+.counter-annulus-inner {
+  fill: #fcfafa;
+  stroke: #faf6f6;
+  stroke-width: 0.5
+}
+
+.tuplet-indicator {
+  font-size: 6px;
+  fill: red;
+  text-anchor: middle;
+}
+
+.partial-beat-indicator {
+  font-size: 6px;
+  font-weight: bold;
+  fill: rgb(152, 140, 254);
+  /* blue */
+  text-anchor: middle;
+}

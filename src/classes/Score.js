@@ -371,6 +371,8 @@ function renderScore(wrapper, data) {
     if (lyricline) {
       rhythm = new RhythmMarkers(lyricline);
     }
+    /*
+    DEPRECATED
     // Render the rhythm markers unless nomarkers has been set.
     if (line.lyric && !line.nomarkers) {
       // check that there is a least one non-empty rhythm marker before
@@ -380,6 +382,7 @@ function renderScore(wrapper, data) {
         rhythm.render(svg, defaultParameters.leftX, y, lyricline.beats, defaultParameters.lyricFontWidth);
       }
     }
+      */
     // Render the pitches, if any
     let pitchLine = undefined;
     // console.log(`${y} y before pitch line decision`)

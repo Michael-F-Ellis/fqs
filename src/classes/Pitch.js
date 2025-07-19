@@ -76,18 +76,22 @@ export class Pitch {
     "♯b": 0, "♮c": 12, "𝄫d": 12, // C enharmonics
   }
 
+  calculateY(y, fontheight) {
+    // Adjust the y coordinate by the octave and vertical offset for this pitch
+    y -= this.octave * fontheight;
+    const gOffset = 7 // causes the pitch to be rendered as though each staff line is on g natural.
+    y += (gOffset + Pitch.vOffsets[this.accidentalClass + this.letter]) * (fontheight / 12);
+    return y;
+  }
+
   // render() is a closure that renders the pitch at the specified x, y coordinates.
   render = (function render(svg, x, y, fontheight) {
     if (this.isChordPitch) {
       this.classes.push("chord-pitch");
     }
-    // Draw the pitch at the specified x, y coordinates.
-    // Adjust the y coordinate by the octave and vertical offset for this pitch
-    y -= this.octave * fontheight;
-    const gOffset = 7 // causes the pitch to be rendered as though each staff line is on g natural.
-    y += (gOffset + Pitch.vOffsets[this.accidentalClass + this.letter]) * (fontheight / 12);
-    appendSVGTextChild(svg, x, y, this.letter, this.classes);
-    return y
+    const finalY = this.calculateY(y, fontheight);
+    appendSVGTextChild(svg, x, finalY, this.letter, this.classes);
+    return finalY;
   });
 }
 // The PitchLine class is used to render a single line of pitches from a
@@ -366,7 +370,7 @@ export class PitchLine {
       if (this.inChord > -1) {
         pitch.isChordPitch = true;
         this.chordIndex++
-        // pitch.addClass('chord-pitch');
+        pitch.addClass('chord-pitch');
       }
       this.pitches.push(pitch);
       // console.log(letter, octave, accClass)
@@ -400,11 +404,9 @@ export class PitchLine {
     const ylines = [];
     for (let i = 0; i < this.staffLines; i++) {
       if (i === 0) {
-        // ylines.push(y0 + 2 * fontheight);
         ylines.push(y0);
       } else {
         ylines.push(ylines[i - 1] - fontheight);
-
       }
     }
     const yline0 = ylines[0];
@@ -432,41 +434,69 @@ export class PitchLine {
       line.setAttribute("stroke-width", 0.5);
       svg.appendChild(line);
     }
-    // Loop through the pitches and render them at the corresponding 
-    // attack locations. It is not an error if the number of pitches
-    // is not equal to the number of attack locations because we may
-    // be updating the rendered pitches while the user is editing.
-    let i = 0;
+
+    // Create a unified array of all items to be rendered on the staff
+    const items = [];
+    let pitchIndex = 0;
+    attacks.forEach(pos => {
+        if (pitchIndex < this.pitches.length) {
+            items.push({ type: 'pitch', pitch: this.pitches[pitchIndex], xPos: pos });
+            pitchIndex++;
+        }
+    });
+    rests.forEach(pos => items.push({ type: 'rest', xPos: pos }));
+    holds.forEach(pos => items.push({ type: 'hold', xPos: pos }));
+
+    // Sort items by their x-position to process them in order
+    items.sort((a, b) => a.xPos - b.xPos);
+
+    // Calculate Y positions
+    let lastPitchY = null;
+    for (const item of items) {
+        if (item.type === 'pitch') {
+            const y = y0 - 2 * fontheight;
+            item.yPos = item.pitch.calculateY(y, fontheight);
+            lastPitchY = item.yPos;
+        } else {
+            item.yPos = lastPitchY; // Tentatively assign last pitch's Y
+        }
+    }
+
+    // Handle leading rests/holds
+    let firstPitchY = items.find(item => item.type === 'pitch')?.yPos || null;
+    if (firstPitchY !== null) {
+        for (const item of items) {
+            if (item.yPos === null) {
+                item.yPos = firstPitchY;
+            } else {
+                // Stop once we hit the first pitch
+                break;
+            }
+        }
+    }
+
+    // Render all items
     this.fingerPositions = [];
     this.intervalPositions = [];
-    for (let pitch of this.pitches) {
-      let x = x0;
-      let y = y0 - 2 * fontheight;
-      if (i < attacks.length) {
-        x = x0 + attacks[i] * fontwidth;
-        const ypitch = pitch.render(svg, x, y, fontheight);
-        // save x,y positions for finger numbers
-        this.fingerPositions.push([x, ypitch - fontheight])
-        // save x,y positions for interval  numbers
-        this.intervalPositions.push([x + fontwidth / 2, ypitch])
-      }
-      i++;
+    for (const item of items) {
+        const x = x0 + item.xPos * fontwidth;
+        if (item.yPos !== null) {
+            if (item.type === 'pitch') {
+                if (item.pitch.isChordPitch) {
+                    item.pitch.addClass('chord-pitch');
+                }
+                appendSVGTextChild(svg, x, item.yPos, item.pitch.letter, item.pitch.classes);
+                this.fingerPositions.push([x, item.yPos - fontheight]);
+                this.intervalPositions.push([x + fontwidth / 2, item.yPos]);
+            } else if (item.type === 'rest') {
+                appendSVGTextChild(svg, x, item.yPos, ";", ["rest", "yellowish"]);
+            } else if (item.type === 'hold') {
+                appendSVGTextChild(svg, x, item.yPos, '-', ["hold", "grey"]);
+            }
+        }
     }
-    const ycenter = (yline0 + ylines[ylines.length - 1]) / 2;
-    // Now render the rests
-    for (let rest of rests) {
-      let x = x0;
-      let y = ycenter; // rests are rendered in the middle of the staff
-      x = x0 + rest * fontwidth;
-      appendSVGTextChild(svg, x, y, ";", ["rest", "yellowish"]);
-    };
-    // Now render the holds
-    for (let hold of holds) {
-      let x = x0;
-      let y = ycenter; // holds are rendered in the middle of the staff
-      x = x0 + hold * fontwidth;
-      appendSVGTextChild(svg, x, y, '-', ["hold", "grey"]);
-    }// Now render intervals between the pitches
+    
+    // Now render intervals between the pitches
     if (showIntervals) {
       this.calculateIntervals();
       const yadjust = fontheight / 2;

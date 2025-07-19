@@ -17,7 +17,7 @@ The `simpler` branch represents a focused effort to refine the core notation sys
 ### Key Features and Priorities:
 
 -   **Core Notation**: The primary focus is on the text-based language for representing pitches, rhythms, chords, and lyrics.
--   **`counter` Keyword**: This feature is slated for a significant enhancement to provide detailed rhythmic information, with the goal of making the current rhythm markers obsolete.
+-   **`counter` Keyword**: This feature has been significantly enhanced. When enabled, it displays a "numbered annulus" (a segmented ring with the beat number in the center) for each beat. This glyph serves as the primary visual indicator for rhythm, showing subdivisions for all beats and special indicators for tuplets and partial beats. The old vertical rhythm markers have been deprecated.
 -   **`intervals` Keyword**: The functionality to display musical intervals between notes will be retained.
 -   **Side Features**: YouTube integration, image embedding, and GitHub integration will persist but are not the current development focus.
 -   **Deprecated Features**: The `pernote`, `perbeat`, and `perbar` annotation keywords are being de-emphasized, as this functionality can be replicated by annotating a PDF export of the score.
@@ -29,22 +29,11 @@ FQS distinguishes itself from other notation systems (including other text-based
 -   **Elimination of Key Signatures/Clefs**: Simplifies reading by using color and absolute note names.
 -   **Proportional Vertical Spacing**: The vertical position of a note directly corresponds to its pitch, with semitones spaced equally.
 -   **Visible Note Names**: Aids in sight-reading and memorization.
--   **Intuitive Rhythm Notation**: Handles complex tuplets and beat subdivisions with a simple, consistent syntax (e.g., `bc` for eighths, `bcd` for triplets).
+-   **Intuitive Rhythm Notation**: The new "numbered annulus" glyph provides a single, clear visual for beat subdivisions, tuplets, and partial beats.
 
 ## Immediate Development Goals
 
-The next major development task is to prototype and implement an enhanced `counter` feature. This new system will represent the timing and duration of notes within a beat using a circular "pie chart" visualization.
+With the overhaul of the rhythmic indicators now complete, the next development tasks are:
 
-For example, for an uneven rhythm like `c--d` (a 3:1 ratio), the `d` note would have a circle beneath it with the final quadrant shaded, visually indicating it occupies the last 25% of the beat's duration. This will require creating a new SVG rendering function that can draw a shaded pie segment based on a note's start and end beat fraction.
-
-## Codebase Structure
-
-The project is organized around a few key files:
-
--   `pre-fqs.html`: The main HTML file that provides the user interface and loads the necessary JavaScript modules.
--   `fqs.js`: Contains the top-level `Book` class, which manages the collection of scores on the page.
--   `fqs.css`: Defines the styling for the rendered notation and the user interface.
--   `src/classes/Score.js`: A critical file containing the `Score` class, which is responsible for parsing the `.fqs` text and rendering a single musical score.
--   `src/classes/*.js`: Other class files in this directory handle specific parts of the notation, such as `Chord.js`, `LyricLine.js`, and `RhythmMarkers.js`.
--   `reference.fqs`: A comprehensive reference document written in FQS itself, demonstrating the full syntax.
--   `build.py`: A Python script used to assemble the final `fqs.html` from `pre-fqs.html` and other resources.
+1.  **Distinctive Chord Rendering**: Explore and implement a more visually distinct style for chords on the staff to differentiate them more clearly from single melody notes.
+2.  **Inline Image Display**: Modify the image feature so that images are rendered inline within the flow of the score, rather than in a separate popup.

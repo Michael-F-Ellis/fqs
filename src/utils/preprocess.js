@@ -142,8 +142,7 @@ export function preprocessScore(text) {
             obj.playRate = data.playRate;
           }
           break;
-        case "nomarkers":
-          obj.nomarkers = true;
+        case "nomarkers": // Deprecated
           break;
         default:
           if (k !== "" && value !== undefined) {

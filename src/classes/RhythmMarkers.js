@@ -22,18 +22,26 @@ export class RhythmMarkers {
     // rhythm is an array of rhythm markup,  as created by LyricLine.extractRhythm()`
     this.rhythms = lyricLine.extractRhythm();
     this.beatFractions = []; // an array of arrays of FracSpan objects
+    this.baseFractions = []; // an array of {num, den} objects
+
     for (let i = 0; i < this.rhythms.length; i++) {
       const rhythm = this.rhythms[i];
+      const visualRhythm = rhythm.replace(/_/g, ''); // Rhythm for visual spoke calculation
+
+      // 1. Calculate and store the REAL fraction for display
       const baseFraction = this.computeBaseFraction(rhythm);
-      //console.log(`baseFraction: ${baseFraction}`);
-      // strip underscores from rhythm
-      const rhythmNoUnderscores = rhythm.replace(/_/g, '');
+      this.baseFractions.push(baseFraction);
+
+      // 2. Calculate visual fractions for spokes as if it were a whole beat
+      const visualFractionForSpokes = this.computeBaseFraction(visualRhythm);
+      const visualFractionValue = visualFractionForSpokes.num / visualFractionForSpokes.den;
+
       const fractions = [];
-      const nchar = rhythm.length;
+      const nchar = visualRhythm.length;
       let chordIndex = -1; // -1  means not in a chord
       let f = null; // current beat fraction
       for (let j = 0; j < nchar; j++) {
-        switch (rhythmNoUnderscores[j]) {
+        switch (visualRhythm[j]) {
           case '(':
             chordIndex = 0;
             continue;
@@ -43,7 +51,7 @@ export class RhythmMarkers {
             continue;
           case '-':
             if (j == 0) {
-              f = new FracSpan(baseFraction, 1, '-');
+              f = new FracSpan(visualFractionValue, 1, '-');
             } else {
               f.val++;
             }
@@ -55,10 +63,10 @@ export class RhythmMarkers {
                 if (f) {
                   fractions.push(f);
                 }
-                f = new FracSpan(baseFraction, 1, rhythm[j]);
+                f = new FracSpan(visualFractionValue, 1, visualRhythm[j]);
                 break;
               case 0:
-                f = new FracSpan(baseFraction, 1, rhythm[j]);
+                f = new FracSpan(visualFractionValue, 1, visualRhythm[j]);
                 chordIndex++;
                 break;
               default:
@@ -71,13 +79,8 @@ export class RhythmMarkers {
       }
       // push the last fraction
       fractions.push(f);
-      for (let fraction of fractions) {
-        // console.log(fraction);
-      }
-      // divide each fraction by the sum of fractions
-
-      //const sum = fractions.reduce((a, b) => a + b.val, 0);
-      const sum = fractions.reduce((a, b) => a + b.val / baseFraction, 0);
+      
+      const sum = fractions.reduce((a, b) => a + b.val / visualFractionValue, 0);
       for (let j = 0; j < fractions.length; j++) {
         fractions[j].val = fractions[j].val / sum;
       }
@@ -87,7 +90,6 @@ export class RhythmMarkers {
     // We may need to adjust the spans of the beat fractions that
     // correspond lyric line syllables with length > 1.
     const spans = this.lyricLine.syllableSpans();
-    // console.log(`Syllable spans: ${spans}`)
     if (spans.length > 0) {
       let iSpan = 0;
       for (let arr of this.beatFractions) {
@@ -122,9 +124,9 @@ export class RhythmMarkers {
     if (activePositions === 0) {
       console.log(`Warning: rhythm ${rhythm} has no active positions`);
       lineProblems.add(`Invalid rhythm ${rhythm}`);
-      return null;
+      return { num: 1, den: 1 };
     }
-    return activePositions / (underscores + activePositions)
+    return { num: activePositions, den: underscores + activePositions };
   }
   render(svg, x0, y0, beats, fontwidth) {
     // x0 is the x coordinate of the left edge of the line 
