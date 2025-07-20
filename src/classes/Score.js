@@ -13,6 +13,7 @@ import { PerBar, PerNote, PerBeat, Finger } from "./LineAnnotations.js";
 import { Chord } from "./Chord.js";
 import { Counter } from "./Counter.js";
 import { RhythmMarkers } from "./RhythmMarkers.js";
+import { FqsToMidiParser } from "../midi/FqsToMidiParser.js";
 
 export const scoreMap = new Map();
 export class Score {
@@ -20,6 +21,10 @@ export class Score {
     this.dirty = false;
     this.editMode = false;
     this.midiPlayer = midiPlayer;
+    this.pitchLines = [];
+    this.lyricLines = [];
+    this.noteEvents = [];
+    this.lineBoundaries = [];
     this.outer = document.createElement('div');
     this.outer.classList.add('score');
     this.id = `score-${Math.random().toString(36).substring(2, 15)}`;
@@ -91,10 +96,35 @@ export class Score {
     if (!this.data.midi_params) {
       this.data.midi_params = {};
     }
-    if (this.midiPlayer) {
-      this.midiPlayer.loadScore(this);
-    }
-    renderScore(this.inner, this.data, this.midiPlayer);
+
+    // Centralize line processing
+    this.pitchLines = [];
+    this.lyricLines = [];
+    this.data.lines.forEach(line => {
+        if (line.music) {
+            const { lyric, pitch } = musicToPitchLyric(line.music);
+            line.lyric = lyric;
+            line.pitch = pitch;
+            line.showLyric = false;
+        } else {
+            line.showLyric = true;
+        }
+
+        if (line.pitch && line.lyric) {
+            this.pitchLines.push(new PitchLine(line.pitch, this.data.staff, this.data.midi_params));
+            this.lyricLines.push(new LyricLine(line.lyric, line.showLyric));
+        } else {
+            this.pitchLines.push(null);
+            this.lyricLines.push(null);
+        }
+    });
+
+    // Parse MIDI data and store it on this score instance
+    const midiParser = new FqsToMidiParser(this);
+    this.noteEvents = midiParser.getNoteEvents();
+    this.lineBoundaries = midiParser.getLineBoundaries();
+
+    renderScore(this, this.inner);
     const svgElements = this.inner.querySelectorAll('svg');
     for (const svg of svgElements) {
       let height = svg.getBBox().height + 30;
@@ -153,7 +183,12 @@ function reconstructSectionText(line) {
   return text;
 }
 
-function renderScore(wrapper, data, midiPlayer) {
+function renderScore(score, wrapper) {
+    const data = score.data;
+    const midiPlayer = score.midiPlayer;
+    const pitchLines = score.pitchLines;
+    const lyricLines = score.lyricLines;
+
   if (!data.staff) {
     data.staff = 4;
   }
@@ -254,18 +289,10 @@ function renderScore(wrapper, data, midiPlayer) {
       y += defaultParameters.textFontHeight
       return;
     }
-    line.showLyric = true;
-    if (line.music) {
-      const { lyric, pitch } = musicToPitchLyric(line.music);
-      line.lyric = lyric;
-      line.pitch = pitch;
-      line.showLyric = false;
-    }
-    let lyricline = undefined
-    if (line.lyric) {
-      lyricline = new LyricLine(
-        line.lyric, line.showLyric);
-    }
+    
+    const lyricline = lyricLines[index];
+    const pitchLine = pitchLines[index];
+
     y += defaultParameters.lyricFontHeight
     if (line.image) {
       const image = new ImageLine(line.image);
@@ -274,7 +301,7 @@ function renderScore(wrapper, data, midiPlayer) {
       }
     }
     if (line.cue) {
-      if (!line.lyric) {
+      if (!lyricline) {
         y += defaultParameters.lyricFontHeight;
       } else {
         y += defaultParameters.lyricFontHeight;
@@ -282,12 +309,12 @@ function renderScore(wrapper, data, midiPlayer) {
       const cue = new Cue(line.cue);
       cue.render(svg, defaultParameters.leftX, y);
     }
-    if (line.chord && line.lyric) {
+    if (line.chord && lyricline) {
       y += defaultParameters.chordFontHeight
       const chord = new Chord(line.chord);
       chord.render(svg, defaultParameters.leftX, y, lyricline.beats, defaultParameters.lyricFontWidth);
     }
-    if (line.perbeat && line.lyric) {
+    if (line.perbeat && lyricline) {
       y += defaultParameters.perbeatFontHeight * 1.5
       const perbeat = new PerBeat(line.perbeat)
       perbeat.render(svg, defaultParameters.leftX, y, lyricline)
@@ -296,38 +323,34 @@ function renderScore(wrapper, data, midiPlayer) {
     if (lyricline) {
       rhythm = new RhythmMarkers(lyricline);
     }
-    let pitchLine = undefined;
-    if (line.pitch && line.lyric) {
+
+    if (pitchLine && lyricline) {
       y += parseInt(data.staff, 10) * defaultParameters.lyricFontHeight;
       try {
-        pitchLine = new PitchLine(line.pitch, data.staff, data.midi_params);
         pitchLine.render(svg, defaultParameters.leftX, y,
           defaultParameters, lyricline, data.showIntervals);
       } catch (e) {
         lineProblems.add("Pitch line error: " + e.message);
       }
     }
-    if (line.finger && line.lyric && pitchLine) {
+    if (line.finger && lyricline && pitchLine) {
       const finger = new Finger(lyricline, pitchLine)
       finger.render(svg, line.finger)
     }
-    if (line.perbar && line.lyric) {
+    if (line.perbar && lyricline) {
       y += defaultParameters.perbarFontHeight;
       const perbar = new PerBar(line.perbar);
       perbar.render(svg, defaultParameters.leftX, y, lyricline);
     }
-    if (line.showLyric) {
-      y += 1.1 * defaultParameters.lyricFontHeight;
-      if (line.lyric) {
+    if (line.showLyric && lyricline) {
         lyricline.render(svg, defaultParameters.leftX, y, defaultParameters.lyricFontWidth);
-      }
     }
-    if (line.pernote && line.lyric) {
+    if (line.pernote && lyricline) {
       y += defaultParameters.pernoteFontHeight * 1.5;
       const expr = new PerNote(line.pernote);
       expr.render(svg, defaultParameters.leftX, y, lyricline);
     }
-    if (line.counter && line.lyric) {
+    if (line.counter && lyricline) {
       y += defaultParameters.counterFontHeight * 1.5
       let npartial = 0;
       if (line.counter.length > 0) {
@@ -368,7 +391,7 @@ function renderScore(wrapper, data, midiPlayer) {
       midiIcon.style.cursor = 'pointer';
       midiIcon.addEventListener('click', (event) => {
           if (midiPlayer) {
-              midiPlayer.playStopLine(index);
+              midiPlayer.playStopLine(score, index);
           }
       });
     }

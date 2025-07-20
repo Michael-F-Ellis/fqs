@@ -30,4 +30,4 @@ shots/
 # Temporary files used for testing
 pieclocktest.fqs
 wedge.html
-server.log
+*.log

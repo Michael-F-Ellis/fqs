@@ -40,4 +40,4 @@ FQS distinguishes itself from other notation systems (including other text-based
 
 With the chord rendering improvements now complete, the next major development task is:
 
-1.  **MIDI Playback**: Explore and implement a mechanism for generating and playing MIDI from the parsed FQS score. This will likely involve integrating a third-party MIDI library or building a lightweight MIDI generator.
+1.  **MIDI Playback**: A basic implementation of MIDI playback using `Tone.js` is in progress. The core architecture is in place, with line-level play/stop controls. The immediate next steps are to debug and correct the rhythm and chord playback logic within the `FqsToMidiParser`.

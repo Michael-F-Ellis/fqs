@@ -18,14 +18,11 @@ export class FqsToMidiParser {
         const beatDuration = 60.0 / tempo;
         let currentTime = 0.0;
 
-        this.score.data.lines.forEach((line, lineIndex) => {
+        this.score.pitchLines.forEach((pitchLine, lineIndex) => {
             const lineStartTime = currentTime;
+            const lyricLine = this.score.lyricLines[lineIndex];
 
-            if (line.pitch && line.lyric) {
-                const pitchLine = new PitchLine(line.pitch, this.score.data.staff, this.score.data.midi_params);
-                console.log('FqsToMidiParser: Parsed pitches from PitchLine:', pitchLine.pitches);
-                const lyricLine = new LyricLine(line.lyric, true);
-
+            if (pitchLine && lyricLine) {
                 if (pitchLine.pitches.length === lyricLine.attacks.length) {
                     let attackIndex = 0;
                     for (let i = 0; i < lyricLine.beats.length; i++) {
