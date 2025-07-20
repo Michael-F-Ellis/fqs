@@ -1,3 +1,4 @@
+import { pitchToMidi } from '../utils/midi_utils.js';
 import { keyTable } from '../utils/keyTable.js';
 import { lineProblems } from './LineProblem.js';
 import { appendSVGTextChild } from '../utils/svg.js';
@@ -50,6 +51,7 @@ export class Pitch {
     this.accidentalClass = accidentalClass; // one of '', '𝄫', '♯', '𝄪' or ''
     this.classes = [accidentalClass, "pitch"];
     this.isChordPitch = false; // initalized to false
+    this.midiNote = null;
   }
   // addClass() is used to add a class to the pitch. At present, this is used to add the
   // 'chord-pitch' class to the pitch when it is part of a chord.
@@ -99,7 +101,7 @@ export class Pitch {
 // must handle octavation, key signatures, accidentals and alterations and
 // match each pitch to its corresponding attack location in the Lyric line.
 export class PitchLine {
-  constructor(text, staffLines = 4) {
+  constructor(text, staffLines = 4, midi_params = null) {
     this.centerOctave = 0;
     this.staffLines = staffLines;
     this.text = text;
@@ -369,6 +371,11 @@ export class PitchLine {
       // accidentals for remainder of the bar.
       accClass = this.alterations.get(letter, octave, accClass);
       let pitch = new Pitch(letter, octave, accClass);
+      // If we have midi parameters, calculate the midi note.
+      if (midi_params) {
+        pitch.midiNote = pitchToMidi(pitch, midi_params.ref || 'G3');
+        console.log(`PitchLine: Processed pitch ${pitch.letter}${pitch.octave}, midi_params received:`, midi_params, `Calculated midiNote: ${pitch.midiNote}`);
+      }
       if (this.inChord > -1) {
         pitch.isChordPitch = true;
         pitch.chordGroupNumber = this.chordGroupNumber;

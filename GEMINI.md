@@ -17,10 +17,15 @@ The `simpler` branch represents a focused effort to refine the core notation sys
 ### Key Features and Priorities:
 
 -   **Core Notation**: The primary focus is on the text-based language for representing pitches, rhythms, chords, and lyrics.
--   **`counter` Keyword**: This feature has been significantly enhanced. When enabled, it displays a "numbered annulus" (a segmented ring with the beat number in the center) for each beat. This glyph serves as the primary visual indicator for rhythm, showing subdivisions for all beats and special indicators for tuplets and partial beats. The old vertical rhythm markers have been deprecated.
--   **`intervals` Keyword**: The functionality to display musical intervals between notes will be retained.
--   **Side Features**: YouTube integration, image embedding, and GitHub integration will persist but are not the current development focus.
--   **Deprecated Features**: The `pernote`, `perbeat`, and `perbar` annotation keywords are being de-emphasized, as this functionality can be replicated by annotating a PDF export of the score.
+-   **`counter` Keyword**: This feature displays a "numbered annulus" (a segmented ring with the beat number in the center) for each beat, serving as the primary visual indicator for rhythm.
+-   **Chord Rendering**: Chords are now rendered with a horizontal line marker spanning the constituent notes, providing a clear visual distinction from single melody notes. The parser assigns a unique group number to each chord to ensure correct rendering.
+-   **`intervals` Keyword**: The functionality to display musical intervals between notes is retained.
+-   **Side Features**: YouTube integration and GitHub integration will persist but are not the current development focus.
+
+### Deprecated Features:
+
+-   **Annotation Keywords**: The `pernote`, `perbeat`, and `perbar` annotation keywords are de-emphasized, as this functionality can be replicated by annotating a PDF export.
+-   **Image Display**: The feature to display images via an `image:` keyword is deprecated. The previous implementation used a popup, and an attempt to move to inline rendering proved overly complex for the current development stage.
 
 ## Key Differentiators
 
@@ -29,11 +34,10 @@ FQS distinguishes itself from other notation systems (including other text-based
 -   **Elimination of Key Signatures/Clefs**: Simplifies reading by using color and absolute note names.
 -   **Proportional Vertical Spacing**: The vertical position of a note directly corresponds to its pitch, with semitones spaced equally.
 -   **Visible Note Names**: Aids in sight-reading and memorization.
--   **Intuitive Rhythm Notation**: The new "numbered annulus" glyph provides a single, clear visual for beat subdivisions, tuplets, and partial beats.
+-   **Intuitive Rhythm Notation**: The "numbered annulus" glyph provides a single, clear visual for beat subdivisions, tuplets, and partial beats.
 
 ## Immediate Development Goals
 
-With the overhaul of the rhythmic indicators now complete, the next development tasks are:
+With the chord rendering improvements now complete, the next major development task is:
 
-1.  **Distinctive Chord Rendering**: Explore and implement a more visually distinct style for chords on the staff to differentiate them more clearly from single melody notes.
-2.  **Inline Image Display**: Modify the image feature so that images are rendered inline within the flow of the score, rather than in a separate popup.
+1.  **MIDI Playback**: Explore and implement a mechanism for generating and playing MIDI from the parsed FQS score. This will likely involve integrating a third-party MIDI library or building a lightweight MIDI generator.

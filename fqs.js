@@ -1,3 +1,4 @@
+import { MidiPlayer } from './src/midi/MidiPlayer.js';
 import { updateFontSizes } from './src/utils/parameters.js';
 import { initYouTubeAPI, } from './src/utils/youtube.js';
 import { Score } from './src/classes/Score.js';
@@ -6,11 +7,6 @@ import { Score } from './src/classes/Score.js';
 *********************************************************************   
 */
 
-// Initialize on page load
-window.addEventListener('load', () => {
-  updateFontSizes();
-  initYouTubeAPI();
-});
 /*
 ********************************************************************
    Classes 
@@ -24,6 +20,7 @@ class Book {
     this.scores = new Map(); // Will hold scores keyed by score.id
     this.delimiter = "\nEndOfScore\n" // delimiter between scores in exportable .fqs format
     this.controlsVisible = true;
+    this.midiPlayer = new MidiPlayer();
   }
   // enforceControlsVisibility() hides or shows the book-actions div of each score according to the
   // controlsVisible flag.
@@ -46,7 +43,7 @@ class Book {
   // will be inserted after the specified sibling. Otherwise, it will be
   // appended to the end. A set of control buttons is prepended to the score.
   addScore(scoreText, nextSibling) {
-    const score = new Score(scoreText, this.container);
+    const score = new Score(scoreText, this.container, this.midiPlayer);
     if (!score) {
       return;
     }

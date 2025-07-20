@@ -297,3 +297,7 @@ stroke-width: 0.5;
   /* blue */
   text-anchor: middle;
 }
+
+.midi-playing {
+    fill: #ff4500; /* Orangered */
+}

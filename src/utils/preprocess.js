@@ -115,6 +115,19 @@ export function preprocessScore(text) {
       blocks.splice(i, 1);
       continue;
     }
+    if (block.startsWith("midi:")) {
+      const midi_params = {};
+      const params = block.slice(5).trim().split(',');
+      params.forEach(param => {
+        const [key, value] = param.split('=').map(s => s.trim());
+        if (key && value) {
+          midi_params[key] = value;
+        }
+      });
+      data.midi_params = midi_params;
+      blocks.splice(i, 1);
+      continue;
+    }
   }
 
   // at this point only the third kind of blocks are left

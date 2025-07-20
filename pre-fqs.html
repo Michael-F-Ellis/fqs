@@ -131,8 +131,11 @@
 	</div>
 	<div id="score-toc" class="score-toc"></div>
 	<div id="book-container">
+		<script src="./node_modules/tone/build/Tone.js"></script>
 		<script type="module">
 			import { Book } from './fqs.js';
+			import { updateFontSizes } from './src/utils/parameters.js';
+			import { initYouTubeAPI } from './src/utils/youtube.js';
 			import { GitHubStorage } from './src/classes/github.js';
 			import { RepoNavigator } from './src/classes/repo_navigator.js';
 			import { GitHubCredentials, createGitHubDialog } from './src/classes/credential_store.js';
@@ -140,6 +143,8 @@
 			// Make book available globally
 			const book = new Book("book-container");
 			window.book = book;
+			updateFontSizes();
+			initYouTubeAPI();
 
 			// Storage state management
 			let storage = null;
