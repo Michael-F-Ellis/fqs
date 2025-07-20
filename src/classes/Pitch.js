@@ -178,6 +178,7 @@ export class PitchLine {
     // 'h', '###f', '#&g', '^/a'
     this.pitches = [];
     this.inChord = -1;
+    this.chordGroupNumber = -1;
     this.chordIndex = 0;
     this.alterations = new Alterations("0"); // default key is C major
     for (let i = 0; i < this.tokens.length; i++) {
@@ -201,6 +202,7 @@ export class PitchLine {
       // If the pitch token begins with a '(', we're starting a chord.
       if (this.tokens[i].match(/\(/)) {
         this.inChord = 1;
+        this.chordGroupNumber++;
         // remove the '(' from the token
         this.tokens[i] = this.tokens[i].slice(1);
 
@@ -369,6 +371,7 @@ export class PitchLine {
       let pitch = new Pitch(letter, octave, accClass);
       if (this.inChord > -1) {
         pitch.isChordPitch = true;
+        pitch.chordGroupNumber = this.chordGroupNumber;
         this.chordIndex++
         pitch.addClass('chord-pitch');
       }
@@ -439,10 +442,10 @@ export class PitchLine {
     const items = [];
     let pitchIndex = 0;
     attacks.forEach(pos => {
-        if (pitchIndex < this.pitches.length) {
-            items.push({ type: 'pitch', pitch: this.pitches[pitchIndex], xPos: pos });
-            pitchIndex++;
-        }
+      if (pitchIndex < this.pitches.length) {
+        items.push({ type: 'pitch', pitch: this.pitches[pitchIndex], xPos: pos });
+        pitchIndex++;
+      }
     });
     rests.forEach(pos => items.push({ type: 'rest', xPos: pos }));
     holds.forEach(pos => items.push({ type: 'hold', xPos: pos }));
@@ -453,49 +456,97 @@ export class PitchLine {
     // Calculate Y positions
     let lastPitchY = null;
     for (const item of items) {
-        if (item.type === 'pitch') {
-            const y = y0 - 2 * fontheight;
-            item.yPos = item.pitch.calculateY(y, fontheight);
-            lastPitchY = item.yPos;
-        } else {
-            item.yPos = lastPitchY; // Tentatively assign last pitch's Y
-        }
+      if (item.type === 'pitch') {
+        const y = y0 - 2 * fontheight;
+        item.yPos = item.pitch.calculateY(y, fontheight);
+        lastPitchY = item.yPos;
+      } else {
+        item.yPos = lastPitchY; // Tentatively assign last pitch's Y
+      }
     }
 
     // Handle leading rests/holds
     let firstPitchY = items.find(item => item.type === 'pitch')?.yPos || null;
     if (firstPitchY !== null) {
-        for (const item of items) {
-            if (item.yPos === null) {
-                item.yPos = firstPitchY;
-            } else {
-                // Stop once we hit the first pitch
-                break;
-            }
+      for (const item of items) {
+        if (item.yPos === null) {
+          item.yPos = firstPitchY;
+        } else {
+          // Stop once we hit the first pitch
+          break;
         }
+      }
     }
 
     // Render all items
     this.fingerPositions = [];
     this.intervalPositions = [];
     for (const item of items) {
-        const x = x0 + item.xPos * fontwidth;
-        if (item.yPos !== null) {
-            if (item.type === 'pitch') {
-                if (item.pitch.isChordPitch) {
-                    item.pitch.addClass('chord-pitch');
-                }
-                appendSVGTextChild(svg, x, item.yPos, item.pitch.letter, item.pitch.classes);
-                this.fingerPositions.push([x, item.yPos - fontheight]);
-                this.intervalPositions.push([x + fontwidth / 2, item.yPos]);
-            } else if (item.type === 'rest') {
-                appendSVGTextChild(svg, x, item.yPos, ";", ["rest", "yellowish"]);
-            } else if (item.type === 'hold') {
-                appendSVGTextChild(svg, x, item.yPos, '-', ["hold", "grey"]);
-            }
+      const x = x0 + item.xPos * fontwidth;
+      if (item.yPos !== null) {
+        if (item.type === 'pitch') {
+          if (item.pitch.isChordPitch) {
+            item.pitch.addClass('chord-pitch');
+          }
+          appendSVGTextChild(svg, x, item.yPos, item.pitch.letter, item.pitch.classes);
+          this.fingerPositions.push([x, item.yPos - fontheight]);
+          this.intervalPositions.push([x + fontwidth / 2, item.yPos]);
+        } else if (item.type === 'rest') {
+          appendSVGTextChild(svg, x, item.yPos, ";", ["rest", "yellowish"]);
+        } else if (item.type === 'hold') {
+          appendSVGTextChild(svg, x, item.yPos, '-', ["hold", "grey"]);
         }
+      }
     }
-    
+
+    // Find and render chord markers
+    let chordGroups = [];
+    let currentGroup = [];
+    let currentGroupNumber = 0;
+    for (const item of items) {
+      if (item.type === 'pitch' && item.pitch.isChordPitch) {
+        // If the current group is empty or the new item is part of the same chord (same xPos)
+        if (item.pitch.chordGroupNumber === currentGroupNumber) {
+          currentGroup.push(item);
+        } else {
+          // The new item is a new chord, so push the old one and start a new group
+          if (currentGroup.length > 1) {
+            chordGroups.push(currentGroup);
+          }
+          currentGroupNumber = item.pitch.chordGroupNumber;
+          currentGroup = [item];
+        }
+      } else {
+        // Not a chord pitch, so terminate the current group
+        if (currentGroup.length > 1) {
+          chordGroups.push(currentGroup);
+        }
+        currentGroup = [];
+      }
+    }
+    // Add the last group if it exists
+    if (currentGroup.length > 1) {
+      chordGroups.push(currentGroup);
+    }
+
+    for (const group of chordGroups) {
+      const firstNote = group[0];
+      const lastNote = group[group.length - 1];
+      const x1 = x0 + firstNote.xPos * fontwidth;
+      const x2 = x0 + lastNote.xPos * fontwidth;
+      const y = lastNote.yPos - (fontheight * 0.7);
+
+      let line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+      line.setAttribute("x1", x1);
+      line.setAttribute("y1", y);
+      line.setAttribute("x2", x2);
+      line.setAttribute("y2", y);
+      line.setAttribute("stroke", "black");
+      line.setAttribute("stroke-width", 1);
+      line.classList.add('chord-marker');
+      svg.appendChild(line);
+    }
+
     // Now render intervals between the pitches
     if (showIntervals) {
       this.calculateIntervals();
