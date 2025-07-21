@@ -16,10 +16,11 @@ export class FqsToMidiParser {
     parse() {
         const tempo = parseInt(this.midi_params.tempo, 10) || 120;
         const beatDuration = 60.0 / tempo;
-        let currentTime = 0.0;
+        let absoluteTime = 0.0;
 
         this.score.pitchLines.forEach((pitchLine, lineIndex) => {
-            const lineStartTime = currentTime;
+            const lineStartTime = absoluteTime;
+            let lineCurrentTime = 0.0;
             const lyricLine = this.score.lyricLines[lineIndex];
 
             if (pitchLine && lyricLine) {
@@ -43,21 +44,23 @@ export class FqsToMidiParser {
                                 if (pitch && pitch.midiNote) {
                                     this.noteEvents.push({
                                         note: pitch.midiNote,
-                                        time: currentTime,
+                                        time: lineCurrentTime,
                                         duration: noteDuration,
                                         lineIndex: lineIndex
                                     });
                                 }
-                                currentTime += noteDuration;
+                                lineCurrentTime += noteDuration;
                                 attackIndex++;
                             }
                         } else {
-                            currentTime += beatDuration;
+                            lineCurrentTime += beatDuration;
                         }
                     }
                 }
             }
-            this.lineBoundaries.push({ startTime: lineStartTime, endTime: currentTime });
+            const lineEndTime = lineStartTime + lineCurrentTime;
+            this.lineBoundaries.push({ startTime: 0, endTime: lineCurrentTime });
+            absoluteTime = lineEndTime;
         });
     }
 

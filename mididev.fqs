@@ -1,14 +1,15 @@
-title: Minimal
+title: Midi Dev
 
 zoom: 130
 
 staff: 4
 
+midi: tempo=60, ref=g4, metronome=off
+
+
 music: K#4 bb | c b e | d - bb | c b ^f | e - bb |
 lyric: ** | * * * | * - ** | * * * | * - ** |
 counter: 3
-
-midi: tempo=60, ref=g4, metronome=off
 
 music: K#4 bb | c b e | d - bb | c b ^f | e - bb |
 lyric: ** | * * * | * - ** | * * * | * - ** |
