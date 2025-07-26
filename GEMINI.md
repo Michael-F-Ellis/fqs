@@ -10,31 +10,30 @@ The system renders a simple text format (`.fqs`) into a clean, readable musical 
 
 The project is implemented in vanilla JavaScript, HTML, and CSS, with no external dependencies, making it highly portable and self-contained.
 
+## Language Documentation
+
+The file `reference.fqs` serves as the canonical documentation for the FQS notation language. It should be consulted for any questions regarding syntax and semantics.
+
 ## MIDI Parser Development (`midi_parser_go` branch)
 
-The project is currently focused on developing a robust MIDI parser to handle the full complexity of FQS notation. To ensure correctness and simplify debugging, a new parser is being developed in Go (`midi_parser_go/`) using a test-driven development (TDD) approach.
+The project is focused on developing a robust MIDI parser to handle the full complexity of FQS notation. A new parser has been developed in Go (`midi_parser_go/`) using a test-driven development (TDD) approach, and its logic is now considered feature-complete for the core FQS rhythm syntax.
 
-### Current Status
+### Current Status & Implemented Features
 
-The Go parser correctly handles:
--   Single-note melodies.
--   Chords with correct timing and duration.
--   Rhythmic holds (`-`).
--   A `roll` parameter in the `midi:` keyword to control chord articulation (simultaneous vs. arpeggiated).
+The Go parser, validated by a comprehensive test suite in `parser_test.go`, now correctly handles:
+-   Single notes, chords (rolled and unrolled), and multiple chords within a single beat.
+-   Multi-line scores with continuous timing.
+-   Rhythmic holds (`-`) and rests (`;`), including correct duration calculation when holds cross tuplets and line breaks.
+-   Tuplets that span multiple beats (e.g., `2**`).
+-   Partial beats indicated by underscores (e.g., `*_`, `;-*__`).
 
-The core logic now uses a two-pass algorithm:
-1.  **Pass 1 (`calculateNoteStartTimes`):** Iterates through the lyric line to determine the precise start time of every note, including micro-delays for rolled chords.
-2.  **Pass 2 (`buildNoteEvents`):** Calculates the duration of each note by subtracting its start time from the start time of the subsequent note.
-
-This approach has proven successful and is validated by a growing suite of unit tests in `parser_test.go`.
+The parser uses a line-by-line processing model where a `holdAccumulator` state is carried between lines to correctly calculate durations for notes sustained across line breaks.
 
 ### Next Steps
 
-With the core algorithm validated, the immediate next steps are to expand the Go parser's capabilities by adding test cases for the following features, and then implementing the logic to make them pass:
+With the Go parser's logic validated, the next phase is to integrate it into the main JavaScript application. This presents a key architectural decision:
 
-1.  **Rests (`:`):** Ensure that rests correctly terminate any preceding held notes.
-2.  **Tuplets:** Validate that non-standard tuplets (e.g., `tupletSize: 3`) are timed correctly.
-3.  **Partial Beats:** Handle cases where a beat is not fully specified (e.g., a single eighth note in a 4/4 measure).
-4.  **Cross-Line Holds:** Implement logic to allow notes to be held across line breaks.
+1.  **Port to JavaScript:** Manually translate the validated Go logic into the project's main `FqsToMidiParser.js` file.
+2.  **Compile to WebAssembly (WASM):** Compile the Go parser to a WASM module and build a JavaScript interface to run it directly in the browser.
 
-Once the Go parser is complete and fully tested, the validated logic will be ported back to the main JavaScript `FqsToMidiParser.js` to finalize the MIDI playback feature in the web application.
+This decision will be the primary topic of the next development session. The existing JavaScript function `LyricLine.extractRhythm()` may simplify the effort, as it can pre-process lyrical text into the asterisk-based rhythm format the Go parser now understands.
