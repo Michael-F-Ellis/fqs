@@ -7,7 +7,7 @@
 </head>
 
 <body>
-<p>Version: unversioned Build: simpler-657cc86-dirty</p>
+<p>Version: test Build: simpler-07c8ba2-dirty</p>
 	<div id="player"></div>
 	<div style="margin-left: 5%; margin-right: 5%;">
 		<h1>FQS Notation Demo</h1>
@@ -177,6 +177,25 @@
 					await navigator.navigate(repoPath);
 				}
 			};
+		</script>
+		<script src="src/utils/wasm_exec.js"></script>
+		<script type="module">
+			import './src/index.js'; // Load for side effects, like the test function
+
+			// Standard WASM loader
+			const go = new Go();
+			WebAssembly.instantiateStreaming(fetch("fqs_parser.wasm"), go.importObject).then(async (result) => {
+				await go.run(result.instance);
+				console.log("WASM module loaded and ready.");
+				
+				// The 'parseFQS' function is now globally available.
+				// Test it to make sure it works
+				if (typeof window.testWasmParser === 'function') {
+					window.testWasmParser(); 
+				}
+			}).catch(error => {
+				console.error("Failed to load WASM module:", error);
+			});
 		</script>
 </body>
 
