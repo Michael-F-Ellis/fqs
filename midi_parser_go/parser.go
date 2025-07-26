@@ -12,6 +12,7 @@ const LineEvent = 4 // inserted by the parser at the beginning of each line befo
 
 type MusicEvent struct {
 	Kind            int     // NoteEvent | RestEvent | HoldEven | LineEvent
+	LineIndex       int     // The line number this event belongs to
 	tIdx            int     // index of the tuplet that contains this event.
 	ChordIndex      int     // index of notes in a chord. (valid for NoteEvents. Set to -1 for non chord notes
 	NumNotesInChord int     // number of notes in the chord this event belongs to
@@ -96,63 +97,104 @@ func NewMidiParser(score *Score) *FQSMIDIParser {
 	}
 }
 
-func (p *FQSMIDIParser) Parse() {
+func (p *FQSMIDIParser) Parse() [][]MusicEvent {
+	allLinesEvents := make([][]MusicEvent, len(p.score.LyricLines))
+	holdAccumulator := 0.0
 
-	for i, line := range p.score.LyricLines {
-		//insert a Music event of Kind 'LineEvent'
-		p.Events = append(p.Events, MusicEvent{
-			Kind: LineEvent,
-		})
-		// get the tuplets for this line.
-		p.Tuplets = line.Tuplets
-		// get the PitchLine for this line
-		pitchLine := p.score.PitchLines[i]
+	for lineIdx, lyricLine := range p.score.LyricLines {
+		p.tIdx = 0
+		p.pos = 0
+		p.Tuplets = lyricLine.Tuplets
+		p.Events = []MusicEvent{} // Clear events for the new line.
 
 		for p.tIdx < len(p.Tuplets) {
 			tuplet := &p.Tuplets[p.tIdx]
 			ttext := strings.TrimSpace(tuplet.Text)
 			for p.pos < len(ttext) {
-				switch tuplet.Text[p.pos] {
+				switch ttext[p.pos] {
 				case '(':
 					p.beginChord(ttext)
 				case ')':
 					p.endChord(tuplet)
 				case '*':
-					p.addNoteEvent(tuplet)
+					p.addNoteEvent(tuplet, lineIdx)
 				case '-':
-					p.addHoldEvent()
+					p.addHoldEvent(tuplet, lineIdx)
 				case ';':
-					p.addRestEvent()
+					p.addRestEvent(tuplet, lineIdx)
+				case '_':
+					// ignore
 				default:
 					log.Fatalf("invalid character: %c", ttext[p.pos])
-
 				}
 				p.pos++
 			}
 			p.ProcessTupletEnd()
 		}
-		// match note values from pitchLine to NoteEvents in the current line
+
+		// Process holds and rests for the current line
+		var lineEvents []MusicEvent
+		lineEvents, holdAccumulator = p.processLineEvents(holdAccumulator)
+
+		// Assign pitches
+		pitchLine := p.score.PitchLines[lineIdx]
 		pitchIdx := 0
-		for i, event := range p.Events {
-			if event.Kind == NoteEvent {
-				p.Events[i].Note = pitchLine.Pitches[pitchIdx].MidiNote
-				pitchIdx++
+		for i := range lineEvents {
+			if lineEvents[i].Kind == NoteEvent {
+				if pitchIdx < len(pitchLine.Pitches) {
+					lineEvents[i].Note = pitchLine.Pitches[pitchIdx].MidiNote
+					pitchIdx++
+				}
 			}
 		}
-		// remove all events that aren't NoteEvents
-		for i := len(p.Events) - 1; i >= 0; i-- {
-			if p.Events[i].Kind != NoteEvent {
-				p.Events = append(p.Events[:i], p.Events[i+1:]...)
+
+		allLinesEvents[lineIdx] = lineEvents
+	}
+
+	// After processing all lines, if there's a lingering hold,
+	// apply it to the last note of the last line that had notes.
+	if holdAccumulator > 0 {
+		for i := len(allLinesEvents) - 1; i >= 0; i-- {
+			if len(allLinesEvents[i]) > 0 {
+				lastEvent := &allLinesEvents[i][len(allLinesEvents[i])-1]
+				if lastEvent.Kind == NoteEvent {
+					lastEvent.Duration += holdAccumulator
+					break
+				}
 			}
 		}
 	}
+
+	return allLinesEvents
+}
+func (p *FQSMIDIParser) processLineEvents(holdAccumulator float64) ([]MusicEvent, float64) {
+	var finalEvents []MusicEvent
+	// Apply the incoming hold to the first note of the line, if it exists.
+	if len(p.Events) > 0 && p.Events[0].Kind == NoteEvent {
+		p.Events[0].Duration += holdAccumulator
+		holdAccumulator = 0
+	}
+
+	for i := len(p.Events) - 1; i >= 0; i-- {
+		event := p.Events[i]
+		switch event.Kind {
+		case HoldEvent:
+			holdAccumulator += event.Duration
+		case RestEvent:
+			holdAccumulator = 0 // Rests consume holds
+		case NoteEvent:
+			event.Duration += holdAccumulator
+			holdAccumulator = 0
+			finalEvents = append([]MusicEvent{event}, finalEvents...) // Prepend
+		}
+	}
+	return finalEvents, holdAccumulator
 }
 
 func (p *FQSMIDIParser) beginChord(ttext string) {
 	p.inChord = true
 	p.chordIdx = 0
 	p.numNotesInChord = 0
-	// Scan from current position to find the closing parenthesis
 	endParen := strings.Index(ttext[p.pos:], ")")
 	if endParen == -1 {
 		log.Fatalf("Mismatched parenthesis in tuplet: %s", ttext)
@@ -167,9 +209,10 @@ func (p *FQSMIDIParser) endChord(t *Tuplet) {
 	t.subDivisions++
 }
 
-func (p *FQSMIDIParser) addNoteEvent(tp *Tuplet) {
+func (p *FQSMIDIParser) addNoteEvent(tp *Tuplet, lineIdx int) {
 	event := MusicEvent{
 		Kind:       NoteEvent,
+		LineIndex:  lineIdx,
 		tIdx:       p.tIdx,
 		ChordIndex: p.chordIdx,
 	}
@@ -185,20 +228,26 @@ func (p *FQSMIDIParser) addNoteEvent(tp *Tuplet) {
 	}
 }
 
-func (p *FQSMIDIParser) addHoldEvent() {
+func (p *FQSMIDIParser) addHoldEvent(tp *Tuplet, lineIdx int) {
 	p.Events = append(p.Events, MusicEvent{
-		Kind:       HoldEvent,
-		tIdx:       p.tIdx,
-		ChordIndex: p.chordIdx,
+		Kind:      HoldEvent,
+		LineIndex: lineIdx,
+		tIdx:      p.tIdx,
 	})
+	if !p.inChord {
+		tp.subDivisions++
+	}
 }
 
-func (p *FQSMIDIParser) addRestEvent() {
+func (p *FQSMIDIParser) addRestEvent(tp *Tuplet, lineIdx int) {
 	p.Events = append(p.Events, MusicEvent{
-		Kind:       RestEvent,
-		tIdx:       p.tIdx,
-		ChordIndex: p.chordIdx,
+		Kind:      RestEvent,
+		LineIndex: lineIdx,
+		tIdx:      p.tIdx,
 	})
+	if !p.inChord {
+		tp.subDivisions++
+	}
 }
 
 func (p *FQSMIDIParser) ProcessTupletEnd() {
@@ -209,50 +258,59 @@ func (p *FQSMIDIParser) ProcessTupletEnd() {
 		p.pos = 0
 		return
 	}
-	subSize := beats / float64(tuplet.subDivisions) // fractional beats per subdivision
 
-	p.beatTime += beats // This will be the start time of the next tuplet.
+	// Handle partial beats
+	numUnderscores := strings.Count(tuplet.Text, "_")
+	if numUnderscores > 0 {
+		numRhythmicChars := 0
+		for _, char := range tuplet.Text {
+			if strings.ContainsRune("*;-", char) {
+				numRhythmicChars++
+			}
+		}
+		if numRhythmicChars > 0 {
+			beats = beats * float64(numRhythmicChars) / float64(numRhythmicChars+numUnderscores)
+		}
+	}
+
+	subSize := beats / float64(tuplet.subDivisions)
 
 	// Walk backward through the events of the current tuplet assigning start times
-	holdDuration := 0.0
 	subdivisionFromEnd := 0
 	for i := len(p.Events) - 1; i >= 0; i-- {
 		event := &p.Events[i]
 		if event.tIdx != p.tIdx {
-			break // we've walked back past the first event in this tuplet.
+			break
 		}
+
 		isNoteOrRest := false
 		switch event.Kind {
 		case NoteEvent:
 			isNoteOrRest = true
 			if event.ChordIndex == -1 || !p.rollChords {
-				event.Time = p.beatTime - float64(subdivisionFromEnd+1)*subSize
-				event.Duration = subSize + holdDuration
-				holdDuration = 0.0
+				event.Time = p.beatTime + (float64(tuplet.subDivisions-subdivisionFromEnd-1) * subSize)
+				event.Duration = subSize
 			} else {
 				stagger := 0.0
 				if event.NumNotesInChord > 0 {
 					stagger = subSize / float64(event.NumNotesInChord)
 				}
-				event.Time = p.beatTime - float64(subdivisionFromEnd+1)*subSize + float64(event.ChordIndex)*stagger
-				event.Duration = subSize - float64(event.ChordIndex)*stagger + holdDuration
-				holdDuration = 0.0
+				event.Time = p.beatTime + (float64(tuplet.subDivisions-subdivisionFromEnd-1) * subSize) + float64(event.ChordIndex)*stagger
+				event.Duration = subSize - float64(event.ChordIndex)*stagger
 			}
-		case HoldEvent:
-			holdDuration += subSize
-			event.Time = p.beatTime - float64(subdivisionFromEnd+1)*subSize
-		case RestEvent:
+		case HoldEvent, RestEvent:
 			isNoteOrRest = true
-			event.Time = p.beatTime - float64(subdivisionFromEnd+1)*subSize
-			event.Duration = subSize + holdDuration
-			holdDuration = 0.0
+			event.Time = p.beatTime + (float64(tuplet.subDivisions-subdivisionFromEnd-1) * subSize)
+			event.Duration = subSize
 		}
+
 		if isNoteOrRest {
 			if event.ChordIndex <= 0 {
 				subdivisionFromEnd++
 			}
 		}
 	}
+	p.beatTime += beats
 	p.tIdx++
 	p.pos = 0
 }
