@@ -12,31 +12,25 @@ export class MidiPlayer {
         this.playingLineIndex = -1;
     }
 
-    playStopLine(score, lineIndex) {
+    async playStopLine(score, lineIndex) {
         console.log(`playStopLine called for score ${score.id}, line ${lineIndex}`);
-        // If the clicked line is already playing, stop it.
+        
+        if (Tone.context.state !== 'running') {
+            await Tone.start();
+            console.log("AudioContext started.");
+        }
+
         if (this.playingScoreId === score.id && this.playingLineIndex === lineIndex) {
-            console.log("Stopping the currently playing line.");
             this.stop();
             return;
         }
 
-        // If another line is playing, stop it before starting the new one.
         if (this.playingScoreId !== null) {
-            console.log("Another line is playing, stopping it first.");
             this.stop();
         }
         
-        if (Tone.context.state !== 'running') {
-            Tone.context.resume();
-        }
-
-        const boundary = score.lineBoundaries[lineIndex];
-        console.log("Line boundary:", boundary);
-        const notesForLine = score.noteEvents.filter(event => event.lineIndex === lineIndex);
-        console.log("Notes for this line:", JSON.stringify(notesForLine, null, 2));
-
-        if (!boundary || notesForLine.length === 0) {
+        const notesForLine = score.noteEvents[lineIndex] || [];
+        if (notesForLine.length === 0) {
             console.log("No notes to play for this line.");
             return;
         }
@@ -46,33 +40,29 @@ export class MidiPlayer {
         this.toggleIcon(true);
 
         Tone.Transport.bpm.value = score.data.midi_params.tempo || 120;
-        console.log("BPM set to:", Tone.Transport.bpm.value);
-        
-        if (this.part) {
-            this.part.dispose();
-        }
+
+        // Normalize note times to be relative to the start of the line
+        const startTime = notesForLine[0].Time;
+        const notesForPart = notesForLine.map(note => ({
+            time: note.Time - startTime,
+            note: note.Note,
+            duration: note.Duration,
+        }));
+
+        // Create a new part and schedule the notes
         this.part = new Tone.Part((time, value) => {
-            console.log(`Playing note: ${value.note} at time ${time} for duration ${value.duration}`);
-            this.synth.triggerAttackRelease(Tone.Frequency(value.note, "midi"), value.duration, time);
-        }, notesForLine).start(0);
-        
-        if (score.data.midi_params.metronome === 'on') {
-            if (this.metronome) this.metronome.dispose();
-            this.metronome = new Tone.Loop(time => {
-                new Tone.MembraneSynth().toDestination().triggerAttackRelease("C4", "8n", time);
-            }, "4n").start(0);
-        }
+            this.synth.triggerAttackRelease(value.note, value.duration, time);
+        }, notesForPart);
 
-        const stopTime = boundary.endTime;
-        console.log(`Scheduling stop in ${stopTime} seconds.`);
-        Tone.Transport.scheduleOnce(() => {
-            console.log("Scheduled stop called.");
+        // When the part is done playing, call the stop method.
+        this.part.onstop = () => {
+            console.log("Part finished, calling stop().");
             this.stop();
-        }, stopTime); // Duration of the line
-
+        };
+        
+        // Start the part and the transport.
         this.part.start(0);
-        console.log(`Starting transport at offset: 0`);
-        Tone.Transport.start(Tone.now());
+        Tone.Transport.start();
     }
 
     stop() {
@@ -80,14 +70,10 @@ export class MidiPlayer {
         Tone.Transport.stop();
         Tone.Transport.cancel();
         if (this.part) {
-            this.part.stop();
+            this.part.dispose();
+            this.part = null;
         }
-        Tone.Transport.position = 0;
-        console.log("Transport position reset to 0.");
-        if (this.metronome) {
-            this.metronome.dispose();
-            this.metronome = null;
-        }
+        
         this.toggleIcon(false);
         this.playingScoreId = null;
         this.playingLineIndex = -1;

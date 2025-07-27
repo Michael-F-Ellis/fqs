@@ -18,38 +18,33 @@ const accidentalToMidiOffset = {
  * @param {string} ref The reference pitch for the staff (e.g., "G2").
  * @returns {number} The corresponding MIDI note number.
  */
-export function pitchToMidi(pitch, ref = 'G3') {
+export function pitchToMidi(pitch, ref = 'G4') {
     if (!pitch) return null;
 
-    // Parse the reference string, e.g., "G2" -> letter: "g", octave: 2
-    const refMatch = ref.toLowerCase().match(/^([a-g])(\d)$/);
+    const refMatch = ref.toLowerCase().match(/^([a-g])(-?\d+)$/);
     if (!refMatch) {
-        throw new Error(`Invalid MIDI reference format: ${ref}. Expected format like "G2".`);
+        throw new Error(`Invalid MIDI reference format: ${ref}. Expected format like "G4".`);
     }
     const refLetter = refMatch[1];
     const refOctave = parseInt(refMatch[2], 10);
 
-    // Calculate the MIDI number for the reference note (the "G" on the bottom line)
-    // MIDI standard: C4 is 60.
-    const refMidiNote = 12 * (refOctave + 1) + noteToMidiOffset[refLetter];
+    // MIDI standard: C4 (middle C) is 60.
+    // Calculate the MIDI note for the reference pitch.
+    const refMidiNote = (refOctave + 1) * 12 + noteToMidiOffset[refLetter];
 
-    // The FQS rendering engine places G on the bottom line. The `pitch.octave` is relative
-    // to a center octave (0), and the `vOffset` in the Pitch class handles the position
-    // on the staff. We need to combine these to get the absolute pitch.
-    // A pitch's letter and its `octave` property give us its position relative to C in the center octave.
-    
-    // Let's establish the MIDI note for C in the center FQS octave (pitch.octave = 0).
-    // The reference note `ref` is on the bottom line of the staff. In FQS rendering,
-    // the bottom line corresponds to G. So, a pitch with letter 'g' and octave 0
-    // should map to `refMidiNote`.
-    const g_in_center_octave_midi = refMidiNote;
-    
-    // From this, we can find C in the center octave. G is 7 semitones above C.
-    const c_in_center_octave_midi = g_in_center_octave_midi - noteToMidiOffset['g'];
+    // In FQS, the reference pitch (e.g., G4) corresponds to a pitch object with letter 'g' and octave 0.
+    // So, we calculate the MIDI note for 'g' in octave 0.
+    const g_in_octave_0_midi = refMidiNote;
 
-    // Now, calculate the final MIDI note for the given pitch.
-    const noteBase = c_in_center_octave_midi + (pitch.octave * 12) + noteToMidiOffset[pitch.letter];
+    // The MIDI note for any other pitch is relative to this reference.
+    // 1. Start with the base MIDI note for the letter in the same octave as our reference G.
+    const note_in_ref_octave = g_in_octave_0_midi - noteToMidiOffset['g'] + noteToMidiOffset[pitch.letter];
+    
+    // 2. Add the octave offset from the pitch object.
+    const note_with_octave = note_in_ref_octave + (pitch.octave * 12);
+
+    // 3. Add the accidental offset.
     const accidentalOffset = accidentalToMidiOffset[pitch.accidentalClass] || 0;
 
-    return noteBase + accidentalOffset;
+    return note_with_octave + accidentalOffset;
 }

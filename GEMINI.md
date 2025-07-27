@@ -14,26 +14,36 @@ The project is implemented in vanilla JavaScript, HTML, and CSS, with no externa
 
 The file `reference.fqs` serves as the canonical documentation for the FQS notation language. It should be consulted for any questions regarding syntax and semantics.
 
-## MIDI Parser Development (`midi_parser_go` branch)
+## MIDI Parser Development
 
-The project is focused on developing a robust MIDI parser to handle the full complexity of FQS notation. A new parser has been developed in Go (`midi_parser_go/`) using a test-driven development (TDD) approach, and its logic is now considered feature-complete for the core FQS rhythm syntax.
+The project's focus has been on developing a robust MIDI parser to enable playback of FQS scores using Tone.js.
 
-### Current Status & Implemented Features
+### Abandoned Approaches (Go/WASM/GopherJS)
 
-The Go parser, validated by a comprehensive test suite in `parser_test.go`, now correctly handles:
--   Single notes, chords (rolled and unrolled), and multiple chords within a single beat.
--   Multi-line scores with continuous timing.
--   Rhythmic holds (`-`) and rests (`;`), including correct duration calculation when holds cross tuplets and line breaks.
--   Tuplets that span multiple beats (e.g., `2**`).
--   Partial beats indicated by underscores (e.g., `*_`, `;-*__`).
+Initial development of the parser logic was done in Go (`midi_parser_go/`) to leverage strong typing and test-driven development. The logic was successfully proven out in Go.
 
-The parser uses a line-by-line processing model where a `holdAccumulator` state is carried between lines to correctly calculate durations for notes sustained across line breaks.
+Several approaches were attempted to integrate this Go logic into the main JavaScript application:
+1.  **Go to WebAssembly (WASM):** This approach involved compiling the Go code to a `.wasm` binary. It was ultimately abandoned due to significant complexities and brittleness in the JS-Go interoperability layer, particularly with respect to the `wasm_exec.js` bootstrap file and asynchronous timing issues.
+2.  **GopherJS:** This approach involved transpiling the Go code to JavaScript. It was abandoned due to toolchain incompatibilities between the latest version of GopherJS and the project's Go version (1.24).
 
-### Next Steps
+After significant debugging, both Go-based integration strategies were deemed too fragile and time-consuming for this project.
 
-With the Go parser's logic validated, the next phase is to integrate it into the main JavaScript application. This presents a key architectural decision:
+### Current Implementation: Pure JavaScript Parser
 
-1.  **Port to JavaScript:** Manually translate the validated Go logic into the project's main `FqsToMidiParser.js` file.
-2.  **Compile to WebAssembly (WASM):** Compile the Go parser to a WASM module and build a JavaScript interface to run it directly in the browser.
+The validated logic from the Go parser was manually translated into a pure JavaScript class, `src/midi/FqsToMidiParser.js`. This approach was chosen for its simplicity, ease of integration, and maintainability within the existing vanilla JavaScript codebase.
 
-This decision will be the primary topic of the next development session. The existing JavaScript function `LyricLine.extractRhythm()` may simplify the effort, as it can pre-process lyrical text into the asterisk-based rhythm format the Go parser now understands.
+A corresponding test suite was created by translating the Go test cases to JavaScript, located in `tests/FqsToMidiParser.test.js`, with an HTML runner at `tests/test_midi_parser.html`.
+
+### Current Status & Next Steps
+
+The new JavaScript parser is fully integrated into the application. The `Score.js` class now uses it to generate note events for MIDI playback.
+
+Playback is partially functional:
+-   Rhythmic information is parsed correctly.
+-   MIDI events are successfully passed to the `MidiPlayer.js` and scheduled with Tone.js.
+
+However, significant bugs remain in the pitch calculation logic:
+-   **Incorrect Octave:** Pitches are playing one or more octaves lower than specified.
+-   **Ignored Alterations:** Sharps and flats from key signatures are not being correctly applied to the MIDI note numbers, though they are identified correctly by the parser.
+
+The immediate next step is to debug the `pitchToMidi` utility and the data flow through the `Pitch` and `PitchLine` classes to resolve these pitch calculation errors.

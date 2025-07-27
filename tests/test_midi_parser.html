@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>FQS to MIDI Parser Tests</title>
+    <style>
+        body { font-family: sans-serif; margin: 2em; }
+        .test-case { margin-bottom: 1em; border: 1px solid #ccc; padding: 1em; }
+        .pass { background-color: #d4edda; }
+        .fail { background-color: #f8d7da; }
+        pre { white-space: pre-wrap; word-wrap: break-word; }
+    </style>
+</head>
+<body>
+    <h1>FQS to MIDI Parser Tests</h1>
+    <div id="results"></div>
+
+    <script type="module">
+        import { FqsToMidiParser } from '../src/midi/FqsToMidiParser.js';
+        import { testCases } from './FqsToMidiParser.test.js';
+
+        const resultsContainer = document.getElementById('results');
+        const floatEqualityThreshold = 1e-9;
+
+        function almostEqual(a, b) {
+            return Math.abs(a - b) <= floatEqualityThreshold;
+        }
+
+        function compareEvents(actual, expected) {
+            if (actual.length !== expected.length) return false;
+            for (let i = 0; i < actual.length; i++) {
+                const a = actual[i];
+                const e = expected[i];
+                if (
+                    a.Kind !== e.Kind ||
+                    a.Note !== e.Note ||
+                    !almostEqual(a.Time, e.Time) ||
+                    !almostEqual(a.Duration, e.Duration) ||
+                    a.NumNotesInChord !== e.NumNotesInChord
+                ) {
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        function runTests() {
+            let passed = 0;
+            let failed = 0;
+
+            testCases.forEach(tc => {
+                const parser = new FqsToMidiParser(tc.score);
+                const actualEvents = parser.parse();
+                
+                let isPass = true;
+                if (actualEvents.length !== tc.expectedEvents.length) {
+                    isPass = false;
+                } else {
+                    for (let i = 0; i < actualEvents.length; i++) {
+                        if (!compareEvents(actualEvents[i], tc.expectedEvents[i])) {
+                            isPass = false;
+                            break;
+                        }
+                    }
+                }
+
+                const resultDiv = document.createElement('div');
+                resultDiv.className = 'test-case ' + (isPass ? 'pass' : 'fail');
+                
+                let content = `<h2>${tc.name}: ${isPass ? 'PASS' : 'FAIL'}</h2>`;
+                if (!isPass) {
+                    content += '<strong>Expected:</strong><pre>' + JSON.stringify(tc.expectedEvents, null, 2) + '</pre>';
+                    content += '<strong>Actual:</strong><pre>' + JSON.stringify(actualEvents, null, 2) + '</pre>';
+                    failed++;
+                } else {
+                    passed++;
+                }
+                
+                resultDiv.innerHTML = content;
+                resultsContainer.appendChild(resultDiv);
+            });
+
+            const summary = document.createElement('h1');
+            summary.textContent = `Summary: ${passed} passed, ${failed} failed.`;
+            resultsContainer.prepend(summary);
+        }
+
+        runTests();
+    </script>
+</body>
+</html>

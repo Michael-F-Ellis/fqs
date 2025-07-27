@@ -367,13 +367,13 @@ export class PitchLine {
         default:
           accClass = "?"; // to be determined
       }
-      // TODO deal properly with key signatures and persistence of
       // accidentals for remainder of the bar.
-      accClass = this.alterations.get(letter, octave, accClass);
-      let pitch = new Pitch(letter, octave, accClass);
+      const finalAccClass = this.alterations.get(letter, octave, accClass);
+      let pitch = new Pitch(letter, octave, finalAccClass);
       // If we have midi parameters, calculate the midi note.
       if (midi_params) {
-        pitch.midiNote = pitchToMidi(pitch, midi_params.ref || 'G3');
+        pitch.midiNote = pitchToMidi(pitch, midi_params.ref || 'g4');
+        console.log(`Pitch: ${pitch.letter}${pitch.accidentalClass}, Octave: ${pitch.octave}, MIDI Note: ${pitch.midiNote}`);
       }
       if (this.inChord > -1) {
         pitch.isChordPitch = true;

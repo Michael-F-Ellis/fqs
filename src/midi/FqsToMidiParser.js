@@ -1,108 +1,250 @@
-import { LyricLine } from '../classes/LyricLine.js';
-import { PitchLine } from '../classes/Pitch.js';
+// src/midi/FqsToMidiParser.js
+
+const NoteEvent = 1;
+const RestEvent = 2;
+const HoldEvent = 3;
 
 /**
- * Parses an FQS Score object into a format suitable for MIDI playback.
+ * A JavaScript implementation of the FQS to MIDI event parser.
+ * This is a direct translation of the Go parser.
  */
 export class FqsToMidiParser {
+    /**
+     * @param {object} score - The score object to parse.
+     */
     constructor(score) {
         this.score = score;
-        this.midi_params = score.data.midi_params || {};
-        this.noteEvents = [];
-        this.lineBoundaries = [];
-        this.parse();
+        this.rollChords = score.MidiParams.Roll !== "off";
+        
+        // State variables
+        this.tIdx = 0;
+        this.pos = 0;
+        this.beatTime = 0.0;
+        this.chordIdx = 0;
+        this.inChord = false;
+        this.numNotesInChord = 0;
+        this.Tuplets = [];
+        this.Events = [];
     }
 
+    /**
+     * Parses the score and returns an array of music events for each line.
+     * @returns {Array<Array<object>>}
+     */
     parse() {
-        const tempo = parseInt(this.midi_params.tempo, 10) || 120;
-        const beatDuration = 60.0 / tempo;
-        const rollChords = (this.midi_params.roll !== 'off');
+        const allLinesEvents = [];
+        let holdAccumulator = 0.0;
 
-        this.score.pitchLines.forEach((pitchLine, lineIndex) => {
-            let lineCurrentTime = 0.0;
-            const lyricLine = this.score.lyricLines[lineIndex];
+        for (let lineIdx = 0; lineIdx < this.score.LyricLines.length; lineIdx++) {
+            const lyricLine = this.score.LyricLines[lineIdx];
+            this.tIdx = 0;
+            this.pos = 0;
+            this.Tuplets = lyricLine.Tuplets.map(t => ({ ...t, subDivisions: 0 }));
+            this.Events = [];
 
-            if (!pitchLine || !lyricLine) return;
-
-            let pitchIdx = 0;
-            // Iterate over the tuplets, which correctly group rhythms by beat.
-            for (const tuplet of lyricLine.tuplets) {
-                // tuplet.text contains the rhythm for one beat, e.g., "(*--*)*" or "**"
-                // We need to count subdivisions. Anything enclosed in '()' is one subdivision
-                // Otherwise each character is a subdivision.
-                tupletDivisions =
-                // Clean the string to only contain rhythm characters.
-                const lyricBeatString = tuplet.text.replace(/[()|\s]/g, '');
-                const numSubdivisions = lyricBeatString.length;
-
-                if (numSubdivisions === 0) {
-                    lineCurrentTime += beatDuration; // Rest beat
-                    continue;
+            while (this.tIdx < this.Tuplets.length) {
+                const tuplet = this.Tuplets[this.tIdx];
+                const ttext = tuplet.text.trim();
+                this.pos = 0; // Reset position for each tuplet text
+                while (this.pos < ttext.length) {
+                    const char = ttext[this.pos];
+                    switch (char) {
+                        case '(':
+                            this._beginChord(ttext);
+                            break;
+                        case ')':
+                            this._endChord(tuplet);
+                            break;
+                        case '*':
+                            this._addNoteEvent(tuplet, lineIdx);
+                            break;
+                        case '-':
+                            this._addHoldEvent(tuplet, lineIdx);
+                            break;
+                        case ';':
+                            this._addRestEvent(tuplet, lineIdx);
+                            break;
+                        case '_':
+                        case ' ':
+                            // ignore
+                            break;
+                        default:
+                            throw new Error(`Invalid character in rhythm: ${char}`);
+                    }
+                    this.pos++;
                 }
+                this._processTupletEnd();
+            }
 
-                const tupletMultiplier = 1.0 / tuplet.tupletSize;
-                const subdivisionDuration = (beatDuration * tupletMultiplier) / numSubdivisions;
+            const [lineEvents, newHoldAccumulator] = this._processLineEvents(holdAccumulator);
+            holdAccumulator = newHoldAccumulator;
 
-                const lyricAttackIndices = [...lyricBeatString.matchAll(/\*/g)].map(m => m.index);
-
-                for (let k = 0; k < lyricAttackIndices.length; k++) {
-                    const attackStartInBeat = lyricAttackIndices[k];
-                    const attackStartTime = lineCurrentTime + (attackStartInBeat * subdivisionDuration);
-
-                    const nextAttackStartInBeat = (k + 1 < lyricAttackIndices.length) ? lyricAttackIndices[k + 1] : numSubdivisions;
-                    const attackDurationSubdivs = nextAttackStartInBeat - attackStartInBeat;
-                    const attackDuration = attackDurationSubdivs * subdivisionDuration;
-
-                    const currentPitch = pitchLine.pitches[pitchIdx];
-
-                    if (currentPitch && currentPitch.isChordPitch) {
-                        const chordGroup = [];
-                        const chordGroupNumber = currentPitch.chordGroupNumber;
-                        while (pitchIdx < pitchLine.pitches.length &&
-                            pitchLine.pitches[pitchIdx].isChordPitch &&
-                            pitchLine.pitches[pitchIdx].chordGroupNumber === chordGroupNumber) {
-                            chordGroup.push(pitchLine.pitches[pitchIdx]);
-                            pitchIdx++;
-                        }
-
-                        const numChordTones = chordGroup.length;
-                        // The roll delay is based on one subdivision, not the whole attack duration
-                        const rollDelayPerNote = rollChords ? (subdivisionDuration / numChordTones) : 0;
-
-                        for (let toneIdx = 0; toneIdx < numChordTones; toneIdx++) {
-                            const pitch = chordGroup[toneIdx];
-                            const rollOffset = toneIdx * rollDelayPerNote;
-
-                            this.noteEvents.push({
-                                note: pitch.midiNote,
-                                time: attackStartTime + rollOffset,
-                                duration: subdivisionDuration - rollOffset,
-                                lineIndex: lineIndex
-                            });
-                        }
-                    } else { // It's a single note
-                        if (currentPitch) {
-                            this.noteEvents.push({
-                                note: currentPitch.midiNote,
-                                time: attackStartTime,
-                                duration: attackDuration,
-                                lineIndex: lineIndex
-                            });
-                            pitchIdx++;
-                        }
+            const pitchLine = this.score.PitchLines[lineIdx];
+            let pitchIdx = 0;
+            for (const event of lineEvents) {
+                if (event.Kind === NoteEvent) {
+                    if (pitchLine && pitchIdx < pitchLine.Pitches.length) {
+                        event.Note = pitchLine.Pitches[pitchIdx].midiNote;
+                        pitchIdx++;
                     }
                 }
-                lineCurrentTime += beatDuration * tupletMultiplier;
             }
-            this.lineBoundaries.push({ startTime: 0, endTime: lineCurrentTime });
+            allLinesEvents.push(lineEvents);
+        }
+
+        if (holdAccumulator > 0) {
+            for (let i = allLinesEvents.length - 1; i >= 0; i--) {
+                if (allLinesEvents[i].length > 0) {
+                    const lastEvent = allLinesEvents[i][allLinesEvents[i].length - 1];
+                    if (lastEvent.Kind === NoteEvent) {
+                        lastEvent.Duration += holdAccumulator;
+                        break;
+                    }
+                }
+            }
+        }
+
+        return allLinesEvents;
+    }
+
+    _processLineEvents(holdAccumulator) {
+        const finalEvents = [];
+        if (this.Events.length > 0 && this.Events[0].Kind === NoteEvent) {
+            this.Events[0].Duration = (this.Events[0].Duration || 0) + holdAccumulator;
+            holdAccumulator = 0;
+        }
+
+        for (let i = this.Events.length - 1; i >= 0; i--) {
+            const event = this.Events[i];
+            switch (event.Kind) {
+                case HoldEvent:
+                    holdAccumulator += event.Duration;
+                    break;
+                case RestEvent:
+                    holdAccumulator = 0;
+                    break;
+                case NoteEvent:
+                    event.Duration += holdAccumulator;
+                    holdAccumulator = 0;
+                    finalEvents.unshift(event);
+                    break;
+            }
+        }
+        return [finalEvents, holdAccumulator];
+    }
+
+    _beginChord(ttext) {
+        this.inChord = true;
+        this.chordIdx = 0;
+        const endParen = ttext.substring(this.pos).indexOf(')');
+        if (endParen === -1) {
+            throw new Error(`Mismatched parenthesis in tuplet: ${ttext}`);
+        }
+        const chordText = ttext.substring(this.pos, this.pos + endParen);
+        this.numNotesInChord = (chordText.match(/\*/g) || []).length;
+    }
+
+    _endChord(tuplet) {
+        this.inChord = false;
+        this.chordIdx = -1;
+        tuplet.subDivisions++;
+    }
+
+    _addNoteEvent(tuplet, lineIdx) {
+        const event = {
+            Kind: NoteEvent,
+            LineIndex: lineIdx,
+            tIdx: this.tIdx,
+            ChordIndex: this.inChord ? this.chordIdx : -1,
+            NumNotesInChord: this.inChord ? this.numNotesInChord : 0,
+            Duration: 0,
+        };
+        this.Events.push(event);
+
+        if (!this.inChord) {
+            tuplet.subDivisions++;
+        } else {
+            this.chordIdx++;
+        }
+    }
+
+    _addHoldEvent(tuplet, lineIdx) {
+        this.Events.push({
+            Kind: HoldEvent,
+            LineIndex: lineIdx,
+            tIdx: this.tIdx,
+            Duration: 0,
         });
+        if (!this.inChord) {
+            tuplet.subDivisions++;
+        }
     }
 
-    getNoteEvents() {
-        return this.noteEvents;
+    _addRestEvent(tuplet, lineIdx) {
+        this.Events.push({
+            Kind: RestEvent,
+            LineIndex: lineIdx,
+            tIdx: this.tIdx,
+            Duration: 0,
+        });
+        if (!this.inChord) {
+            tuplet.subDivisions++;
+        }
     }
 
-    getLineBoundaries() {
-        return this.lineBoundaries;
+    _processTupletEnd() {
+        const tuplet = this.Tuplets[this.tIdx];
+        let beats = tuplet.tupletSize;
+        if (tuplet.subDivisions === 0) {
+            this.tIdx++;
+            return;
+        }
+
+        const numUnderscores = (tuplet.text.match(/_/g) || []).length;
+        if (numUnderscores > 0) {
+            const numRhythmicChars = (tuplet.text.match(/[\*;-]/g) || []).length;
+            if (numRhythmicChars > 0) {
+                beats = beats * numRhythmicChars / (numRhythmicChars + numUnderscores);
+            }
+        }
+
+        const subSize = beats / tuplet.subDivisions;
+
+        let subdivisionFromEnd = 0;
+        for (let i = this.Events.length - 1; i >= 0; i--) {
+            const event = this.Events[i];
+            if (event.tIdx !== this.tIdx) {
+                break;
+            }
+
+            let isNoteOrRest = false;
+            switch (event.Kind) {
+                case NoteEvent:
+                    isNoteOrRest = true;
+                    if (event.ChordIndex === -1 || !this.rollChords) {
+                        event.Time = this.beatTime + (tuplet.subDivisions - subdivisionFromEnd - 1) * subSize;
+                        event.Duration = subSize;
+                    } else {
+                        const stagger = (event.NumNotesInChord > 0) ? subSize / event.NumNotesInChord : 0;
+                        event.Time = this.beatTime + (tuplet.subDivisions - subdivisionFromEnd - 1) * subSize + event.ChordIndex * stagger;
+                        event.Duration = subSize - event.ChordIndex * stagger;
+                    }
+                    break;
+                case HoldEvent:
+                case RestEvent:
+                    isNoteOrRest = true;
+                    event.Time = this.beatTime + (tuplet.subDivisions - subdivisionFromEnd - 1) * subSize;
+                    event.Duration = subSize;
+                    break;
+            }
+
+            if (isNoteOrRest) {
+                if (event.ChordIndex <= 0) {
+                    subdivisionFromEnd++;
+                }
+            }
+        }
+        this.beatTime += beats;
+        this.tIdx++;
     }
 }

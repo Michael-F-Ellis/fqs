@@ -94,8 +94,29 @@ export class Score {
   render() {
     this.data = preprocessScore(this.source.textContent);
     if (!this.data.midi_params) {
-      this.data.midi_params = {};
+      this.data.midi_params = {
+        tempo: 120,
+        roll: "off",
+        ref: "G4",
+      };
+    } else {
+        if (this.data.midi_params.roll === undefined) {
+            this.data.midi_params.roll = "off";
+        }
+        if (this.data.midi_params.tempo === undefined) {
+            this.data.midi_params.tempo = 120;
+        }
+        if (this.data.midi_params.ref === undefined) {
+            this.data.midi_params.ref = "G4";
+        }
     }
+
+    // This is a hack to make the parser work with the current data structure
+    const scoreForParser = {
+        PitchLines: [],
+        LyricLines: [],
+        MidiParams: this.data.midi_params,
+    };
 
     // Centralize line processing
     this.pitchLines = [];
@@ -110,19 +131,30 @@ export class Score {
             line.showLyric = true;
         }
 
+        const line_midi_params = line.midi_params || this.data.midi_params;
+        console.log(`Line ${this.pitchLines.length}: midi_params =`, JSON.stringify(line_midi_params));
         if (line.pitch && line.lyric) {
-            this.pitchLines.push(new PitchLine(line.pitch, this.data.staff, this.data.midi_params));
-            this.lyricLines.push(new LyricLine(line.lyric, line.showLyric));
+            const pitchLine = new PitchLine(line.pitch, this.data.staff, line_midi_params);
+            const lyricLine = new LyricLine(line.lyric, line.showLyric);
+            this.pitchLines.push(pitchLine);
+            this.lyricLines.push(lyricLine);
+            // The parser expects an array of objects with a 'Pitches' property
+            scoreForParser.PitchLines.push({ Pitches: pitchLine.pitches });
+            // The parser expects an array of objects with a 'Tuplets' property
+            scoreForParser.LyricLines.push({ Tuplets: lyricLine.tuplets });
         } else {
             this.pitchLines.push(null);
             this.lyricLines.push(null);
+            // Even for non-music lines, we need placeholders to keep indices in sync
+            scoreForParser.PitchLines.push({ Pitches: [] });
+            scoreForParser.LyricLines.push({ Tuplets: [] });
         }
     });
 
     // Parse MIDI data and store it on this score instance
-    const midiParser = new FqsToMidiParser(this);
-    this.noteEvents = midiParser.getNoteEvents();
-    this.lineBoundaries = midiParser.getLineBoundaries();
+    const midiParser = new FqsToMidiParser(scoreForParser);
+    this.noteEvents = midiParser.parse();
+    // this.lineBoundaries = midiParser.getLineBoundaries(); // getLineBoundaries does not exist on the new parser
 
     renderScore(this, this.inner);
     const svgElements = this.inner.querySelectorAll('svg');
