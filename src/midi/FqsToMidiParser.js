@@ -16,6 +16,17 @@ export class FqsToMidiParser {
         this.score = score;
         this.rollChords = score.MidiParams.Roll !== "off";
         
+        // Sanitize lyric tuplets before parsing
+        if (this.score.LyricLines) {
+            this.score.LyricLines.forEach(line => {
+                if (line.Tuplets) {
+                    line.Tuplets.forEach(tuplet => {
+                        tuplet.text = this.convertLyricTuplet(tuplet.text);
+                    });
+                }
+            });
+        }
+
         // State variables
         this.tIdx = 0;
         this.pos = 0;
@@ -25,6 +36,21 @@ export class FqsToMidiParser {
         this.numNotesInChord = 0;
         this.Tuplets = [];
         this.Events = [];
+    }
+
+    /**
+     * Converts a lyric tuplet into a purely rhythmic one.
+     * This is idempotent.
+     * e.g., "Hap.py -" becomes "**-"
+     * @param {string} lyricText The lyric text of a tuplet.
+     * @returns {string} The rhythm-only text.
+     */
+    convertLyricTuplet(lyricText) {
+        // First, replace any sequence of letters with a single asterisk.
+        const withAsterisks = lyricText.replace(/[a-zA-Z]+/g, '*');
+        // Then, remove any character that is not part of the rhythmic alphabet.
+        // The hyphen must be at the end of the character set to be treated literally.
+        return withAsterisks.replace(/[^*;()_-]/g, '');
     }
 
     /**

@@ -403,6 +403,37 @@ text: Rules for using underscores
        • "a_" is half the duration of "a"
        • "abc__" is 3/5 the duration of "abc"
 EndOfScore
+title: MIDI Playback
+
+zoom: 130
+
+text: FQS provides a simple mechanism for hearing your score played back using synthesized MIDI sounds directly in the browser. This is useful for proof-listening your transcription and practicing along with the melody.
+
+text: To enable MIDI playback, you can add a `midi:` keyword to your score. This is optional; if omitted, default values will be used. The `midi:` keyword can be set globally for the whole score, or specified for individual lines of music. Line-specific settings will override the global settings.
+.
+The `midi:` keyword accepts three parameters, separated by commas:
+  - `tempo`: The playback speed in beats per minute. Defaults to 120.
+  - `ref`: The reference pitch for the bottom line of the staff. This determines the absolute octave of the playback. It defaults to `G4`, which corresponds to the G below middle C. You can also just use a number, like `4`, which is equivalent to `G4`.
+  - `roll`: Determines how chords are played. If set to `on`, chord notes will be played in rapid succession (arpeggiated). If `off`, they will sound simultaneously. Defaults to `off`.
+.
+Example of a global setting:
+.
+  midi: tempo=90, ref=G3, roll=on
+
+text: When a line contains playable music, a play icon (▶) will appear beside it.
+.
+  - Click the icon to start playback for that line. The icon will change to indicate it is playing.
+  - Click the icon again to stop playback.
+.
+The playback is handled by the excellent Tone.js library.
+
+music: K#4 bb | c b e | d - bb | c b ^f | e - bb |
+counter: 3
+midi: tempo=100, ref=4
+
+music: K#4 ^b g e | d c ^aa | g e f | e - - |
+counter: 1
+EndOfScore
 title: YouTube Audio Playback
 
 zoom: 130

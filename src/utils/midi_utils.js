@@ -15,35 +15,36 @@ const accidentalToMidiOffset = {
 /**
  * Converts an FQS Pitch object to a MIDI note number.
  * @param {Pitch} pitch The FQS Pitch object.
- * @param {string} ref The reference pitch for the staff (e.g., "G2").
+ * @param {string} ref The reference for the staff's bottom line (e.g., "G4" or just "4").
  * @returns {number} The corresponding MIDI note number.
  */
 export function pitchToMidi(pitch, ref = 'G4') {
     if (!pitch) return null;
 
-    const refMatch = ref.toLowerCase().match(/^([a-g])(-?\d+)$/);
-    if (!refMatch) {
-        throw new Error(`Invalid MIDI reference format: ${ref}. Expected format like "G4".`);
+    let refOctave;
+
+    // Robustly parse the reference string to get the octave number.
+    // It can be "G4", "4", "c3", etc. We only care about the number.
+    const match = ref.match(/-?\d+/);
+    if (match) {
+        refOctave = parseInt(match[0], 10);
+    } else {
+        // If the ref is invalid, default to octave 4 to avoid NaN.
+        console.error(`Invalid MIDI reference format: ${ref}. Defaulting to octave 4.`);
+        refOctave = 4;
     }
-    const refLetter = refMatch[1];
-    const refOctave = parseInt(refMatch[2], 10);
 
-    // MIDI standard: C4 (middle C) is 60.
-    // Calculate the MIDI note for the reference pitch.
-    const refMidiNote = (refOctave + 1) * 12 + noteToMidiOffset[refLetter];
+    // For a reference like "G4", the reference octave is 4.
+    // The base for MIDI calculation is C in the *next* octave, i.e., C5.
+    const refCOctave = refOctave + 1;
+    const refCMidiNote = (refCOctave + 1) * 12;
 
-    // In FQS, the reference pitch (e.g., G4) corresponds to a pitch object with letter 'g' and octave 0.
-    // So, we calculate the MIDI note for 'g' in octave 0.
-    const g_in_octave_0_midi = refMidiNote;
+    // Start with the reference C, add the pitch's letter offset,
+    // then add the FQS octave offset (which is relative to the staff's "bottom octave").
+    // A pitch's letter is relative to C, so we don't need to subtract C's offset.
+    const note_with_octave = refCMidiNote + noteToMidiOffset[pitch.letter] + (pitch.octave * 12);
 
-    // The MIDI note for any other pitch is relative to this reference.
-    // 1. Start with the base MIDI note for the letter in the same octave as our reference G.
-    const note_in_ref_octave = g_in_octave_0_midi - noteToMidiOffset['g'] + noteToMidiOffset[pitch.letter];
-    
-    // 2. Add the octave offset from the pitch object.
-    const note_with_octave = note_in_ref_octave + (pitch.octave * 12);
-
-    // 3. Add the accidental offset.
+    // Add the accidental offset from the key signature or a local accidental.
     const accidentalOffset = accidentalToMidiOffset[pitch.accidentalClass] || 0;
 
     return note_with_octave + accidentalOffset;

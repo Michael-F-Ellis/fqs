@@ -51,7 +51,9 @@ export class MidiPlayer {
 
         // Create a new part and schedule the notes
         this.part = new Tone.Part((time, value) => {
-            this.synth.triggerAttackRelease(value.note, value.duration, time);
+            // Convert MIDI note number to frequency for Tone.js
+            const frequency = new Tone.Midi(value.note).toFrequency();
+            this.synth.triggerAttackRelease(frequency, value.duration, time);
         }, notesForPart);
 
         // When the part is done playing, call the stop method.

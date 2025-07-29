@@ -102,7 +102,7 @@ export class Pitch {
 // match each pitch to its corresponding attack location in the Lyric line.
 export class PitchLine {
   constructor(text, staffLines = 4, midi_params = null) {
-    this.centerOctave = 0;
+    this.bottomOctave = 0;
     this.staffLines = staffLines;
     this.text = text;
     // trim leading or trailing whitespace
@@ -164,9 +164,9 @@ export class PitchLine {
 
     // Next we parse the tokens into an array of pitch objects.
     // The octave of each pitch depends on the prior pitch. To
-    // begin, we let the prior pitch be C natural on the center
+    // begin, we let the prior pitch be C natural on the bottom
     // octave.
-    let prevPitch = new Pitch("c", this.centerOctave, "");
+    let prevPitch = new Pitch("c", this.bottomOctave, "");
     // A pitch token always ends with a letter in [a-g].
     // It may optionally be preceded by at most one of the following accidentals
     // "##", "&&", "#", "&", or '%'.
