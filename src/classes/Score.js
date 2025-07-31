@@ -3,7 +3,7 @@ import { defaultParameters } from "../utils/parameters.js";
 import { preprocessScore } from "../utils/preprocess.js";
 import { LyricLine } from "./LyricLine.js";
 import { PitchLine } from "./Pitch.js";
-import { renderMultiline } from "../utils/textrender.js";
+import { renderMultilineText } from "../utils/textrender.js";
 import { appendSVGTextChild } from "../utils/svg.js";
 import { playYouTubeAt } from "../utils/youtube.js";
 import { musicToPitchLyric } from "../utils/preprocess.js";
@@ -100,55 +100,55 @@ export class Score {
         ref: "G4",
       };
     } else {
-        if (this.data.midi_params.roll === undefined) {
-            this.data.midi_params.roll = "off";
-        }
-        if (this.data.midi_params.tempo === undefined) {
-            this.data.midi_params.tempo = 120;
-        }
-        if (this.data.midi_params.ref === undefined) {
-            this.data.midi_params.ref = "G4";
-        }
+      if (this.data.midi_params.roll === undefined) {
+        this.data.midi_params.roll = "off";
+      }
+      if (this.data.midi_params.tempo === undefined) {
+        this.data.midi_params.tempo = 120;
+      }
+      if (this.data.midi_params.ref === undefined) {
+        this.data.midi_params.ref = "G4";
+      }
     }
 
     // This is a hack to make the parser work with the current data structure
     const scoreForParser = {
-        PitchLines: [],
-        LyricLines: [],
-        MidiParams: this.data.midi_params,
+      PitchLines: [],
+      LyricLines: [],
+      MidiParams: this.data.midi_params,
     };
 
     // Centralize line processing
     this.pitchLines = [];
     this.lyricLines = [];
     this.data.lines.forEach(line => {
-        if (line.music) {
-            const { lyric, pitch } = musicToPitchLyric(line.music);
-            line.lyric = lyric;
-            line.pitch = pitch;
-            line.showLyric = false;
-        } else {
-            line.showLyric = true;
-        }
+      if (line.music) {
+        const { lyric, pitch } = musicToPitchLyric(line.music);
+        line.lyric = lyric;
+        line.pitch = pitch;
+        line.showLyric = false;
+      } else {
+        line.showLyric = true;
+      }
 
-        const line_midi_params = line.midi_params || this.data.midi_params;
-        console.log(`Line ${this.pitchLines.length}: midi_params =`, JSON.stringify(line_midi_params));
-        if (line.pitch && line.lyric) {
-            const pitchLine = new PitchLine(line.pitch, this.data.staff, line_midi_params);
-            const lyricLine = new LyricLine(line.lyric, line.showLyric);
-            this.pitchLines.push(pitchLine);
-            this.lyricLines.push(lyricLine);
-            // The parser expects an array of objects with a 'Pitches' property
-            scoreForParser.PitchLines.push({ Pitches: pitchLine.pitches });
-            // The parser expects an array of objects with a 'Tuplets' property
-            scoreForParser.LyricLines.push({ Tuplets: lyricLine.tuplets });
-        } else {
-            this.pitchLines.push(null);
-            this.lyricLines.push(null);
-            // Even for non-music lines, we need placeholders to keep indices in sync
-            scoreForParser.PitchLines.push({ Pitches: [] });
-            scoreForParser.LyricLines.push({ Tuplets: [] });
-        }
+      const line_midi_params = line.midi_params || this.data.midi_params;
+      console.log(`Line ${this.pitchLines.length}: midi_params =`, JSON.stringify(line_midi_params));
+      if (line.pitch && line.lyric) {
+        const pitchLine = new PitchLine(line.pitch, this.data.staff, line_midi_params);
+        const lyricLine = new LyricLine(line.lyric, line.showLyric);
+        this.pitchLines.push(pitchLine);
+        this.lyricLines.push(lyricLine);
+        // The parser expects an array of objects with a 'Pitches' property
+        scoreForParser.PitchLines.push({ Pitches: pitchLine.pitches });
+        // The parser expects an array of objects with a 'Tuplets' property
+        scoreForParser.LyricLines.push({ Tuplets: lyricLine.tuplets });
+      } else {
+        this.pitchLines.push(null);
+        this.lyricLines.push(null);
+        // Even for non-music lines, we need placeholders to keep indices in sync
+        scoreForParser.PitchLines.push({ Pitches: [] });
+        scoreForParser.LyricLines.push({ Tuplets: [] });
+      }
     });
 
     // Parse MIDI data and store it on this score instance
@@ -216,10 +216,10 @@ function reconstructSectionText(line) {
 }
 
 function renderScore(score, wrapper) {
-    const data = score.data;
-    const midiPlayer = score.midiPlayer;
-    const pitchLines = score.pitchLines;
-    const lyricLines = score.lyricLines;
+  const data = score.data;
+  const midiPlayer = score.midiPlayer;
+  const pitchLines = score.pitchLines;
+  const lyricLines = score.lyricLines;
 
   if (!data.staff) {
     data.staff = 4;
@@ -316,14 +316,16 @@ function renderScore(score, wrapper) {
 
     if (line.text) {
       y += 2 * defaultParameters.lyricFontHeight + defaultParameters.textFontHeight;
-      y = renderMultiline(svg, defaultParameters.leftX, y,
+      y = renderMultilineText(svg, defaultParameters.leftX, y,
         line.text, defaultParameters.textFontHeight, 'text');
       y += defaultParameters.textFontHeight
       return;
     }
-    
+
     const lyricline = lyricLines[index];
+    console.log(lyricline || "empty lyric line")
     const pitchLine = pitchLines[index];
+    console.log(pitchLine || "empty pitch line")
 
     y += defaultParameters.lyricFontHeight
     if (line.image) {
@@ -375,7 +377,8 @@ function renderScore(score, wrapper) {
       perbar.render(svg, defaultParameters.leftX, y, lyricline);
     }
     if (line.showLyric && lyricline) {
-        lyricline.render(svg, defaultParameters.leftX, y, defaultParameters.lyricFontWidth);
+      y += defaultParameters.lyricFontHeight;
+      lyricline.render(svg, defaultParameters.leftX, y, defaultParameters.lyricFontWidth);
     }
     if (line.pernote && lyricline) {
       y += defaultParameters.pernoteFontHeight * 1.5;
@@ -422,9 +425,9 @@ function renderScore(score, wrapper) {
       midiIcon.dataset.lineIndex = String(index);
       midiIcon.style.cursor = 'pointer';
       midiIcon.addEventListener('click', (event) => {
-          if (midiPlayer) {
-              midiPlayer.playStopLine(score, index);
-          }
+        if (midiPlayer) {
+          midiPlayer.playStopLine(score, index);
+        }
       });
     }
   });

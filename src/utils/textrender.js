@@ -23,7 +23,7 @@ function countLeadingSpaces(line) {
   return i;
 }
 
-export function renderMultiline(svg, x, y, text, fontHeight, className) {
+export function renderMultilineText(svg, x, y, text, fontHeight, className) {
   const lines = text.split('\n');
 
   lines.forEach(line => {

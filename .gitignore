@@ -22,7 +22,10 @@ lyrictest.js
 quick.fqs
 
 # Node modules
+.DS_Store
 node_modules/
+.venv/
+
 
 # Screen shots
 shots/

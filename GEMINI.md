@@ -14,36 +14,37 @@ The project is implemented in vanilla JavaScript, HTML, and CSS, with no externa
 
 The file `reference.fqs` serves as the canonical documentation for the FQS notation language. It should be consulted for any questions regarding syntax and semantics.
 
-## MIDI Parser Development
+## Automated Testing Workflow
 
-The project's focus has been on developing a robust MIDI parser to enable playback of FQS scores using Tone.js.
+To improve the speed and reliability of the development cycle, an automated testing workflow has been implemented using Playwright.
 
-### Abandoned Approaches (Go/WASM/GopherJS)
+**File:** `run_test.py`
+**Usage:** `./.venv/bin/python3 run_test.py`
 
-Initial development of the parser logic was done in Go (`midi_parser_go/`) to leverage strong typing and test-driven development. The logic was successfully proven out in Go.
+This script automates the following process:
+1.  **Builds** the project using `build.py`.
+2.  **Starts** a local web server.
+3.  **Launches** a headless browser using Playwright.
+4.  **Navigates** to a test page (`pre-fqs.html`) and automatically loads a test file (`mididev.fqs`) using a URL parameter.
+5.  **Captures** all browser console logs and prints them to the terminal.
+6.  **Shuts down** the server and browser.
 
-Several approaches were attempted to integrate this Go logic into the main JavaScript application:
-1.  **Go to WebAssembly (WASM):** This approach involved compiling the Go code to a `.wasm` binary. It was ultimately abandoned due to significant complexities and brittleness in the JS-Go interoperability layer, particularly with respect to the `wasm_exec.js` bootstrap file and asynchronous timing issues.
-2.  **GopherJS:** This approach involved transpiling the Go code to JavaScript. It was abandoned due to toolchain incompatibilities between the latest version of GopherJS and the project's Go version (1.24).
+This provides a fast and consistent way to test changes and capture debug information without manual intervention.
 
-After significant debugging, both Go-based integration strategies were deemed too fragile and time-consuming for this project.
+## MIDI Playback
 
-### Current Implementation: Pure JavaScript Parser
+The project includes a MIDI playback feature powered by Tone.js, allowing users to listen to their scores directly in the browser.
 
-The validated logic from the Go parser was manually translated into a pure JavaScript class, `src/midi/FqsToMidiParser.js`. This approach was chosen for its simplicity, ease of integration, and maintainability within the existing vanilla JavaScript codebase.
+### MIDI Implementation Details
 
-A corresponding test suite was created by translating the Go test cases to JavaScript, located in `tests/FqsToMidiParser.test.js`, with an HTML runner at `tests/test_midi_parser.html`.
+-   **FQS to MIDI Parsing:** The `FqsToMidiParser.js` class is responsible for converting the rhythmic information from a score into a series of note events.
+-   **Pitch to MIDI Conversion:** The `pitchToMidi` utility in `midi_utils.js` calculates the absolute MIDI note number for each pitch based on the score's key signature, accidentals, and the reference octave (`ref` parameter).
+-   **Playback:** The `MidiPlayer.js` class schedules these events with Tone.js. It correctly converts MIDI note numbers into frequencies before sending them to the synthesizer.
 
-### Current Status & Next Steps
+### Status: Functional
 
-The new JavaScript parser is fully integrated into the application. The `Score.js` class now uses it to generate note events for MIDI playback.
-
-Playback is partially functional:
--   Rhythmic information is parsed correctly.
--   MIDI events are successfully passed to the `MidiPlayer.js` and scheduled with Tone.js.
-
-However, significant bugs remain in the pitch calculation logic:
--   **Incorrect Octave:** Pitches are playing one or more octaves lower than specified.
--   **Ignored Alterations:** Sharps and flats from key signatures are not being correctly applied to the MIDI note numbers, though they are identified correctly by the parser.
-
-The immediate next step is to debug the `pitchToMidi` utility and the data flow through the `Pitch` and `PitchLine` classes to resolve these pitch calculation errors.
+The MIDI playback feature is now fully functional. The following critical bugs have been resolved:
+-   **Incorrect Octave:** The `pitchToMidi` function was corrected to use the proper reference octave (e.g., C5 for a `G4` reference) for its calculations.
+-   **Incorrect Playback Pitch:** The `MidiPlayer` was updated to convert MIDI note numbers to frequency (using `Tone.Midi().toFrequency()`) before passing them to the Tone.js synth, which resolved notes playing at the wrong pitch.
+-   **Lyric Parsing:** The `FqsToMidiParser` now correctly handles tuplets containing lyrics (e.g., "Twin.kle"), preventing crashes.
+-   **Documentation:** A new "MIDI Playback" section was added to `reference.fqs`.

@@ -2,6 +2,7 @@ import { MidiPlayer } from './src/midi/MidiPlayer.js';
 import { updateFontSizes } from './src/utils/parameters.js';
 import { initYouTubeAPI, } from './src/utils/youtube.js';
 import { Score } from './src/classes/Score.js';
+import './src/index.js';
 /*********************************************************************
   Module globals
 *********************************************************************   
@@ -21,7 +22,32 @@ class Book {
     this.delimiter = "\nEndOfScore\n" // delimiter between scores in exportable .fqs format
     this.controlsVisible = true;
     this.midiPlayer = new MidiPlayer();
+
+    // Auto-load a file if specified in the URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const fileToLoad = urlParams.get('load');
+    if (fileToLoad) {
+      this.loadFile(fileToLoad);
+    } else {
+      this.loadFile('reference.fqs');
+    }
   }
+
+  loadFile = async (fileName) => {
+      try {
+          const response = await fetch(fileName);
+          if (!response.ok) {
+              throw new Error(`Failed to fetch ${fileName}: ${response.statusText}`);
+          }
+          const fqsText = await response.text();
+          this.importFromText(fqsText);
+      } catch (error) {
+          console.error(`Error loading file: ${error}`);
+          this.container.textContent = `Error loading file: ${fileName}. Please check the file path and server configuration.`;
+      }
+  };
+
+
   // enforceControlsVisibility() hides or shows the book-actions div of each score according to the
   // controlsVisible flag.
   enforceControlsVisibility() {
