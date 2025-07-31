@@ -142,6 +142,13 @@ export class Score {
         scoreForParser.PitchLines.push({ Pitches: pitchLine.pitches });
         // The parser expects an array of objects with a 'Tuplets' property
         scoreForParser.LyricLines.push({ Tuplets: lyricLine.tuplets });
+      } else if (line.lyric) { // If there's a lyric line but no pitch line
+        const pitchLine = new PitchLine('', this.data.staff, line_midi_params); // Create a dummy pitchline
+        const lyricLine = new LyricLine(line.lyric, line.showLyric);
+        this.pitchLines.push(pitchLine);
+        this.lyricLines.push(lyricLine);
+        scoreForParser.PitchLines.push({ Pitches: [] });
+        scoreForParser.LyricLines.push({ Tuplets: lyricLine.tuplets });
       } else {
         this.pitchLines.push(null);
         this.lyricLines.push(null);
