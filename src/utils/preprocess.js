@@ -1,4 +1,6 @@
 import { normalizeBarlines } from "./textrender.js";
+import { lineProblems } from "../classes/LineProblem.js";
+
 // splitFirst splits a string on the supplied separator and returns
 // a two-element array of strings containing the part that preceded the
 // separator and the remainder of the string, e.g.
@@ -69,7 +71,7 @@ export function preprocessScore(text) {
   // 
   // The first kind is text block that begins with preface: or postscript:
   // or text: and may have one or more lines. Subsequent lines are
-  // treated as text lines. 
+// treated as text lines. 
 
   // The second kind of block is a single line that begins with
   //   title:, or zoom: It is an error if either of these keywords
@@ -124,6 +126,10 @@ export function preprocessScore(text) {
       obj.text = line.slice(5).trim();
       return obj;
     }
+    if (line.startsWith("image:")) {
+      obj.image = line.slice(6).trim();
+      return obj;
+    }
     // If we get to here, it's a music linegroup
     const parts = line.split(/\n/);
     parts.forEach(part => {
@@ -152,6 +158,9 @@ export function preprocessScore(text) {
             }
           });
           obj.midi_params = line_midi_params;
+          break;
+        case "image":
+          lineProblems.add("The 'image:' keyword cannot be used inside a music block.");
           break;
         case "nomarkers": // Deprecated
           break;

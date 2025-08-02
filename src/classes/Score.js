@@ -222,6 +222,124 @@ function reconstructSectionText(line) {
   return text;
 }
 
+function createActionsDropdown(svg, line, index, score) {
+  const wrapper = svg.parentNode;
+  const editorDiv = document.createElement('div');
+  editorDiv.setAttribute('class', 'section-editor-div');
+  editorDiv.style.display = 'none';
+  editorDiv.style.alignItems = 'flex-start';
+  const reloadButton = document.createElement('button');
+  reloadButton.textContent = '↻';
+  reloadButton.setAttribute('class', 'reload-icon');
+  const editor = document.createElement('pre');
+  editor.classList.add('section-editor');
+  editor.setAttribute('contenteditable', 'plaintext-only');
+  editor.style.display = 'block';
+  editorDiv.appendChild(reloadButton);
+  editorDiv.appendChild(editor);
+  wrapper.appendChild(editorDiv);
+
+  editor.addEventListener('input', () => {
+    const sectionEditors = wrapper.querySelectorAll('.section-editor');
+    const fullText = Array.from(sectionEditors)
+      .map(ed => ed.textContent.trim())
+      .filter(text => text.length > 0)
+      .join('\n\n');
+    const scoreDiv = wrapper.closest('div.score');
+    const mainEditor = scoreDiv.querySelector('pre.source');
+    mainEditor.textContent = fullText;
+  });
+  reloadButton.addEventListener('click', () => {
+    const activeEditor = editor;
+    const allEditors = wrapper.querySelectorAll('.section-editor');
+    const activeIndex = Array.from(allEditors).indexOf(activeEditor);
+    const scoreDiv = wrapper.closest('div.score');
+    const score = scoreMap.get(scoreDiv.id);
+    score.render();
+    const newEditorDivs = wrapper.querySelectorAll('.section-editor-div');
+    const newActiveEditor = newEditorDivs[activeIndex];
+    newActiveEditor.style.display = 'flex';
+    newActiveEditor.focus();
+  });
+
+  const dropdownMenu = document.createElement('div');
+  dropdownMenu.classList.add('actions-dropdown-menu');
+  dropdownMenu.style.display = 'none';
+  wrapper.appendChild(dropdownMenu);
+
+  const ellipsisIcon = appendSVGTextChild(svg, 0, 16, "…", ['ellipsis-icon']);
+  ellipsisIcon.style.cursor = 'pointer';
+  ellipsisIcon.addEventListener('click', (e) => {
+    e.stopPropagation();
+    dropdownMenu.style.display = dropdownMenu.style.display === 'none' ? 'block' : 'none';
+    const rect = ellipsisIcon.getBoundingClientRect();
+    const wrapperRect = wrapper.getBoundingClientRect();
+    dropdownMenu.style.left = `${rect.right - wrapperRect.left}px`;
+    dropdownMenu.style.top = `${rect.top - wrapperRect.top}px`;
+  });
+
+  // Add Edit option
+  const editItem = document.createElement('div');
+  editItem.textContent = 'Edit';
+  editItem.classList.add('actions-dropdown-item');
+  editItem.addEventListener('click', () => {
+    editorDiv.style.display = editorDiv.style.display === 'none' ? 'flex' : 'none';
+    dropdownMenu.style.display = 'none';
+  });
+  dropdownMenu.appendChild(editItem);
+
+  // Add MIDI option
+  if (line.pitch) {
+    const midiItem = document.createElement('div');
+    midiItem.textContent = 'Play MIDI';
+    midiItem.classList.add('actions-dropdown-item');
+    midiItem.dataset.lineIndex = String(index);
+    midiItem.addEventListener('click', () => {
+      if (score.midiPlayer) {
+        score.midiPlayer.playStopLine(score, index);
+      }
+      dropdownMenu.style.display = 'none';
+    });
+    dropdownMenu.appendChild(midiItem);
+  }
+
+  // Add YouTube option
+  if (score.data.youtubeId && line.play !== undefined) {
+    const ytItem = document.createElement('div');
+    ytItem.textContent = 'Play from YouTube';
+    ytItem.classList.add('actions-dropdown-item');
+    ytItem.addEventListener('click', () => {
+      playYouTubeAt(score.data.youtubeId, line.play, line.playRate || 1.0);
+      dropdownMenu.style.display = 'none';
+    });
+    dropdownMenu.appendChild(ytItem);
+  }
+
+  // Add Image option
+  if (line.image) {
+    const imageItem = document.createElement('div');
+    imageItem.textContent = 'Show/Hide Image';
+    imageItem.classList.add('actions-dropdown-item');
+    imageItem.addEventListener('click', () => {
+      const imageLine = svg.querySelector('.image-line');
+      if (imageLine) {
+        imageLine.style.display = imageLine.style.display === 'none' ? 'block' : 'none';
+      }
+      dropdownMenu.style.display = 'none';
+    });
+    dropdownMenu.appendChild(imageItem);
+  }
+
+  document.addEventListener('click', (e) => {
+    if (!dropdownMenu.contains(e.target) && !ellipsisIcon.contains(e.target)) {
+      dropdownMenu.style.display = 'none';
+    }
+  });
+
+  return editor;
+}
+
+
 function renderScore(score, wrapper) {
   const data = score.data;
   const midiPlayer = score.midiPlayer;
@@ -232,60 +350,11 @@ function renderScore(score, wrapper) {
     data.staff = 4;
   }
 
-  const addEditor = (svg) => {
-    const editorDiv = document.createElement('div');
-    editorDiv.setAttribute('class', 'section-editor-div');
-    editorDiv.style.display = 'none';
-    editorDiv.style.alignItems = 'flex-start';
-    const reloadButton = document.createElement('button');
-    reloadButton.textContent = '↻';
-    reloadButton.setAttribute('class', 'reload-icon');
-    const editor = document.createElement('pre');
-    editor.classList.add('section-editor');
-    editor.setAttribute('contenteditable', 'plaintext-only');
-    editor.style.display = 'block';
-    editorDiv.appendChild(reloadButton);
-    editorDiv.appendChild(editor);
-    wrapper.appendChild(editorDiv);
-
-    const pencil = appendSVGTextChild(svg, 0, 16, "✎", ['pencil-icon']);
-    pencil.addEventListener("click", function (e) {
-      e.stopPropagation();
-      e.preventDefault();
-      e.stopImmediatePropagation();
-      editorDiv.style.display = editorDiv.style.display === 'none' ? 'flex' : 'none';
-      return false;
-    }, true);
-    editor.addEventListener('input', () => {
-      const sectionEditors = wrapper.querySelectorAll('.section-editor');
-      const fullText = Array.from(sectionEditors)
-        .map(ed => ed.textContent.trim())
-        .filter(text => text.length > 0)
-        .join('\n\n');
-      const scoreDiv = wrapper.closest('div.score');
-      const mainEditor = scoreDiv.querySelector('pre.source');
-      mainEditor.textContent = fullText;
-    });
-    reloadButton.addEventListener('click', () => {
-      const activeEditor = editor;
-      const allEditors = wrapper.querySelectorAll('.section-editor');
-      const activeIndex = Array.from(allEditors).indexOf(activeEditor);
-      const scoreDiv = wrapper.closest('div.score');
-      const score = scoreMap.get(scoreDiv.id);
-      score.render();
-      const newEditorDivs = wrapper.querySelectorAll('.section-editor-div');
-      const newActiveEditor = newEditorDivs[activeIndex];
-      newActiveEditor.style.display = 'flex';
-      newActiveEditor.focus();
-    });
-    return editor;
-  }
-
   wrapper.innerHTML = "";
   let svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
   let y = 0;
   wrapper.appendChild(svg)
-  addEditor(svg)
+  const titleEditor = createActionsDropdown(svg, {}, -1, score);
 
   y = lineProblems.render(svg, defaultParameters.leftX, y);
   lineProblems.clear();
@@ -293,7 +362,6 @@ function renderScore(score, wrapper) {
   y += 2 * defaultParameters.titleFontHeight
   appendSVGTextChild(svg, defaultParameters.leftX, y, data.title, ['title']);
 
-  const titleEditor = wrapper.querySelector('.section-editor');
   if (titleEditor) {
     let titleText = `title: ${data.title}`;
     if (data.zoom) {
@@ -318,7 +386,7 @@ function renderScore(score, wrapper) {
     let svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
     let y = 0;
     wrapper.appendChild(svg)
-    let sectionEditor = addEditor(svg);
+    let sectionEditor = createActionsDropdown(svg, line, index, score);
     sectionEditor.textContent = reconstructSectionText(line);
 
     if (line.text) {
@@ -338,7 +406,8 @@ function renderScore(score, wrapper) {
     if (line.image) {
       const image = new ImageLine(line.image);
       if (image.wellFormed) {
-        image.render(svg, defaultParameters.leftX, y);
+        const imageElement = image.render(svg, defaultParameters.leftX, y);
+        imageElement.classList.add('image-line'); // Add class for toggling
       }
     }
     if (line.cue) {
@@ -407,35 +476,20 @@ function renderScore(score, wrapper) {
     }
     y = lineProblems.render(svg, defaultParameters.leftX, y);
     lineProblems.clear();
-
-    if (data.youtubeId && line.play !== undefined) {
-      svg.style.cursor = 'pointer';
-      const speaker = appendSVGTextChild(svg, 0, 48, "🔊", ["speaker-icon"]);
-      speaker.dataset.timestamp = String(line.play);
-      speaker.addEventListener('click', (event) => {
-        if (event.detail === 1) {
-          setTimeout(() => {
-            if (!event.target.clickProcessed) {
-              document.querySelectorAll('.speaker-icon').forEach(icon => {
-                icon.classList.remove('speaker-icon-active');
-              });
-              playYouTubeAt(data.youtubeId, line.play, line.playRate || 1.0);
-            }
-          }, 200);
-        }
-        event.target.clickProcessed = (event.detail === 2);
-      });
-    }
-
-    if (line.pitch) {
-      const midiIcon = appendSVGTextChild(svg, 0, 72, "▶", ["midi-play-icon"]);
-      midiIcon.dataset.lineIndex = String(index);
-      midiIcon.style.cursor = 'pointer';
-      midiIcon.addEventListener('click', (event) => {
-        if (midiPlayer) {
-          midiPlayer.playStopLine(score, index);
-        }
-      });
-    }
   });
+}
+
+export function updateMidiPlayIcon(scoreId, lineIndex, isPlaying) {
+  const scoreDiv = document.getElementById(scoreId);
+  if (scoreDiv) {
+    const dropdowns = scoreDiv.querySelectorAll('.actions-dropdown-menu');
+    // The first dropdown is for the title, so we add 1 to the lineIndex
+    const dropdown = dropdowns[lineIndex + 1];
+    if (dropdown) {
+      const midiItem = dropdown.querySelector('[data-line-index]');
+      if (midiItem) {
+        midiItem.textContent = isPlaying ? "Stop MIDI" : "Play MIDI";
+      }
+    }
+  }
 }

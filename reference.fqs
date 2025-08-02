@@ -486,9 +486,11 @@ counter: 1
 play: 11:38 1
 
 EndOfScore
-title: Images (DEPRECATED)
+title: Images
 
 zoom: 130
+
+staff: 4
 
 text: FQS supports adding images to lines of music. This is mostly useful for
 tutorials such as this reference. It can also be useful while transcribing from a
@@ -496,8 +498,10 @@ conventional score to be able to see a few lines while you work or to consult th
 original while rehearsing.
 
 music: K0 (/cgec) (/dc)--a b | (//cge&b) (fb)--g a | (/bd)-ef (/cgf)--d ef | cbca bd /gf |
+lyric: (****) (**)--* * | (****) (**)--* * | (**)-** (***)--* ** | **** ** ** |
 counter: 1
-image: https://michael-f-ellis.github.io/fqs/sarabande.png 0.5
+
+image: https://michael-f-ellis.github.io/fqs/sarabande.png 0.9
 
 text: The 'image:' keyword takes two values:
   - URL (required) Any valid URL that points to a PNG, JPEG, SVG or GIF image
