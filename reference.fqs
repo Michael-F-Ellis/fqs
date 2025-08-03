@@ -1,8 +1,9 @@
 title: About FQS
-
 zoom: 130
-
+staff: 4
 youtube: icx52BLixaw
+midi: tempo=120, ref=G4, roll=off
+intervals: off
 
 text: FQS is a musical notation system that makes music easier to read. This page is a
 complete self-contained web app with no external dependencies. You can use it to
@@ -17,8 +18,11 @@ In case you're wondering, the name, FQS, comes from the initials of my three
 grandchildren: Fiona, Quentin and Skylar.
 EndOfScore
 title: About this reference
-
 zoom: 130
+staff: 4
+youtube: none
+midi: tempo=120, ref=G4, roll=off
+intervals: off
 
 text: This reference is a "Book" of "Scores", albeit one with far more text than usual.
 .
@@ -37,8 +41,11 @@ You can even save your own version of this reference using the Export button at 
 top of the page.
 EndOfScore
 title: Strengths and Limitations
-
 zoom: 130
+staff: 4
+youtube: none
+midi: tempo=120, ref=G4, roll=off
+intervals: off
 
 text: FQS is not a complete replacement for conventional music notation.
 .
@@ -71,10 +78,11 @@ It's my belief that FQS is a valuable alternative that can reduce the
 effort required to decipher and learn music from a notated source.
 EndOfScore
 title: Two Examples
-
 zoom: 130
-
+staff: 4
 youtube: icx52BLixaw
+midi: tempo=120, ref=G4, roll=off
+intervals: off
 
 text: Here's a simple example: the melody for Happy Birthday, set in E major.
 Try playing it if you have your instrument handy. The red notes are sharped.
@@ -92,7 +100,6 @@ a performance by Yo-Yo Ma.
 Click again to stop - unless you just want to bliss out on the remainder of
 the suite!
 
-
 music: K0 (/cgec) (/dc)--a b | (//cge&b) (fb)--g a | (/bd)-ef (/cgf)--d ef | cbca bd /gf |
 counter: 1
 play: 11:18 1
@@ -106,10 +113,11 @@ text: Feel free to click the pencil icons to see what input produced the notatio
 on to learning exactly how FQS represents music. You'll be seeing more from both these examples.
 EndOfScore
 title: The Title
-
 zoom: 130
-
+staff: 4
 youtube: optional
+midi: tempo=120, ref=G4, roll=off
+intervals: off
 
 text: Every score requires a title block. In addition to the name of the score,
 the title block may include two other keyword items, 'zoom:' and 'youtube:'. 
@@ -128,8 +136,11 @@ one id per score, but each score may have its own youtube id.
 See the YouTube section of this reference for examples and usage instructions.
 EndOfScore
 title: The Staff
-
 zoom: 130
+staff: 4
+youtube: none
+midi: tempo=120, ref=G4, roll=off
+intervals: off
 
 text: The FQS staff has 4 lines. Each line represents a vertical span of 1 octave.
 
@@ -157,10 +168,11 @@ text: But what if I need more than three octaves? Or less?
 A. Use the "staff:" keyword in the title block.  See below.
 EndOfScore
 title: Smaller staffs
-
 zoom: 100
-
 staff: 3
+youtube: none
+midi: tempo=120, ref=G4, roll=off
+intervals: off
 
 text: The staff: keyword takes a single number as an argument that specifies how
 many octave lines to draw.  In this score, a value of 3 creates a 2 octave staff
@@ -170,10 +182,11 @@ cue: Two octave staff (suitable for many scores)
 music: K0 /efga bcde | fgab cdef |
 EndOfScore
 title: Huge staff
-
 zoom: 100
-
 staff: 8
+youtube: none
+midi: tempo=120, ref=G4, roll=off
+intervals: off
 
 text: You may have as many octaves as needed. Here's an extreme example.
 
@@ -181,8 +194,11 @@ cue: 7 octaves (full range of an 88 key piano)
 music: K0 abcd efg; | abcd efg; | abcd efg; | abcd efg; | abcd efg; | abcd efg; | abcd efg; | abc; ; |
 EndOfScore
 title: Editing
-
 zoom: 130
+staff: 4
+youtube: none
+midi: tempo=120, ref=G4, roll=off
+intervals: off
 
 text: The pencil icons beside each score item are your primary means of 
 editing. Clicking the icon opens up a text area beneath the item containing 
@@ -200,12 +216,13 @@ This gives you access to the full text of the score. The tradeoff is that this
 takes up half the screen, shrinking the score view. On the other hand, the
 changes you make are rendered immediately as you type without requiring you to
 click a reload icon.
-
-
 EndOfScore
 title: Sharps and flats
-
 zoom: 130
+staff: 4
+youtube: none
+midi: tempo=120, ref=G4, roll=off
+intervals: off
 
 cue: chromatic scale
 music: K0 c#cd#def#fg#ga#abc | cb&ba&ag&gfe&ed&dc |
@@ -214,12 +231,13 @@ perbar: sharps_(red) flats_(blue)
 cue: FQS supports double flats (green) and double sharps (orange)
 music: K0 &&f &f %f #f ##f |
 pernote: 𝄫 ♭ ♮ ♯ 𝄪
-
-
 EndOfScore
 title: Key Signatures
-
 zoom: 130
+staff: 4
+youtube: none
+midi: tempo=120, ref=G4, roll=off
+intervals: off
 
 text: Key signatures are not displayed in FQS. They are, however,
 required in the input notation. At least one is required at the beginning
@@ -232,8 +250,11 @@ music: K0 cdefgabc | K&3 /cdefgabc | K#4 /cdefgabc |
 perbar: C_major C_minor C♯_minor
 EndOfScore
 title: Octaves
-
 zoom: 130
+staff: 4
+youtube: none
+midi: tempo=120, ref=G4, roll=off
+intervals: off
 
 text: FQS determines the octave placement of each pitch relative to the pitch
 immediately before it. By default, the new pitch will land in the the nearest octave
@@ -253,8 +274,11 @@ not taken into consideration when calculating which octave is closest.
 music: K0 c ^g /c /f | ^c ^&g /c /#f |
 EndOfScore
 title: Rhythm
-
 zoom: 130
+staff: 4
+youtube: none
+midi: tempo=120, ref=G4, roll=off
+intervals: off
 
 text: FQS is beat oriented. You don't specify note durations like "quarter note" 
 or "eighth note". Instead, you simply show how each beat is divided.
@@ -290,8 +314,11 @@ music: K0 c---c c-c c-------c |
 counter: 1
 EndOfScore
 title: Ties
-
 zoom: 150
+staff: 4
+youtube: none
+midi: tempo=120, ref=G4, roll=off
+intervals: off
 
 text: Notes that persist across beats are indicated by a '-' at the start
 of the following beat.
@@ -302,8 +329,11 @@ perbar: _ 2/2
 counter: 1
 EndOfScore
 title: Tuplets
-
 zoom: 130
+staff: 4
+youtube: none
+midi: tempo=120, ref=G4, roll=off
+intervals: off
 
 text: Although it's possible to indicate tuplets that span one or more beats using
 only hold symbols, FQS offers a neater alternative. You may precede a group
@@ -328,8 +358,11 @@ perbar: 4/4 | | 2/2
 counter: 1
 EndOfScore
 title: Chords
-
 zoom: 100
+staff: 4
+youtube: none
+midi: tempo=120, ref=G4, roll=off
+intervals: off
 
 text: To notate a chord, enclose 2 or more pitches in parentheses.
 .
@@ -358,8 +391,11 @@ text: See the Bach Cello example in the YouTube section for more examples
 of mixing chords with linear melody.
 EndOfScore
 title: Partial Beats
-
 zoom: 120
+staff: 4
+youtube: none
+midi: tempo=120, ref=G4, roll=off
+intervals: off
 
 text: Partial beats are created by appending one or more with underscores, _ , to
 a beat or beat tuplet.
@@ -404,10 +440,15 @@ text: Rules for using underscores
        • "abc__" is 3/5 the duration of "abc"
 EndOfScore
 title: MIDI Playback
-
 zoom: 130
+staff: 4
+youtube: none
+midi: tempo=120, ref=G4, roll=off
+intervals: off
 
-text: FQS provides a simple mechanism for hearing your score played back using synthesized MIDI sounds directly in the browser. This is useful for proof-listening your transcription and practicing along with the melody.
+text: FQS provides a simple mechanism for hearing your score played back using synthesized 
+sounds directly in the browser. This is useful for proof-listening your transcription and 
+practicing along with the melody.
 
 text: To enable MIDI playback, you can add a `midi:` keyword to your score. This is optional; if omitted, default values will be used. The `midi:` keyword can be set globally for the whole score, or specified for individual lines of music. Line-specific settings will override the global settings.
 .
@@ -429,16 +470,16 @@ The playback is handled by the excellent Tone.js library.
 
 music: K#4 bb | c b e | d - bb | c b ^f | e - bb |
 counter: 3
-midi: tempo=100, ref=4
 
 music: K#4 ^b g e | d c ^aa | g e f | e - - |
 counter: 1
 EndOfScore
 title: YouTube Audio Playback
-
 zoom: 130
-
+staff: 4
 youtube: icx52BLixaw
+midi: tempo=120, ref=G4, roll=off
+intervals: off
 
 text: FQS supports synchronized playback from YouTube videos. To enable this:
 .
@@ -484,13 +525,13 @@ cue: 5
 music: K0 (/ecg) (/ag)--e #fdfa | (//da#fc)--a (/gdc)--a cbag | (/#cga)-&bc (/db)-ac &e/#f | g (/g^g) - |
 counter: 1
 play: 11:38 1
-
 EndOfScore
 title: Images
-
 zoom: 130
-
 staff: 4
+youtube: none
+midi: tempo=120, ref=G4, roll=off
+intervals: off
 
 text: FQS supports adding images to lines of music. This is mostly useful for
 tutorials such as this reference. It can also be useful while transcribing from a
@@ -498,7 +539,6 @@ conventional score to be able to see a few lines while you work or to consult th
 original while rehearsing.
 
 music: K0 (/cgec) (/dc)--a b | (//cge&b) (fb)--g a | (/bd)-ef (/cgf)--d ef | cbca bd /gf |
-lyric: (****) (**)--* * | (****) (**)--* * | (**)-** (***)--* ** | **** ** ** |
 counter: 1
 
 image: https://michael-f-ellis.github.io/fqs/sarabande.png 0.9
@@ -509,8 +549,11 @@ text: The 'image:' keyword takes two values:
     the browser window width.
 EndOfScore
 title: Lyrics
-
 zoom: 120
+staff: 4
+youtube: none
+midi: tempo=120, ref=G4, roll=off
+intervals: off
 
 text: FQS also supports lyrics. Here's Happy Birthday again - this time in E♭ major.
 
@@ -554,8 +597,11 @@ punctation characters to accomplish this.
    successive hyphens (--).
 EndOfScore
 title: Chord Symbols
-
 zoom: 130
+staff: 4
+youtube: none
+midi: tempo=120, ref=G4, roll=off
+intervals: off
 
 text: FQS supports chord abbreviations. Chords can be placed on any beat.
 
@@ -570,8 +616,11 @@ lyric: Fly -me to.the -moon | - ; Let me | play -a mong.the -stars | - - ; ; |
 counter: 1
 EndOfScore
 title: Annotations
-
 zoom: 130
+staff: 4
+youtube: none
+midi: tempo=120, ref=G4, roll=off
+intervals: off
 
 text: You can add annotations at several levels of granularity. Text annotations, such
 as this one, may contain multiple lines and paragraphs. The built-in annotations
@@ -627,14 +676,14 @@ pernote: mf cresc. _ _ _ ff
 counter: 1
 EndOfScore
 title: Intervals
-
 zoom: 130
-
-intervals:
+staff: 4
+youtube: none
+midi: tempo=120, ref=G4, roll=off
+intervals: on
 
 text: Include the `intervals:` keyword in the title block to tell FQS to compute and
 and display the musical interval number between pitches.
-
 
 music: K#4 ^b g e | d c ^aa | g e f | e - ; |
 
@@ -649,16 +698,17 @@ text: Double augmented and double diminished are colored orange and green
 respectively.
 
 music: K0 &c ^#g &c |
- 24
 
 text: Compound intervals are support up to a 24th
-
 
 music: K0 c ^d /c ^^a  //c ^^^g |
 EndOfScore
 title: Notation Language Overview
-
 zoom: 130
+staff: 4
+youtube: none
+midi: tempo=120, ref=G4, roll=off
+intervals: off
 
 text: At the top level, FQS is a simple "keyword: values" language. The currently
 defined keywords are:
@@ -715,8 +765,11 @@ in each group is not important. The layout will be the same regardless of the or
 Each keyword may appear only once in each group.
 EndOfScore
 title: Syntax Summary
-
 zoom: 130
+staff: 4
+youtube: none
+midi: tempo=120, ref=G4, roll=off
+intervals: off
 
 text: FQS defines rhythm using the following characters for the 'music:'
 and 'lyric:' keywords:

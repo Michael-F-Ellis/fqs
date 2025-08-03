@@ -123,15 +123,29 @@ export class Score {
     this.lyricLines = [];
     this.data.lines.forEach(line => {
       if (line.music) {
-        const { lyric, pitch } = musicToPitchLyric(line.music);
-        line.lyric = lyric;
-        line.pitch = pitch;
-        line.showLyric = false;
+        // A 'music' line exists. It's a shorthand for pitch + rhythm.
+        const { lyric: generatedLyric, pitch } = musicToPitchLyric(line.music);
+        line.pitch = pitch; // Always derive pitch from music.
+
+        if (line.lyric) {
+          // User provided BOTH music: and lyric:.
+          // The user's lyric should be used for rhythm and display.
+          // The generated one is discarded.
+          line.showLyric = true;
+        } else {
+          // User provided ONLY music:.
+          // Use the generated lyric for rhythm, but don't display it.
+          line.lyric = generatedLyric;
+          line.showLyric = false;
+        }
       } else {
-        line.showLyric = true;
+        // No 'music' line. If 'lyric' exists, it's for display.
+        if (line.lyric) {
+          line.showLyric = true;
+        }
       }
 
-      const line_midi_params = line.midi_params || this.data.midi_params;
+      const line_midi_params = line.midi_params ? { ...this.data.midi_params, ...line.midi_params } : { ...this.data.midi_params };
       console.log(`Line ${this.pitchLines.length}: midi_params =`, JSON.stringify(line_midi_params));
       if (line.pitch && line.lyric) {
         const pitchLine = new PitchLine(line.pitch, this.data.staff, line_midi_params);
@@ -198,9 +212,12 @@ function reconstructSectionText(line) {
   } else if (line.pitch) {
     text += `pitch: ${line.pitch}\n`;
   }
-  if (line.perbar) text += `perbar: ${line.perbar}\n`;
-  if (line.lyric) text += `lyric: ${line.lyric}\n`;
-  if (line.pernote) text += `pernote: ${line.pernote}\n`;
+  if (line.perbar) text += `perbar: ${line.perbar}
+`;
+  if (line.lyric && line.showLyric) text += `lyric: ${line.lyric}
+`;
+  if (line.pernote) text += `pernote: ${line.pernote}
+`;
   if (line.counter) text += `counter: ${line.counter}\n`;
   if (line.rhythm) text += `rhythm:\n`;
   if (line.text) text += `text: ${line.text}\n`;
@@ -304,7 +321,7 @@ function createActionsDropdown(svg, line, index, score) {
   }
 
   // Add YouTube option
-  if (score.data.youtubeId && line.play !== undefined) {
+  if (score.data.youtubeId && score.data.youtubeId !== 'none' && line.play !== undefined) {
     const ytItem = document.createElement('div');
     ytItem.textContent = 'Play from YouTube';
     ytItem.classList.add('actions-dropdown-item');
@@ -363,23 +380,7 @@ function renderScore(score, wrapper) {
   appendSVGTextChild(svg, defaultParameters.leftX, y, data.title, ['title']);
 
   if (titleEditor) {
-    let titleText = `title: ${data.title}`;
-    if (data.zoom) {
-      titleText += `\n\nzoom: ${data.zoom}`;
-    }
-    if (data.youtubeId) {
-      titleText += `\n\nyoutube: ${data.youtubeId}`;
-      if (data.playRate && data.playRate !== 1.0) {
-        titleText += ` ${data.playRate}`;
-      }
-    }
-    if (data.staff) {
-      titleText += `\n\nstaff: ${data.staff}`;
-    }
-    if (data.intervals) {
-      titleText += `\n\nintervals: ${data.intervals}`;
-    }
-    titleEditor.textContent = titleText;
+    titleEditor.textContent = data.headerText;
   }
 
   data.lines.forEach((line, index) => {

@@ -1,10 +1,9 @@
 title: Minimal
-
 zoom: 130
+staff: 4
+youtube: none
+midi: tempo=120, ref=G4, roll=off
+intervals: off
 
-music: K#4 bb | c b e | d - bb | c b ^f | e - bb |
-counter: 3
-
-
-
+music: K0 c-de |
 EndOfScore

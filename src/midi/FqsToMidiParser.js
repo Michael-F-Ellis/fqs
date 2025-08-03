@@ -15,7 +15,7 @@ export class FqsToMidiParser {
     constructor(score) {
         this.score = score;
         this.rollChords = score.MidiParams.Roll !== "off";
-        
+
         // Sanitize lyric tuplets before parsing
         if (this.score.LyricLines) {
             this.score.LyricLines.forEach(line => {
@@ -65,9 +65,11 @@ export class FqsToMidiParser {
             const lyricLine = this.score.LyricLines[lineIdx];
             this.tIdx = 0;
             this.pos = 0;
+            // Add a 'subdivisions' property to our working copy of the tuplets. We'll use it for counting.
             this.Tuplets = lyricLine.Tuplets.map(t => ({ ...t, subDivisions: 0 }));
             this.Events = [];
 
+            // Loop over all the tuplets, creating event sequences for each.
             while (this.tIdx < this.Tuplets.length) {
                 const tuplet = this.Tuplets[this.tIdx];
                 const ttext = tuplet.text.trim();
@@ -99,12 +101,12 @@ export class FqsToMidiParser {
                     }
                     this.pos++;
                 }
-                this._processTupletEnd();
+                this._processTupletEnd(); // calculates start times and provisional durations
             }
-
+            // Deal with hold events
             const [lineEvents, newHoldAccumulator] = this._processLineEvents(holdAccumulator);
             holdAccumulator = newHoldAccumulator;
-
+            // find the pitches that match the note events.
             const pitchLine = this.score.PitchLines[lineIdx];
             let pitchIdx = 0;
             for (const event of lineEvents) {
@@ -117,7 +119,7 @@ export class FqsToMidiParser {
             }
             allLinesEvents.push(lineEvents);
         }
-
+        // Deal with holds across lines.
         if (holdAccumulator > 0) {
             for (let i = allLinesEvents.length - 1; i >= 0; i--) {
                 if (allLinesEvents[i].length > 0) {
@@ -131,8 +133,9 @@ export class FqsToMidiParser {
         }
 
         return allLinesEvents;
-    }
+    } // End of parse method
 
+    // This method deals with hold events, applying their duration to prior note events.
     _processLineEvents(holdAccumulator) {
         const finalEvents = [];
         if (this.Events.length > 0 && this.Events[0].Kind === NoteEvent) {
@@ -217,7 +220,7 @@ export class FqsToMidiParser {
             tuplet.subDivisions++;
         }
     }
-
+    // Walks backward through events, computing start times and provisional durations for a single tuplet.
     _processTupletEnd() {
         const tuplet = this.Tuplets[this.tIdx];
         let beats = tuplet.tupletSize;
@@ -264,10 +267,8 @@ export class FqsToMidiParser {
                     break;
             }
 
-            if (isNoteOrRest) {
-                if (event.ChordIndex <= 0) {
-                    subdivisionFromEnd++;
-                }
+            if (!event.ChordIndex || event.ChordIndex <= 0) {
+                subdivisionFromEnd++;
             }
         }
         this.beatTime += beats;

@@ -1,33 +1,29 @@
 title: Image test
-
 zoom: 130
-
 staff: 4
+youtube: icx52BLixaw
+midi: tempo=100 ref=3
 
 image: https://michael-f-ellis.github.io/fqs/sarabande.png 0.5
 
 EndOfScore
 title: Chords and Lyrics
-
 staff: 4
+midi: tempo=100 ref=3
 
 chord: Am7 _ _ _ Dm7 _ _ _ G7 _ _ _ Cmaj7
 lyric: Fly -me to.the -moon | - ; Let me | play -a mong.the -stars | - - ; ; |
 counter: 1
 EndOfScore
 title: Pitches and Lyrics
-
 staff: 4
 
 lyric: Twin.kle twin.kle lit.tle star |
 pitch: K0 cc ^gg aa g |
 EndOfScore
 title: Midi Dev
-
 zoom: 130
-
 staff: 4
-
 midi: tempo=60, ref=G4, metronome=off
 
 

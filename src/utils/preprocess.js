@@ -16,6 +16,19 @@ function splitFirst(str, separator) {
   return [str.slice(0, separatorIndex), str.slice(separatorIndex + separator.length)];
 }
 
+function reconstructHeader(data) {
+  let header = `title: ${data.title}\n`;
+  if (data.zoom) header += `zoom: ${data.zoom}\n`;
+  if (data.staff) header += `staff: ${data.staff}\n`;
+  if (data.youtubeId) header += `youtube: ${data.youtubeId}\n`;
+  if (data.midi_params) {
+    header += `midi: tempo=${data.midi_params.tempo}, ref=${data.midi_params.ref}, roll=${data.midi_params.roll}\n`;
+  }
+  header += data.showIntervals ? `intervals: on\n` : `intervals: off\n`
+  return header;
+}
+
+
 // musicToPitchLyric takes a music line (a string) and returns a pitch line  and
 // a lyric line as an object of the  form {lyric: string, pitch: string }
 //
@@ -63,30 +76,75 @@ function stripComments(text) {
 // i.e. /\n\s*\n/ are delimeters between singletons and line groups.
 export function preprocessScore(text) {
   text = stripComments(text);
-  const blocks = text.split(/\n\s*\n/);
-  //console.log(blocks);
+  // Trim whitespace from the start and end of the text to prevent empty blocks,
+  // then split by one or more blank lines.
+  const blocks = text.trim().split(/\n\s*\n+/);
   const data = { text: text, lines: [], showIntervals: false };
 
-  // We must deal with three kinds of block.
-  // 
-  // The first kind is text block that begins with preface: or postscript:
-  // or text: and may have one or more lines. Subsequent lines are
-// treated as text lines. 
+  // The first block is the header.
+  const headerBlock = blocks.shift();
+  const headerLines = headerBlock.split('\n');
 
-  // The second kind of block is a single line that begins with
-  //   title:, or zoom: It is an error if either of these keywords
-  // are followed by anything other than the remainder of the line.
-  //
-  // The the third kind of block is one or more lines, each of which begins
-  // with one of the following keywords: 
-  //   cue:, perbar:,  pernote:, perbeat:, 
-  //   chord:, music:, lyric:
-  // loop through the blocks in reverse order.
+  headerLines.forEach(line => {
+    const [key, value] = splitFirst(line, ':');
+    const k = key.trim();
+    const v = value.trim();
+    let parts = [];
+    switch (k) {
+      case "title":
+        data.title = v;
+        break;
+      case "youtube":
+        parts = v.split(" ");
+        data.youtubeId = parts[0];
+        if (parts.length > 1) {
+          data.playRate = parseFloat(parts[1]);
+        } else {
+          data.playRate = 1.0;
+        }
+        break;
+      case "zoom":
+        data.zoom = v;
+        break;
+      case "staff":
+        data.staff = v;
+        break;
+      case "intervals":
+        parts = v.split(',');
+        if (parts[0].toLowerCase() === 'on') {
+          data.showIntervals = true;
+        } else {
+          data.showIntervals = false;
+        }
+        break;
+      case "midi":
+        const midi_params = {};
+        const params = v.split(',');
+        params.forEach(param => {
+          const [key, value] = param.trim().split('=').map(s => s.trim());
+          if (key && value) {
+            if (key === 'tempo') {
+              midi_params[key] = parseInt(value, 10);
+            } else {
+              midi_params[key] = value;
+            }
+          }
+        });
+        data.midi_params = midi_params;
+        break;
+      default:
+        const knownKeys = ["cue", "perbar", "pernote", "perbeat", "chord", "music", "lyric", "counter", "rhythm", "text", "play", "image", "nomarkers"];
+        if (knownKeys.includes(k) || (k !== "" && v !== "")) {
+          lineProblems.add(`Invalid header line: "${line}". Headers can only contain title, youtube, zoom, staff, intervals, or midi. Did you forget a blank line?`);
+        }
+        break;
+    }
+  });
+
+  // Gather any legacy top-level keywords from the rest of the blocks.
   for (let i = blocks.length - 1; i >= 0; i--) {
     let block = blocks[i].trim();
     if (block.startsWith("youtube:")) {
-      // youtube video id with optional default play rate
-      // e.g. youtube:12345678 0.75
       const parts = block.slice(8).trim().split(" ");
       data.youtubeId = parts[0];
       if (parts.length > 1) {
@@ -107,19 +165,46 @@ export function preprocessScore(text) {
       blocks.splice(i, 1);
       continue;
     }
-    if (block.startsWith("title:")) {
-      data.title = block.slice(6).trim();
-      blocks.splice(i, 1);
-      continue;
-    }
     if (block.startsWith("intervals:")) {
       data.showIntervals = true;
       blocks.splice(i, 1);
       continue;
     }
+    if (block.startsWith("midi:")) {
+      const midi_params = {};
+      const params = block.slice(5).trim().split(',');
+      params.forEach(param => {
+        const [key, value] = param.trim().split('=').map(s => s.trim());
+        if (key && value) {
+          if (key === 'tempo') {
+            midi_params[key] = parseInt(value, 10);
+          } else {
+            midi_params[key] = value;
+          }
+        }
+      });
+      data.midi_params = midi_params;
+      blocks.splice(i, 1);
+      continue;
+    }
   }
 
-  // at this point only the third kind of blocks are left
+  // Set defaults for any missing header keywords.
+  if (!data.zoom) data.zoom = 100;
+  if (!data.staff) data.staff = 4;
+  if (!data.youtubeId) data.youtubeId = 'none';
+  if (!data.midi_params) {
+    data.midi_params = {
+      tempo: 120,
+      ref: 'G4',
+      roll: 'off'
+    };
+  }
+
+  data.headerText = reconstructHeader(data);
+
+
+  // Process the rest of the blocks
   let kvlines = blocks.map(line => {
     const obj = {}; // what we will return
     if (line.startsWith("text:")) {
@@ -131,7 +216,7 @@ export function preprocessScore(text) {
       return obj;
     }
     // If we get to here, it's a music linegroup
-    const parts = line.split(/\n/);
+    const parts = line.split('\n');
     parts.forEach(part => {
       part.trim()
       const [key, value] = splitFirst(part, ':');
@@ -152,9 +237,13 @@ export function preprocessScore(text) {
           const line_midi_params = {};
           const params = value.trim().split(',');
           params.forEach(param => {
-            const [key, value] = param.split('=').map(s => s.trim());
+            const [key, value] = param.trim().split('=').map(s => s.trim());
             if (key && value) {
-              line_midi_params[key] = value;
+              if (key === 'tempo') {
+                line_midi_params[key] = parseInt(value, 10);
+              } else {
+                line_midi_params[key] = value;
+              }
             }
           });
           obj.midi_params = line_midi_params;
@@ -180,8 +269,6 @@ export function preprocessScore(text) {
     });
     return obj;
   });
-  kvlines = kvlines.filter(obj => Object.keys(obj).length > 0);
-  //console.log(kvlines);
 
   // push the remaining lines. 
   for (let kv of kvlines) {
