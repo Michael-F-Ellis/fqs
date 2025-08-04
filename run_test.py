@@ -6,7 +6,7 @@ import subprocess
 from playwright.async_api import async_playwright
 
 PORT = 8000
-TEST_FILE = "mididev.fqs"
+TEST_FILE = "dev.fqs"
 URL = f"http://localhost:{PORT}/pre-fqs.html?load={TEST_FILE}"
 
 def run_build():

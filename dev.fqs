@@ -3,6 +3,7 @@ zoom: 130
 staff: 4
 youtube: icx52BLixaw
 midi: tempo=100 ref=3
+layout: auto
 
 image: https://michael-f-ellis.github.io/fqs/sarabande.png 0.5
 
