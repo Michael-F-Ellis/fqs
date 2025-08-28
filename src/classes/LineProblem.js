@@ -10,6 +10,7 @@ export class LineProblem {
   }
   add = (function (message) {
     this.messages.push(message);
+    console.log("LineProblem: " + message);
   });
   clear = (function () {
     this.messages = [];

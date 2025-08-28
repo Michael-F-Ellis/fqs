@@ -146,7 +146,7 @@ export class Score {
       }
 
       const line_midi_params = line.midi_params ? { ...this.data.midi_params, ...line.midi_params } : { ...this.data.midi_params };
-      console.log(`Line ${this.pitchLines.length}: midi_params =`, JSON.stringify(line_midi_params));
+      // console.log(`Line ${this.pitchLines.length}: midi_params =`, JSON.stringify(line_midi_params));
       if (line.pitch && line.lyric) {
         const pitchLine = new PitchLine(line.pitch, this.data.staff, line_midi_params);
         const lyricLine = new LyricLine(line.lyric, line.showLyric);

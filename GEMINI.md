@@ -48,3 +48,17 @@ The MIDI playback feature is now fully functional. The following critical bugs h
 -   **Incorrect Playback Pitch:** The `MidiPlayer` was updated to convert MIDI note numbers to frequency (using `Tone.Midi().toFrequency()`) before passing them to the Tone.js synth, which resolved notes playing at the wrong pitch.
 -   **Lyric Parsing:** The `FqsToMidiParser` now correctly handles tuplets containing lyrics (e.g., "Twin.kle"), preventing crashes.
 -   **Documentation:** A new "MIDI Playback" section was added to `reference.fqs`.
+
+## Score Parsing and Rendering Refinements
+
+Recent work has focused on improving the robustness of the score parser and the clarity of the editing interface.
+
+### Status: Complete
+
+-   **Header Regularization:** The score pre-processor has been updated to enforce a consistent header structure. It now correctly identifies the header block, provides sensible defaults for missing keywords (`zoom:`, `midi:`, etc.), and reports errors if non-header keywords are found, preventing mis-parsing.
+-   **Rendering Crash Fixed:** A persistent `NaN` error that caused rendering to fail has been eliminated. The root cause was a regular expression typo in the `musicToPitchLyric` function that generated invalid rhythmic data.
+-   **Improved Editor Experience:** The logic for reconstructing score sections for the editor has been refined. Internally-generated rhythmic data (e.g., `lyric: * * *`) is no longer inserted into the editor, preventing user confusion and ensuring only user-provided text is displayed for editing.
+
+### Next Steps
+
+The next major development task will be to implement a feature allowing users to specify the vertical layout order of music and its accompanying annotations (e.g., chords, lyrics, per-note expressions).

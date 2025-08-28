@@ -156,7 +156,7 @@ export class LyricLine {
                 const ci = this.text[i];
                 const prev = this.text[i - 1];
                 const isAttack = prev.match(/[\s;\-.*]/) ? true : false;
-                console.log(`i:${i} pos:${pos} prev:${prev} c:${ci} isAttack:${isAttack}`)
+                // console.log(`i:${i} pos:${pos} prev:${prev} c:${ci} isAttack:${isAttack}`)
                 if (isAttack) {
                   this.attacks.push(pos);
                   detectAndPushBeat(i, pos);
@@ -174,9 +174,9 @@ export class LyricLine {
     });
     //console.log("\ntext: " + this.text)
     //console.log("bars: " + this.bars)
-    console.log("tuplets: " + this.tuplets)
-    console.log("beats: " + this.beats)
-    console.log("subBeats: " + this.subBeats)
+    // console.log("tuplets: " + this.tuplets)
+    // console.log("beats: " + this.beats)
+    // console.log("subBeats: " + this.subBeats)
     //console.log("attacks: " + this.attacks)
     //console.log("rests: " + this.rests)
   }
@@ -217,7 +217,7 @@ export class LyricLine {
         rhythm.push(beatWord);
       }));
     }));
-    console.log("rhythm: " + rhythm)
+    // console.log("rhythm: " + rhythm)
     return rhythm
   });
 

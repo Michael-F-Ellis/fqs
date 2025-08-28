@@ -373,7 +373,7 @@ export class PitchLine {
       // If we have midi parameters, calculate the midi note.
       if (midi_params) {
         pitch.midiNote = pitchToMidi(pitch, midi_params.ref || 'g4');
-        console.log(`Pitch: ${pitch.letter}${pitch.accidentalClass}, Octave: ${pitch.octave}, MIDI Note: ${pitch.midiNote}`);
+        // console.log(`Pitch: ${pitch.letter}${pitch.accidentalClass}, Octave: ${pitch.octave}, MIDI Note: ${pitch.midiNote}`);
       }
       if (this.inChord > -1) {
         pitch.isChordPitch = true;

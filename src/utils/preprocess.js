@@ -24,7 +24,8 @@ function reconstructHeader(data) {
   if (data.midi_params) {
     header += `midi: tempo=${data.midi_params.tempo}, ref=${data.midi_params.ref}, roll=${data.midi_params.roll}\n`;
   }
-  header += data.showIntervals ? `intervals: on\n` : `intervals: off\n`
+  header += data.showIntervals ? `intervals: on\n` : `intervals: off\n` // default to off
+  header += data.layout ? `layout: ${data.layout}\n` : `layout: auto\n`; // default to auto
   return header;
 }
 
@@ -131,6 +132,14 @@ export function preprocessScore(text) {
           }
         });
         data.midi_params = midi_params;
+        break;
+      case "layout":
+        parts = v.split(',');
+        if (parts[0].toLowerCase() === 'auto') {
+          data.layout = 'auto';
+        } else {
+          data.layout = 'manual';
+        }
         break;
       default:
         const knownKeys = ["cue", "perbar", "pernote", "perbeat", "chord", "music", "lyric", "counter", "rhythm", "text", "play", "image", "nomarkers"];
