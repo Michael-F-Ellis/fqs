@@ -39,14 +39,22 @@ async def run_test():
         browser = await p.chromium.launch()
         page = await browser.new_page()
 
-        # Listen for all console events and print them
-        page.on("console", lambda msg: print(f"BROWSER LOG: {msg.text}"))
+        test_complete = asyncio.Future()
+
+        def handle_console(msg):
+            print(f"BROWSER LOG: {msg.text}")
+            if "FQS_TEST_COMPLETE" in msg.text:
+                test_complete.set_result(True)
+
+        page.on("console", handle_console)
 
         print(f"Navigating to {URL}...")
         await page.goto(URL)
 
-        # Give the page a moment to load and execute scripts
-        await asyncio.sleep(5)
+        try:
+            await asyncio.wait_for(test_complete, timeout=10)
+        except asyncio.TimeoutError:
+            print("Test timed out.")
 
         print("Closing browser...")
         await browser.close()

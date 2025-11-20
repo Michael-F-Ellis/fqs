@@ -2,6 +2,7 @@ import { MidiPlayer } from './src/midi/MidiPlayer.js';
 import { updateFontSizes } from './src/utils/parameters.js';
 import { initYouTubeAPI, } from './src/utils/youtube.js';
 import { Score } from './src/classes/Score.js';
+import { preprocessScore } from './src/utils/preprocess.js';
 import './src/index.js';
 /*********************************************************************
   Module globals
@@ -13,6 +14,39 @@ import './src/index.js';
    Classes 
 *********************************************************************
 */
+
+function reconstructFqsFromAst(ast) {
+  let text = '';
+  for (const key in ast.header) {
+    if (key === 'midi') {
+      let midi_params = '';
+      if (ast.header.midi && typeof ast.header.midi === 'object') {
+        for (const midi_key in ast.header.midi) {
+          midi_params += `${midi_key}=${ast.header.midi[midi_key]}, `; 
+        }
+      }
+      text += `midi: ${midi_params.slice(0, -2)}
+`;
+    } else {
+      text += `${key}: ${ast.header[key]}
+`;
+    }
+  }
+
+  for (const section of ast.sections) {
+    text += '\n';
+    if (section.type === 'text') {
+      text += `text: ${section.text}\n`;
+    } else if (section.type === 'image') {
+      text += `image: ${section.url} ${section.scale}\n`;
+    } else if (section.type === 'music_section') {
+      for (const key in section.lines) {
+        text += `${key}: ${section.lines[key]}\n`;
+      }
+    }
+  }
+  return text;
+}
 
 class Book {
   // A Book is a collection of Scores.
@@ -68,8 +102,9 @@ class Book {
   // addScore() adds a score to the book. If nextSibling is specified, the score
   // will be inserted after the specified sibling. Otherwise, it will be
   // appended to the end. A set of control buttons is prepended to the score.
-  addScore(scoreText, nextSibling) {
-    const score = new Score(scoreText, this.container, this.midiPlayer);
+  addScore(ast, nextSibling) {
+    const scoreText = reconstructFqsFromAst(ast);
+    const score = new Score(scoreText, this.container, this.midiPlayer, ast);
     if (!score) {
       return;
     }
@@ -82,8 +117,8 @@ class Book {
     const insertButton = document.createElement('button');
     insertButton.textContent = 'Insert new score';
     insertButton.onclick = () => {
-      const newScore = this.addScore("title: New Score", score.outer);
-      //const newScore = this.addScore("title: New Score", score.outer.nextSibling);
+      const newAst = { type: "score", header: { title: "New Score" }, sections: [] };
+      const newScore = this.addScore(newAst, score.outer);
       newScore.showSourceEditor();
     };
     actionsDiv.appendChild(insertButton);
@@ -141,12 +176,9 @@ class Book {
   // importFromText(text) imports scores from a string containing the scores in the
   // format produced by exportToText().
   importFromText(text) {
-    const scoreTexts = text.split(this.delimiter);
-    for (const scoreText of scoreTexts) {
-      if (scoreText.trim() === '') {
-        continue;
-      }
-      this.addScore(scoreText, null); // null means append to end of container
+    const asts = preprocessScore(text);
+    for (const ast of asts) {
+      this.addScore(ast, null); // null means append to end of container
     }
   }
   // exportToText() returns a string containing all the scores in the book with
@@ -175,9 +207,10 @@ class Book {
   // render() renders all the scores in the book into the container.  before
   // rendering it scans the container to determine the order of the scores.  The
   // scores are rendered in the order they appear in the container.
+  /*
   render() {
     // get the scores in order
-    const scores = this.getScores()
+    const scores = this.getScores() 
     if (scores.length === 0) {
       return;
     }
@@ -194,6 +227,7 @@ class Book {
       }
     }
   }
+  */
   // updateToc() updates the table of contents (TOC) at the top of the page.
   updateToc() {
     // get the toc div
@@ -205,7 +239,7 @@ class Book {
     toc.innerHTML = '';
 
     // get the scores in order
-    const scores = this.getScores()
+    const scores = this.getScores() 
     // add the toc entries
     toc.appendChild(document.createTextNode('Contents\n'));
     const ul = toc.appendChild(document.createElement('ul'));

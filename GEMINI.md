@@ -14,6 +14,29 @@ The project is implemented in vanilla JavaScript, HTML, and CSS, with no externa
 
 The file `reference.fqs` serves as the canonical documentation for the FQS notation language. It should be consulted for any questions regarding syntax and semantics.
 
+## Parser Integration
+
+As of 2025-08-28, a new PEG-based parser has been developed to replace the original ad-hoc parsing logic.
+
+**Status:** Complete and ready for integration.
+
+- **Grammar:** A formal PEG grammar has been defined in `grammar.peg`.
+- **Parser Generation:** The main build script, `build.py`, has been updated to use the `peggy` npm package to compile `grammar.peg` into a standalone JavaScript parser located at `src/utils/fqs_parser.js`.
+- **Testing:** A test harness, `ast-test.html`, was created to validate the parser against the `reference.fqs` file. After iterative debugging, the parser now successfully processes the entire reference file and generates a complete and correct Abstract Syntax Tree (AST) for each score.
+
+### Next Steps
+
+The next major task is to integrate the new parser into the main application.
+
+1.  **Replace `preprocessScore`:** The primary goal is to replace the contents of `src/utils/preprocess.js`. The new `preprocessScore` function will:
+    a.  Import the generated parser from `src/utils/fqs_parser.js`.
+    b.  Implement the two-stage parsing strategy: first, split the input text by the `EndOfScore` delimiter, then map over the resulting array of score strings, calling the generated parser on each one.
+    c.  Return the array of generated ASTs.
+
+2.  **Adapt Application Logic:** The main application logic, starting in `src/classes/Score.js`, must be refactored to work with the new ASTs. Currently, the application consumes the data structure produced by the old preprocessor. This will likely involve creating one `Score` object per AST.
+
+3.  **Future Grammar Enhancements:** The current grammar returns the content of `music:`, `pitch:`, and `lyric:` lines as simple strings. A future enhancement would be to extend the grammar to parse these strings into a detailed structure of notes, rhythms, and chords. This would make the AST even more powerful and simplify the rendering logic further.
+
 ## Automated Testing Workflow
 
 To improve the speed and reliability of the development cycle, an automated testing workflow has been implemented using Playwright.

@@ -55,6 +55,17 @@ def get_build():
 import sys
 
 if __name__ == "__main__":
+    # Build the parser first
+    print("Building FQS parser from grammar.pegjs...")
+    try:
+        subprocess.run(['npm', 'install'], check=True)
+        subprocess.run(['npm', 'run', 'build:parser'], check=True)
+        print("Parser built successfully.")
+    except (subprocess.CalledProcessError, FileNotFoundError) as e:
+        print(f"Error building parser: {e}")
+        print("Please ensure Node.js, npm, and peggy are installed and accessible.")
+        exit(1)
+
     # If an argument is provided, use it as the version number.
     if len(sys.argv) > 1:
         version = sys.argv[1]

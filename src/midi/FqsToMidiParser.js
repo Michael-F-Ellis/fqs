@@ -1,5 +1,8 @@
 // src/midi/FqsToMidiParser.js
 
+import { LyricLine } from "../classes/LyricLine.js";
+import { PitchLine } from "../classes/Pitch.js";
+
 const NoteEvent = 1;
 const RestEvent = 2;
 const HoldEvent = 3;
@@ -10,11 +13,46 @@ const HoldEvent = 3;
  */
 export class FqsToMidiParser {
     /**
-     * @param {object} score - The score object to parse.
+     * @param {object} ast - The score AST to parse.
      */
-    constructor(score) {
-        this.score = score;
-        this.rollChords = score.MidiParams.Roll !== "off";
+    constructor(ast) {
+        this.ast = ast;
+        this.rollChords = ast.header.midi.roll !== "off";
+
+        this.score = {
+            PitchLines: [],
+            LyricLines: [],
+            MidiParams: ast.header.midi,
+        };
+
+        ast.sections.forEach(section => {
+            if (section.type === 'music_section') {
+                const line = section.lines;
+                const line_midi_params = line.midi ? { ...ast.header.midi, ...line.midi } : { ...ast.header.midi };
+
+                // Use pitch and lyric directly from the AST
+                const pitchContent = line.pitch || ''; // Default to empty string if no pitch line
+                const lyricContent = line.lyric || ''; // Default to empty string if no lyric line
+
+                // Determine showLyric based on whether a lyric line was provided in the FQS
+                const showLyric = !!line.lyric;
+
+                if (pitchContent || lyricContent) { // Only create lines if there's content
+                    const pitchLine = new PitchLine(pitchContent, ast.header.staff, line_midi_params);
+                    const lyricLine = new LyricLine(lyricContent, showLyric);
+                    this.score.PitchLines.push({ Pitches: pitchLine.pitches });
+                    this.score.LyricLines.push({ Tuplets: lyricLine.tuplets });
+                } else {
+                    // If no pitch or lyric content, push empty arrays
+                    this.score.PitchLines.push({ Pitches: [] });
+                    this.score.LyricLines.push({ Tuplets: [] });
+                }
+            } else {
+                // For non-music sections, push empty arrays
+                this.score.PitchLines.push({ Pitches: [] });
+                this.score.LyricLines.push({ Tuplets: [] });
+            }
+        });
 
         // Sanitize lyric tuplets before parsing
         if (this.score.LyricLines) {
@@ -116,6 +154,7 @@ export class FqsToMidiParser {
                         pitchIdx++;
                     }
                 }
+                // Use pitch and lyric directly from the AST
             }
             allLinesEvents.push(lineEvents);
         }

@@ -1,10 +1,12 @@
 {
   "devDependencies": {
-    "jest": "^29.7.0"
+    "jest": "^29.7.0",
+    "peggy": "^4.0.2"
   },
   "type": "module",
   "scripts": {
-    "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js"
+    "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js",
+    "build:parser": "peggy --format es --allowed-start-rules Score -o src/utils/fqs_parser.js grammar.pegjs"
   },
   "dependencies": {
     "tone": "^15.1.22"

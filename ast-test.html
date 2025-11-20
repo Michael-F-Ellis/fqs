@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FQS AST Parser Test</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            margin: 2em;
+        }
+
+        pre {
+            background-color: #f4f4f4;
+            border: 1px solid #ddd;
+            padding: 1em;
+            white-space: pre-wrap;
+        }
+
+        h1,
+        h2 {
+            color: #333;
+        }
+
+        #error {
+            color: red;
+            font-weight: bold;
+        }
+    </style>
+    <!-- 1. Load Peggy library via a standard script tag -->
+    <script src="https://unpkg.com/peggy"></script>
+</head>
+
+<body>
+    <h1>FQS AST Parser Test</h1>
+    <p>This page tests the FQS PEG grammar by splitting <code>reference.fqs</code> into individual scores and parsing
+        each one.</p>
+
+    <h2>Parser Output (Array of Score ASTs)</h2>
+    <div id="error"></div>
+    <pre id="output">Loading grammar and FQS file...</pre>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            async function runParserTest() {
+                const outputEl = document.getElementById('output');
+                const errorEl = document.getElementById('error');
+
+                try {
+                    if (typeof peggy === 'undefined') {
+                        throw new Error('Peggy.js library not loaded. The global `peggy` object is not defined.');
+                    }
+
+                    const [grammarResponse, fqsResponse] = await Promise.all([
+                        fetch('grammar.pegjs'),
+                        fetch('reference.fqs')
+                    ]);
+
+                    if (!grammarResponse.ok) throw new Error(`Failed to load grammar.pegjs: ${grammarResponse.statusText}`);
+                    if (!fqsResponse.ok) throw new Error(`Failed to load reference.fqs: ${fqsResponse.statusText}`);
+
+                    const grammarText = await grammarResponse.text();
+                    const fqsText = await fqsResponse.text();
+
+                    // 2. Generate the Score parser
+                    const scoreParser = peggy.generate(grammarText);
+
+                    // 3. Stage 1: Split the book into an array of score strings
+                    const scoreStrings = fqsText.split("EndOfScore").map(s => s.trim()).filter(s => s.length > 0);
+
+                    // 4. Stage 2: Parse each score string individually
+                    const asts = scoreStrings.map((scoreStr, i) => {
+                        try {
+                            return scoreParser.parse(scoreStr);
+                        } catch (e) {
+                            // Enhance error with score index information
+                            e.message = `Error parsing score #${i + 1}:\n${e.message}`;
+                            throw e;
+                        }
+                    });
+
+                    // 5. Render the array of ASTs as a JSON string
+                    outputEl.textContent = JSON.stringify(asts, null, 2);
+
+                } catch (e) {
+                    console.error(e);
+                    let errorMessage = `An error occurred: ${e.message}`;
+                    if (e.location) {
+                        const loc = e.location.start;
+                        errorMessage = `Parse Error in score text on line ${loc.line}, column ${loc.column}: ${e.message}`;
+                    }
+                    errorEl.textContent = errorMessage;
+                    outputEl.textContent = 'Parsing failed. See error message above and check console for details.';
+                }
+            }
+
+            runParserTest();
+        });
+    </script>
+
+</body>
+
+</html>

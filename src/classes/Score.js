@@ -6,7 +6,7 @@ import { PitchLine } from "./Pitch.js";
 import { renderMultilineText } from "../utils/textrender.js";
 import { appendSVGTextChild } from "../utils/svg.js";
 import { playYouTubeAt } from "../utils/youtube.js";
-import { musicToPitchLyric } from "../utils/preprocess.js";
+
 import { ImageLine } from "./ImageLine.js";
 import { Cue } from "./Cue.js";
 import { PerBar, PerNote, PerBeat, Finger } from "./LineAnnotations.js";
@@ -17,7 +17,7 @@ import { FqsToMidiParser } from "../midi/FqsToMidiParser.js";
 
 export const scoreMap = new Map();
 export class Score {
-  constructor(text, container, midiPlayer) {
+  constructor(text, container, midiPlayer, ast) {
     this.dirty = false;
     this.editMode = false;
     this.midiPlayer = midiPlayer;
@@ -25,6 +25,7 @@ export class Score {
     this.lyricLines = [];
     this.noteEvents = [];
     this.lineBoundaries = [];
+    this.ast = ast;
     this.outer = document.createElement('div');
     this.outer.classList.add('score');
     this.id = `score-${Math.random().toString(36).substring(2, 15)}`;
@@ -59,12 +60,10 @@ export class Score {
   }
 
   getTitle() {
-    const text = this.getText();
-    const titleLine = text.split('\n').find(line => line.startsWith('title:'));
-    if (titleLine) {
-      return titleLine.split(':')[1].trim();
+    if (this.ast.header.title) {
+      return this.ast.header.title;
     }
-    throw new Error('No title found in score');
+    return "Untitled";
   }
 
   showSourceEditor() {
@@ -92,22 +91,29 @@ export class Score {
   }
 
   render() {
-    this.data = preprocessScore(this.source.textContent);
-    if (!this.data.midi_params) {
-      this.data.midi_params = {
+    if (!this.ast) {
+      this.ast = preprocessScore(this.source.textContent)[0];
+    }
+    this.data = this.ast;
+
+    if (!this.data.header) {
+      this.data.header = {};
+    }
+    if (!this.data.header.midi) {
+      this.data.header.midi = {
         tempo: 120,
         roll: "off",
         ref: "G4",
       };
     } else {
-      if (this.data.midi_params.roll === undefined) {
-        this.data.midi_params.roll = "off";
+      if (this.data.header.midi.roll === undefined) {
+        this.data.header.midi.roll = "off";
       }
-      if (this.data.midi_params.tempo === undefined) {
-        this.data.midi_params.tempo = 120;
+      if (this.data.header.midi.tempo === undefined) {
+        this.data.header.midi.tempo = 120;
       }
-      if (this.data.midi_params.ref === undefined) {
-        this.data.midi_params.ref = "G4";
+      if (this.data.header.midi.ref === undefined) {
+        this.data.header.midi.ref = "G4";
       }
     }
 
@@ -115,77 +121,65 @@ export class Score {
     const scoreForParser = {
       PitchLines: [],
       LyricLines: [],
-      MidiParams: this.data.midi_params,
+      MidiParams: this.data.header.midi,
     };
 
     // Centralize line processing
     this.pitchLines = [];
     this.lyricLines = [];
-    this.data.lines.forEach(line => {
-      if (line.music) {
-        // A 'music' line exists. It's a shorthand for pitch + rhythm.
-        const { lyric: generatedLyric, pitch } = musicToPitchLyric(line.music);
-        line.pitch = pitch; // Always derive pitch from music.
+    this.ast.sections.forEach(section => {
+      if (section.type === 'music_section') {
+        const line = section.lines;
+        const line_midi_params = line.midi ? { ...this.data.header.midi, ...line.midi } : { ...this.data.header.midi };
 
-        if (line.lyric) {
-          // User provided BOTH music: and lyric:.
-          // The user's lyric should be used for rhythm and display.
-          // The generated one is discarded.
-          line.showLyric = true;
+        // Use pitch and lyric directly from the AST
+        const pitchContent = line.pitch || ''; // Default to empty string if no pitch line
+        const lyricContent = line.lyric || ''; // Default to empty string if no lyric line
+
+        // Determine showLyric based on whether a lyric line was provided in the FQS
+        const showLyric = !!line.lyric;
+
+        if (pitchContent || lyricContent) { // Only create lines if there's content
+          const pitchLine = new PitchLine(pitchContent, this.data.header.staff, line_midi_params);
+          const lyricLine = new LyricLine(lyricContent, showLyric);
+          this.pitchLines.push(pitchLine);
+          this.lyricLines.push(lyricLine);
+          // The parser expects an array of objects with a 'Pitches' property
+          scoreForParser.PitchLines.push({ Pitches: pitchLine.pitches });
+          // The parser expects an array of objects with a 'Tuplets' property
+          scoreForParser.LyricLines.push({ Tuplets: lyricLine.tuplets });
         } else {
-          // User provided ONLY music:.
-          // Use the generated lyric for rhythm, but don't display it.
-          line.lyric = generatedLyric;
-          line.showLyric = false;
+          this.pitchLines.push(null);
+          this.lyricLines.push(null);
+          // Even for non-music lines, we need placeholders to keep indices in sync
+          scoreForParser.PitchLines.push({ Pitches: [] });
+          scoreForParser.LyricLines.push({ Tuplets: [] });
         }
-      } else {
-        // No 'music' line. If 'lyric' exists, it's for display.
-        if (line.lyric) {
-          line.showLyric = true;
-        }
-      }
-
-      const line_midi_params = line.midi_params ? { ...this.data.midi_params, ...line.midi_params } : { ...this.data.midi_params };
-      // console.log(`Line ${this.pitchLines.length}: midi_params =`, JSON.stringify(line_midi_params));
-      if (line.pitch && line.lyric) {
-        const pitchLine = new PitchLine(line.pitch, this.data.staff, line_midi_params);
-        const lyricLine = new LyricLine(line.lyric, line.showLyric);
-        this.pitchLines.push(pitchLine);
-        this.lyricLines.push(lyricLine);
-        // The parser expects an array of objects with a 'Pitches' property
-        scoreForParser.PitchLines.push({ Pitches: pitchLine.pitches });
-        // The parser expects an array of objects with a 'Tuplets' property
-        scoreForParser.LyricLines.push({ Tuplets: lyricLine.tuplets });
-      } else if (line.lyric) { // If there's a lyric line but no pitch line
-        const pitchLine = new PitchLine('', this.data.staff, line_midi_params); // Create a dummy pitchline
-        const lyricLine = new LyricLine(line.lyric, line.showLyric);
-        this.pitchLines.push(pitchLine);
-        this.lyricLines.push(lyricLine);
-        scoreForParser.PitchLines.push({ Pitches: [] });
-        scoreForParser.LyricLines.push({ Tuplets: lyricLine.tuplets });
       } else {
         this.pitchLines.push(null);
         this.lyricLines.push(null);
-        // Even for non-music lines, we need placeholders to keep indices in sync
         scoreForParser.PitchLines.push({ Pitches: [] });
         scoreForParser.LyricLines.push({ Tuplets: [] });
       }
     });
 
     // Parse MIDI data and store it on this score instance
-    const midiParser = new FqsToMidiParser(scoreForParser);
-    this.noteEvents = midiParser.parse();
-    // this.lineBoundaries = midiParser.getLineBoundaries(); // getLineBoundaries does not exist on the new parser
+    if (scoreForParser.PitchLines.Pitcheslength > 0) {
+      const midiParser = new FqsToMidiParser(scoreForParser);
+      this.noteEvents = midiParser.parse();
+    } else {
+      this.noteEvents = [];
+    }
 
     renderScore(this, this.inner);
     const svgElements = this.inner.querySelectorAll('svg');
     for (const svg of svgElements) {
       let height = svg.getBBox().height + 30;
       let zoom = 100;
-      if (this.data.zoom) {
-        zoom = parseInt(this.data.zoom, 10);
+      if (this.data.header.zoom) {
+        zoom = parseInt(this.data.header.zoom, 10);
         if (isNaN(zoom)) {
-          lineProblems.add("Invalid zoom value: " + this.data.zoom);
+          lineProblems.add("Invalid zoom value: " + this.data.header.zoom);
           zoom = 100;
         }
         zoom = Math.max(50, Math.min(500, parseInt(zoom, 10)));
@@ -201,45 +195,9 @@ export class Score {
   }
 }
 
-function reconstructSectionText(line) {
-  let text = '';
-  if (line.cue) text += `cue: ${line.cue}\n`;
-  if (line.chord) text += `chord: ${line.chord}\n`;
-  if (line.perbeat) text += `perbeat: ${line.perbeat}\n`;
-  if (line.finger) text += `finger: ${line.finger}\n`;
-  if (line.music) {
-    text += `music: ${line.music}\n`;
-  } else if (line.pitch) {
-    text += `pitch: ${line.pitch}\n`;
-  }
-  if (line.perbar) text += `perbar: ${line.perbar}
-`;
-  if (line.lyric && line.showLyric) text += `lyric: ${line.lyric}
-`;
-  if (line.pernote) text += `pernote: ${line.pernote}
-`;
-  if (line.counter) text += `counter: ${line.counter}\n`;
-  if (line.rhythm) text += `rhythm:\n`;
-  if (line.text) text += `text: ${line.text}\n`;
-  if (line.play) {
-    const minutes = Math.floor(line.play / 60);
-    const seconds = line.play - (minutes * 60);
-    text += `play: ${minutes}:${seconds < 10 ? '0' + seconds : seconds}`
-    if (line.playRate) {
-      text += ` ${line.playRate}`;
-    }
-    text += '\n';
-  }
-  if (line.image) {
-    text += `image: ${line.image}\n`;
-  }
-  if (line.nomarkers) {
-    text += `nomarkers:\n`;
-  }
-  return text;
-}
 
-function createActionsDropdown(svg, line, index, score) {
+
+function createActionsDropdown(svg, section, index, score) {
   const wrapper = svg.parentNode;
   const editorDiv = document.createElement('div');
   editorDiv.setAttribute('class', 'section-editor-div');
@@ -306,7 +264,7 @@ function createActionsDropdown(svg, line, index, score) {
   dropdownMenu.appendChild(editItem);
 
   // Add MIDI option
-  if (line.pitch) {
+  if (section.type === 'music_section') {
     const midiItem = document.createElement('div');
     midiItem.textContent = 'Play MIDI';
     midiItem.classList.add('actions-dropdown-item');
@@ -321,19 +279,19 @@ function createActionsDropdown(svg, line, index, score) {
   }
 
   // Add YouTube option
-  if (score.data.youtubeId && score.data.youtubeId !== 'none' && line.play !== undefined) {
+  if (score.data.header.youtube && section.lines.play !== undefined) {
     const ytItem = document.createElement('div');
     ytItem.textContent = 'Play from YouTube';
     ytItem.classList.add('actions-dropdown-item');
     ytItem.addEventListener('click', () => {
-      playYouTubeAt(score.data.youtubeId, line.play, line.playRate || 1.0);
+      playYouTubeAt(score.data.header.youtube.id, section.lines.play.time, section.lines.play.rate || 1.0);
       dropdownMenu.style.display = 'none';
     });
     dropdownMenu.appendChild(ytItem);
   }
 
   // Add Image option
-  if (line.image) {
+  if (section.type === 'image') {
     const imageItem = document.createElement('div');
     imageItem.textContent = 'Show/Hide Image';
     imageItem.classList.add('actions-dropdown-item');
@@ -363,8 +321,8 @@ function renderScore(score, wrapper) {
   const pitchLines = score.pitchLines;
   const lyricLines = score.lyricLines;
 
-  if (!data.staff) {
-    data.staff = 4;
+  if (!data.header.staff) {
+    data.header.staff = 4;
   }
 
   wrapper.innerHTML = "";
@@ -377,23 +335,23 @@ function renderScore(score, wrapper) {
   lineProblems.clear();
 
   y += 2 * defaultParameters.titleFontHeight
-  appendSVGTextChild(svg, defaultParameters.leftX, y, data.title, ['title']);
+  appendSVGTextChild(svg, defaultParameters.leftX, y, data.header.title, ['title']);
 
   if (titleEditor) {
-    titleEditor.textContent = data.headerText;
+    titleEditor.textContent = score.source.textContent;
   }
 
-  data.lines.forEach((line, index) => {
+  data.sections.forEach((section, index) => {
     let svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
     let y = 0;
     wrapper.appendChild(svg)
-    let sectionEditor = createActionsDropdown(svg, line, index, score);
-    sectionEditor.textContent = reconstructSectionText(line);
+    let sectionEditor = createActionsDropdown(svg, section, index, score);
+    sectionEditor.textContent = score.source.textContent;
 
-    if (line.text) {
+    if (section.type === 'text') {
       y += 2 * defaultParameters.lyricFontHeight + defaultParameters.textFontHeight;
       y = renderMultilineText(svg, defaultParameters.leftX, y,
-        line.text, defaultParameters.textFontHeight, 'text');
+        section.text, defaultParameters.textFontHeight, 'text');
       y += defaultParameters.textFontHeight
       return;
     }
@@ -404,30 +362,30 @@ function renderScore(score, wrapper) {
     console.log(pitchLine || "empty pitch line")
 
     y += defaultParameters.lyricFontHeight
-    if (line.image) {
-      const image = new ImageLine(line.image);
+    if (section.type === 'image') {
+      const image = new ImageLine(section.url);
       if (image.wellFormed) {
         const imageElement = image.render(svg, defaultParameters.leftX, y);
         imageElement.classList.add('image-line'); // Add class for toggling
       }
     }
-    if (line.cue) {
+    if (section.type === 'music_section' && section.lines.cue) {
       if (!lyricline) {
         y += defaultParameters.lyricFontHeight;
       } else {
         y += defaultParameters.lyricFontHeight;
       }
-      const cue = new Cue(line.cue);
+      const cue = new Cue(section.lines.cue);
       cue.render(svg, defaultParameters.leftX, y);
     }
-    if (line.chord && lyricline) {
+    if (section.type === 'music_section' && section.lines.chord && lyricline) {
       y += defaultParameters.chordFontHeight
-      const chord = new Chord(line.chord);
+      const chord = new Chord(section.lines.chord);
       chord.render(svg, defaultParameters.leftX, y, lyricline.beats, defaultParameters.lyricFontWidth);
     }
-    if (line.perbeat && lyricline) {
+    if (section.type === 'music_section' && section.lines.perbeat && lyricline) {
       y += defaultParameters.perbeatFontHeight * 1.5
-      const perbeat = new PerBeat(line.perbeat)
+      const perbeat = new PerBeat(section.lines.perbeat)
       perbeat.render(svg, defaultParameters.leftX, y, lyricline)
     }
     let rhythm = undefined;
@@ -436,40 +394,40 @@ function renderScore(score, wrapper) {
     }
 
     if (pitchLine && lyricline) {
-      y += parseInt(data.staff, 10) * defaultParameters.lyricFontHeight;
+      y += parseInt(data.header.staff, 10) * defaultParameters.lyricFontHeight;
       try {
         pitchLine.render(svg, defaultParameters.leftX, y,
-          defaultParameters, lyricline, data.showIntervals);
+          defaultParameters, lyricline, data.header.intervals === 'on');
       } catch (e) {
         lineProblems.add("Pitch line error: " + e.message);
       }
     }
-    if (line.finger && lyricline && pitchLine) {
+    if (section.type === 'music_section' && section.lines.finger && lyricline && pitchLine) {
       const finger = new Finger(lyricline, pitchLine)
-      finger.render(svg, line.finger)
+      finger.render(svg, section.lines.finger)
     }
-    if (line.perbar && lyricline) {
+    if (section.type === 'music_section' && section.lines.perbar && lyricline) {
       y += defaultParameters.perbarFontHeight;
-      const perbar = new PerBar(line.perbar);
+      const perbar = new PerBar(section.lines.perbar);
       perbar.render(svg, defaultParameters.leftX, y, lyricline);
     }
-    if (line.showLyric && lyricline) {
+    if (lyricline && lyricline.showLyric) {
       y += defaultParameters.lyricFontHeight;
       lyricline.render(svg, defaultParameters.leftX, y, defaultParameters.lyricFontWidth);
     }
-    if (line.pernote && lyricline) {
+    if (section.type === 'music_section' && section.lines.pernote && lyricline) {
       y += defaultParameters.pernoteFontHeight * 1.5;
-      const expr = new PerNote(line.pernote);
+      const expr = new PerNote(section.lines.pernote);
       expr.render(svg, defaultParameters.leftX, y, lyricline);
     }
-    if (line.counter && lyricline) {
+    if (section.type === 'music_section' && section.lines.counter && lyricline) {
       y += defaultParameters.counterFontHeight * 1.5
       let npartial = 0;
-      if (line.counter.length > 0) {
+      if (section.lines.counter.length > 0) {
         try {
-          npartial = parseInt(line.counter);
+          npartial = parseInt(section.lines.counter);
         } catch (e) {
-          lineProblems.add(`Invalid counter value: ${line.counter}`);
+          lineProblems.add(`Invalid counter value: ${section.lines.counter}`);
         }
       }
       const counter = new Counter(npartial, lyricline, rhythm);;
